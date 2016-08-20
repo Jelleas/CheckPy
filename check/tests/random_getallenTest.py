@@ -16,4 +16,4 @@ def correctMijnRandomGetal(test):
 	test.test = testMethod
 	
 	test.description = lambda : "MijnRandomGetal functions correctly"
-	test.fail = lambda result : result
+	test.fail = lambda info : str(info)

@@ -31,7 +31,7 @@ def allCalculationsCorrect(test):
 	test.test = testMethod
 
 	test.description = lambda : "calculations on each line are correct"
-	test.fail = lambda result : "failed %s" %result 
+	test.fail = lambda info : str(info)
 
 @t.test
 def allCalculationsContainTwoPrimes(test):
@@ -52,4 +52,4 @@ def allCalculationsContainTwoPrimes(test):
 	test.test = testMethod
 
 	test.description = lambda : "calculations on each line contain exactly two primes"
-	test.fail = lambda result : "failed %s" %result 
+	test.fail = lambda info : str(info) 

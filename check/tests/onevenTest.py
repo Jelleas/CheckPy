@@ -11,7 +11,7 @@ def exact(test):
     test.test = testMethod
     
     test.description = lambda : "output is exactly 100"
-    test.fail = lambda result : "expected: 100, but got \"%s\" instead" %result
+    test.fail = lambda info : "expected: 100, but got \"%s\" instead" %result
 
 @t.failed(exact)
 @t.test
@@ -23,5 +23,5 @@ def contains(test):
     test.test = testMethod
     
     test.description = lambda : "contains 100 in the output"
-    test.success = lambda result : "the correct answer (100) can be found in the output"
-    test.fail = lambda result : "the correct answer (100) cannot be found in the output"
+    test.success = lambda info : "the correct answer (100) can be found in the output"
+    test.fail = lambda info : "the correct answer (100) cannot be found in the output"

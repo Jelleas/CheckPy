@@ -12,7 +12,7 @@ def exactPrimesList(test):
     test.test = testMethod
     
     test.description = lambda : "primes list is exactly as expected"
-    test.fail = lambda result : "primes list is not exactly as expected, output was: %s" %result
+    test.fail = lambda info : "primes list is not exactly as expected, output was: %s" %info
 
 
 @t.failed(exactPrimesList)
@@ -30,7 +30,7 @@ def numberOfPrimes(test):
     test.test = testMethod
     
     test.description = lambda : "output contains correct number of primes"
-    test.fail = lambda result : "output does not contain all expected primes because %s" %result
+    test.fail = lambda info : "output does not contain all expected primes because %s" %info
 
 
 @t.test

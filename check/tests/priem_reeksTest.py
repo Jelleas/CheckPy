@@ -21,4 +21,4 @@ def correctBarriers(test):
 	test.test = testMethod
 
 	test.description = lambda : "correct bounding primes"
-	test.fail = lambda result : "output %s does not contain the correct boundaries" %result
+	test.fail = lambda info : "output %s does not contain the correct boundaries" %info

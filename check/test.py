@@ -1,12 +1,12 @@
 class Test(object):
     def run(self, fileName):
         try:
-            hasPassed, result = self.test(fileName)
+            hasPassed, info = self.test(fileName)
         except Exception as e:
             return TestResult(False, self.description(), self.exception(e))
         if hasPassed:
-            return TestResult(True, self.description(), self.success(result))
-        return TestResult(False, self.description(), self.fail(result))
+            return TestResult(True, self.description(), self.success(info))
+        return TestResult(False, self.description(), self.fail(info))
     
     @staticmethod
     def test(fileName):
@@ -17,16 +17,16 @@ class Test(object):
         raise NotImplementedError()
     
     @staticmethod
-    def success(result):
+    def success(info):
         return ""
     
     @staticmethod    
-    def fail(result):
-        return "failed"
+    def fail(info):
+        return ""
         
     @staticmethod
-    def exception(result):
-        return "an exception occured: " + str(result)
+    def exception(info):
+        return "an exception occured: " + str(info)
         
         
 class TestResult(object):

@@ -17,4 +17,4 @@ def matches(test):
     test.test = testMethod
     
     test.description = lambda : "output contains all expected values"
-    test.fail = lambda result : "output %s does not contain all expected values %s" %(result, str(expected))
+    test.fail = lambda info : "output %s does not contain all expected values %s" %(info, str(expected))
