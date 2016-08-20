@@ -4,6 +4,7 @@ import StringIO
 import contextlib
 import importlib
 import imp
+import exception as excep
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
@@ -16,7 +17,19 @@ def _stdoutIO(stdout=None):
 
 def getFunction(functionName, fileName):
 	moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
-	return getattr(createModule(moduleName, sourceOfDefinitions(fileName)), functionName)
+	return getFunctionFromModule(functionName, createModule(moduleName, sourceOfDefinitions(fileName)))
+
+def getFunctionFromModule(functionName, module):
+	func = getattr(module, functionName)
+	def exceptionWrapper(*args, **kwargs):
+		try:
+			return func(*args, **kwargs)
+		except Exception as e:
+			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["%s=%s" %(func.__code__.co_varnames[i], args[i]) for i in range(len(args))])
+			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
+				argListRepr += ", %s=%s" %(kwargName, kwargs[kwargName])
+			raise excep.SourceException(e, "while trying to execute the function %s with arguments \"%s\"" %(functionName, argListRepr))
+	return exceptionWrapper
 
 def outputOf(fileName):
 	exception = None
@@ -35,7 +48,7 @@ def outputOfSource(source):
 		try:
 			exec source in dict()
 		except Exception as e:
-			exception = e
+			exception = excep.SourceException(e, "while trying to execute the code")
 	if exception:
 		raise exception
 	return s.getvalue()
@@ -60,9 +73,12 @@ def sourceOfDefinitions(fileName):
 	return newSource
 
 def createModule(name, source):
-	mod = imp.new_module(name)
-	exec source in mod.__dict__
-	sys.modules[name] = mod
+	try:
+		mod = imp.new_module(name)
+		exec source in mod.__dict__
+		sys.modules[name] = mod
+	except Exception as e:
+		raise excep.SourceException(e, "while trying to import the code")
 	return mod
 
 def removeWhiteSpace(s):

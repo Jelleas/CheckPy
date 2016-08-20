@@ -1,3 +1,4 @@
+import exception as excep
 from colorama import init
 init()
 
@@ -16,13 +17,19 @@ def display(testResult):
     if testResult == None:
         return
 
-    color = Colors.PASS if testResult.hasPassed else Colors.FAIL
-    smiley = Smileys.HAPPY if testResult.hasPassed else Smileys.SAD
+    color, smiley = _selectColorAndSmiley(testResult)
     print "%s%s %s%s" %(color, smiley, testResult.description, Colors.ENDC),
     if testResult.message:
          print "- %s" %testResult.message
     else:
         print
+
+def _selectColorAndSmiley(testResult):
+    if testResult.hasPassed:
+        return Colors.PASS, Smileys.HAPPY
+    if type(testResult.message) is excep.SourceException:
+        return Colors.WARNING, Smileys.CONFUSED
+    return Colors.FAIL, Smileys.SAD
 
 def displayError(message):
     print "%s%s %s%s" %(Colors.WARNING, Smileys.CONFUSED, message, Colors.ENDC)

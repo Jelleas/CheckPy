@@ -36,8 +36,8 @@ class Test(object):
         return ""
         
     @staticmethod
-    def exception(info):
-        return "an exception occured: " + str(info)
+    def exception(exception):
+        return exception
         
         
 class TestResult(object):
