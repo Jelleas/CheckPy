@@ -7,8 +7,11 @@ def exact(actual, expected):
 def ignoreWhiteSpace(actual, expected):        
     return exact(lib.removeWhiteSpace(actual), lib.removeWhiteSpace(expected))
 
-def contains(actual, expected):
-    return expected in actual
+def contains(actual, expectedElement):
+    return expectedElement in actual
+
+def containsOnly(actual, expectedElements):
+	return len(filter(lambda e : e not in expectedElements, actual)) == 0
     
 def sameType(actual, expected):
     return type(actual) is type(expected)

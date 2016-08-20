@@ -2,9 +2,8 @@ import test as t
 import lib
 import assertlib
 
-def matches():
-    test = t.Test()
-    
+@t.test
+def matches(test):
     expected = ["96.8", "98.6", "99.5", "100.4", "102.2"]
 
     def testMethod(fileName):
@@ -19,5 +18,3 @@ def matches():
     
     test.description = lambda : "output contains all expected values"
     test.fail = lambda result : "output %s does not contain all expected values %s" %(result, str(expected))
-    
-    return test

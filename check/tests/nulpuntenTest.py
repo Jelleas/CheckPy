@@ -3,9 +3,8 @@ import lib
 import assertlib
 import sys
 
-def returnTypeIsList():
-	test = t.Test()
-
+@t.test
+def returnTypeIsList(test):
 	def testMethod(fileName):
 		sys.modules["nulpunten"] = lib.createModule("nulpunten", lib.sourceOfDefinitions(fileName))
 		import nulpunten
@@ -15,12 +14,9 @@ def returnTypeIsList():
 	test.test = testMethod
 	
 	test.description = lambda : "correct return type of Nulpunten"
-	
-	return test
 
-def correct():
-	test = t.Test()
-
+@t.test
+def correct(test):
 	def testMethod(fileName):
 		sys.modules["nulpunten"] = lib.createModule("nulpunten", lib.sourceOfDefinitions(fileName))
 		import nulpunten
@@ -32,5 +28,3 @@ def correct():
 	test.test = testMethod
 	
 	test.description = lambda : "output of Nulpunten is correct for the example a=1, b=2, c=-10"
-	
-	return test

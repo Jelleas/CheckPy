@@ -47,6 +47,12 @@ class TestResult(object):
     def hasPassed(self):
         return self._hasPassed
 
+def test(testCreator):
+    def testWrapper():
+        test = Test()
+        testCreator(test)
+        return test
+    return testWrapper
 
 def failed(*precondTestCreators):
     def failedDecorator(testCreator):

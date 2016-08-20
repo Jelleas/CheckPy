@@ -2,9 +2,8 @@ import test as t
 import lib
 import assertlib
 
-def exact():
-    test = t.Test()
-
+@t.test
+def exact(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).strip()
         testResult = assertlib.exact(result, "[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]")
@@ -13,13 +12,10 @@ def exact():
     
     test.description = lambda : "output is exactly as expected"
     test.fail = lambda result : "output is not exactly as expected, output was: %s" %result
-    
-    return test
 
 @t.failed(exact)
-def numberOfPrimes():
-    test = t.Test()
-
+@t.test
+def numberOfPrimes(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).strip()
         
@@ -34,5 +30,3 @@ def numberOfPrimes():
     
     test.description = lambda : "output contains correct number of primes"
     test.fail = lambda result : "output does not contain all expected primes because %s" %result
-    
-    return test
