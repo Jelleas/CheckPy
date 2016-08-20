@@ -17,3 +17,16 @@ def correctMijnRandomGetal(test):
 	
 	test.description = lambda : "MijnRandomGetal functions correctly"
 	test.fail = lambda info : str(info)
+
+
+@t.passed(correctMijnRandomGetal)
+@t.test
+def correctVierkant(test):
+	def testMethod(fileName):
+		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(fileName))
+		import random_getallen
+		return -0.05 < 0.5 - random_getallen.Vierkant() < 0.05, ""
+	test.test = testMethod
+	
+	test.description = lambda : "correct distance calculated by Vierkant"
+	test.fail = lambda info : str(info)
