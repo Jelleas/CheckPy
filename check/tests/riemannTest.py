@@ -4,7 +4,7 @@ import assertlib
 import sys
 import math
 
-@t.test
+@t.test(0)
 def correctFunc1(test):
 	def testMethod(fileName):
 		sys.modules["riemann"] = lib.createModule("riemann", lib.sourceOfDefinitions(fileName))
@@ -14,7 +14,7 @@ def correctFunc1(test):
 	
 	test.description = lambda : "correct for x^x from a=0 to b=1 with dx=0.001"
 
-@t.test
+@t.test(1)
 def correctFunc2(test):
 	def testMethod(fileName):
 		sys.modules["riemann"] = lib.createModule("riemann", lib.sourceOfDefinitions(fileName))
@@ -24,7 +24,7 @@ def correctFunc2(test):
 	
 	test.description = lambda : "correct for sin(x) from a=0.1 to b=2 with dx=0.001"
 
-@t.test
+@t.test(2)
 def correctFunc3(test):
 	def testMethod(fileName):
 		sys.modules["riemann"] = lib.createModule("riemann", lib.sourceOfDefinitions(fileName))
@@ -33,5 +33,3 @@ def correctFunc3(test):
 	test.test = testMethod
 	
 	test.description = lambda : "correct for sin(x^2) from a=0 to b=pi with dx=0.001"
-
-	

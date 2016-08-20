@@ -3,7 +3,7 @@ import lib
 import assertlib
 import sys
 
-@t.test
+@t.test(0)
 def correctMijnRandomGetal(test):
 	def testMethod(fileName):
 		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(fileName))
@@ -20,7 +20,7 @@ def correctMijnRandomGetal(test):
 
 
 @t.passed(correctMijnRandomGetal)
-@t.test
+@t.test(1)
 def correctVierkant(test):
 	def testMethod(fileName):
 		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(fileName))

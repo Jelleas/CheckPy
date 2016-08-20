@@ -2,7 +2,7 @@ import test as t
 import lib
 import assertlib
 
-@t.test
+@t.test(0)
 def correctDistance(test):
 	def testMethod(fileName):
 		result = lib.outputOf(fileName).split("\n")[0]
@@ -12,7 +12,7 @@ def correctDistance(test):
 
 	test.description = lambda : "correct distance"
 
-@t.test
+@t.test(1)
 def correctBarriers(test):
 	def testMethod(fileName):
 		result = lib.outputOf(fileName).split("\n")[1]

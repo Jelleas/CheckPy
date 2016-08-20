@@ -2,7 +2,7 @@ import test as t
 import lib
 import assertlib
 
-@t.test
+@t.test(0)
 def matches(test):
     expected = ["96.8", "98.6", "99.5", "100.4", "102.2"]
 

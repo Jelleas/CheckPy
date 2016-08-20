@@ -23,8 +23,7 @@ def main():
             if callable(method)\
         ]
 
-    for testCreator in testCreators:
-        printer.display(testCreator().run(fileName))
-
+    for test in sorted(tc() for tc in testCreators):
+        printer.display(test.run(fileName))
 
 main()

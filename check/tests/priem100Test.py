@@ -2,7 +2,7 @@ import test as t
 import lib
 import assertlib
 
-@t.test
+@t.test(0)
 def exact(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).strip()
@@ -14,7 +14,7 @@ def exact(test):
     test.fail = lambda info : "output is not exactly as expected, output was: %s" %info
 
 @t.failed(exact)
-@t.test
+@t.test(1)
 def numberOfPrimes(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).strip()

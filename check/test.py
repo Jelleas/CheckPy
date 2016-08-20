@@ -1,4 +1,10 @@
 class Test(object):
+    def __init__(self, priority):
+        self._priority = priority
+
+    def __cmp__(self, other):
+        return cmp(self._priority, other._priority)
+
     def run(self, fileName):
         try:
             hasPassed, info = self.test(fileName)
@@ -47,12 +53,14 @@ class TestResult(object):
     def hasPassed(self):
         return self._hasPassed
 
-def test(testCreator):
-    def testWrapper():
-        test = Test()
-        testCreator(test)
-        return test
-    return testWrapper
+def test(priority):
+    def testDecorator(testCreator):
+        def testWrapper():
+            test = Test(priority)
+            testCreator(test)
+            return test
+        return testWrapper
+    return testDecorator
 
 def failed(*precondTestCreators):
     def failedDecorator(testCreator):

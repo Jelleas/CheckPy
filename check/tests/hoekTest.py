@@ -2,7 +2,7 @@ import test as t
 import lib
 import assertlib
 
-@t.test
+@t.test(0)
 def correct(test):
 	def testMethod(fileName):
 		result = lib.outputOf(fileName)

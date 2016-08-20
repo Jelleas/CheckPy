@@ -2,7 +2,7 @@ import test as t
 import lib
 import assertlib
 
-@t.test
+@t.test(0)
 def exactPrimesList(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName)
@@ -16,7 +16,7 @@ def exactPrimesList(test):
 
 
 @t.failed(exactPrimesList)
-@t.test
+@t.test(1)
 def numberOfPrimes(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).split("\n")[0]
@@ -33,7 +33,7 @@ def numberOfPrimes(test):
     test.fail = lambda info : "output does not contain all expected primes because %s" %info
 
 
-@t.test
+@t.test(2)
 def correctThousandthPrime(test):
     def testMethod(fileName):
         result = lib.outputOf(fileName).split("\n")[1]
