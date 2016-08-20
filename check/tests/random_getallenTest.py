@@ -5,8 +5,8 @@ import sys
 
 @t.test(0)
 def correctMijnRandomGetal(test):
-	def testMethod(fileName):
-		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(fileName))
+	def testMethod():
+		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(_fileName))
 		import random_getallen
 		if not assertlib.containsOnly([random_getallen.MijnRandomGetal(1,1) for i in range(100)], [1]):
 			return False, "Huh? a random number between 1 and 1 gives something unexpected"
@@ -22,8 +22,8 @@ def correctMijnRandomGetal(test):
 @t.passed(correctMijnRandomGetal)
 @t.test(1)
 def correctVierkant(test):
-	def testMethod(fileName):
-		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(fileName))
+	def testMethod():
+		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(_fileName))
 		import random_getallen
 		return -0.05 < 0.5 - random_getallen.Vierkant() < 0.05, ""
 	test.test = testMethod

@@ -6,8 +6,8 @@ import assertlib
 def matches(test):
     expected = ["96.8", "98.6", "99.5", "100.4", "102.2"]
 
-    def testMethod(fileName):
-        result = lib.outputOf(fileName)
+    def testMethod():
+        result = lib.outputOf(_fileName)
         regex = ".*\["
         for i, answer in enumerate(expected):
             regex += answer.split(".")[0] + "\." + answer.split(".")[1] + (".*,.*" if i != len(expected) - 1 else ".*")

@@ -4,8 +4,8 @@ import assertlib
 
 @t.test(0)
 def exact(test):
-    def testMethod(fileName):
-        result = lib.outputOf(fileName).strip()
+    def testMethod():
+        result = lib.outputOf(_fileName).strip()
         testResult = assertlib.exact(result, "[2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]")
         return testResult, result
     test.test = testMethod
@@ -16,8 +16,8 @@ def exact(test):
 @t.failed(exact)
 @t.test(1)
 def numberOfPrimes(test):
-    def testMethod(fileName):
-        result = lib.outputOf(fileName).strip()
+    def testMethod():
+        result = lib.outputOf(_fileName).strip()
         
         if not result.startswith("[") or not result.endswith("]"):
             return False, "you seemed to have printed out more than just a list, please follow the assignment!"

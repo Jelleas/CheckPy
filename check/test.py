@@ -1,21 +1,26 @@
+_cachedTests = {}
+
 class Test(object):
     def __init__(self, priority):
         self._priority = priority
+        self._cachedResult = None
 
     def __cmp__(self, other):
         return cmp(self._priority, other._priority)
 
-    def run(self, fileName):
+    def run(self):
+        if self._cachedResult:
+            return self._cachedResult
         try:
-            hasPassed, info = self.test(fileName)
+            hasPassed, info = self.test()
         except Exception as e:
-            return TestResult(False, self.description(), self.exception(e))
-        if hasPassed:
-            return TestResult(True, self.description(), self.success(info))
-        return TestResult(False, self.description(), self.fail(info))
+            self._cachedResult = TestResult(False, self.description(), self.exception(e))
+            return self._cachedResult
+        self._cachedResult = TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
+        return self._cachedResult
     
     @staticmethod
-    def test(fileName):
+    def test():
         raise NotImplementedError()
     
     @staticmethod
@@ -53,31 +58,37 @@ class TestResult(object):
     def hasPassed(self):
         return self._hasPassed
 
+
 def test(priority):
     def testDecorator(testCreator):
         def testWrapper():
+            if testCreator in _cachedTests:
+                return _cachedTests[testCreator]
             test = Test(priority)
             testCreator(test)
+            _cachedTests[testCreator] = test
             return test
         return testWrapper
     return testDecorator
+
 
 def failed(*precondTestCreators):
     def failedDecorator(testCreator):
         def testWrapper():
             test = testCreator()
             run = test.run
-            test.run = lambda fileName : run(fileName) if not any(t().run(fileName).hasPassed for t in precondTestCreators) else None
+            test.run = lambda : run() if not any(t().run().hasPassed for t in precondTestCreators) else None
             return test
         return testWrapper
     return failedDecorator
+
 
 def passed(*precondTestCreators):
     def passedDecorator(testCreator):
         def testWrapper():
             test = testCreator()
             run = test.run
-            test.run = lambda fileName : run(fileName) if all(t().run(fileName).hasPassed for t in precondTestCreators) else None
+            test.run = lambda : run() if all(t().run().hasPassed for t in precondTestCreators) else None
             return test
         return testWrapper
     return passedDecorator

@@ -4,8 +4,8 @@ import assertlib
 
 @t.test(0)
 def correctDistance(test):
-	def testMethod(fileName):
-		result = lib.outputOf(fileName).split("\n")[0]
+	def testMethod():
+		result = lib.outputOf(_fileName).split("\n")[0]
 		testResult = assertlib.exact(result, "36")
 		return testResult, result
 	test.test = testMethod
@@ -14,8 +14,8 @@ def correctDistance(test):
 
 @t.test(1)
 def correctBarriers(test):
-	def testMethod(fileName):
-		result = lib.outputOf(fileName).split("\n")[1]
+	def testMethod():
+		result = lib.outputOf(_fileName).split("\n")[1]
 		testResult = assertlib.match(result, ".*9551.*9587.*")
 		return testResult, result
 	test.test = testMethod

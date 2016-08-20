@@ -4,8 +4,8 @@ import assertlib
 
 @t.test(0)
 def exact(test):
-    def testMethod(fileName):
-        result = lib.outputOf(fileName)
+    def testMethod():
+        result = lib.outputOf(_fileName)
         testResult = assertlib.exact(result.strip(), "100")
         return testResult, result
     test.test = testMethod
@@ -13,11 +13,12 @@ def exact(test):
     test.description = lambda : "output is exactly 100"
     test.fail = lambda info : "expected: 100, but got \"%s\" instead" %info
 
+
 @t.failed(exact)
 @t.test(1)
 def contains(test):
-    def testMethod(fileName):
-        result = lib.outputOf(fileName)
+    def testMethod():
+        result = lib.outputOf(_fileName)
         testResult = assertlib.contains(result, "100")
         return testResult, result
     test.test = testMethod

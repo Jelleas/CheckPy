@@ -13,6 +13,7 @@ def main():
 
     try:
         testModule = importlib.import_module("tests.%s" %testName)
+        testModule._fileName = fileName
     except ImportError as e:
         printer.displayError("No test found for %s" %fileName)
         return
@@ -24,6 +25,6 @@ def main():
         ]
 
     for test in sorted(tc() for tc in testCreators):
-        printer.display(test.run(fileName))
+        printer.display(test.run())
 
 main()

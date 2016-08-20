@@ -4,8 +4,8 @@ import assertlib
 
 @t.test(0)
 def correct(test):
-	def testMethod(fileName):
-		result = lib.outputOf(fileName)
+	def testMethod():
+		result = lib.outputOf(_fileName)
 		testResult = assertlib.contains(result, "29")
 		return testResult, result
 	test.test = testMethod
