@@ -6,11 +6,10 @@ import sys
 @t.test(0)
 def correctMijnRandomGetal(test):
 	def testMethod():
-		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(_fileName))
-		import random_getallen
-		if not assertlib.containsOnly([random_getallen.MijnRandomGetal(1,1) for i in range(100)], [1]):
+		MijnRandomGetal = lib.getFunction("MijnRandomGetal", _fileName)
+		if not assertlib.containsOnly([MijnRandomGetal(1,1) for i in range(100)], [1]):
 			return False, "Huh? a random number between 1 and 1 gives something unexpected"
-		if not assertlib.containsOnly([random_getallen.MijnRandomGetal(0,1) for i in range(100)], [0,1]):
+		if not assertlib.containsOnly([MijnRandomGetal(0,1) for i in range(100)], [0,1]):
 			return False, "Huh? a random number between 0 and 1 can become something other than 0 or 1?!"
 		return True, ""
 	test.test = testMethod
@@ -22,11 +21,6 @@ def correctMijnRandomGetal(test):
 @t.passed(correctMijnRandomGetal)
 @t.test(1)
 def correctVierkant(test):
-	def testMethod():
-		sys.modules["random_getallen"] = lib.createModule("random_getallen", lib.sourceOfDefinitions(_fileName))
-		import random_getallen
-		return -0.05 < 0.5 - random_getallen.Vierkant() < 0.05, ""
-	test.test = testMethod
-	
+	test.test = lambda : (-0.05 < 0.5 - lib.getFunction("Vierkant", _fileName)() < 0.05, "")
 	test.description = lambda : "correct distance calculated by Vierkant"
 	test.fail = lambda info : str(info)

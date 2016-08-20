@@ -6,9 +6,7 @@ import sys
 @t.test(0)
 def correct(test):
 	def testMethod():
-		sys.modules["nulpunten"] = lib.createModule("nulpunten", lib.sourceOfDefinitions(_fileName))
-		import nulpunten
-		points = nulpunten.Nulpunten(1,2,-10)
+		points = lib.getFunction("Nulpunten", _fileName)(1,2,-10)
 		for i, point in enumerate(points):
 			points[i] = int(point * 10)
 		testResult = 23 in points and -43 in points
@@ -20,12 +18,5 @@ def correct(test):
 
 @t.test(1)
 def returnTypeIsList(test):
-	def testMethod():
-		sys.modules["nulpunten"] = lib.createModule("nulpunten", lib.sourceOfDefinitions(_fileName))
-		import nulpunten
-		points = nulpunten.Nulpunten(1,2,-10)
-		testResult = assertlib.sameType(points, [])
-		return testResult, ""
-	test.test = testMethod
-	
+	test.test = lambda : (assertlib.sameType(lib.getFunction("Nulpunten", _fileName)(1,2,-10), []), "")
 	test.description = lambda : "correct return type of Nulpunten"

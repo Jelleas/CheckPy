@@ -4,12 +4,7 @@ import assertlib
 
 @t.test(0)
 def correctDistance(test):
-	def testMethod():
-		result = lib.outputOf(_fileName).split("\n")[0]
-		testResult = assertlib.exact(result, "36")
-		return testResult, result
-	test.test = testMethod
-
+	test.test = lambda : (assertlib.exact(lib.outputOf(_fileName).split("\n")[0], "36"), "")
 	test.description = lambda : "correct distance"
 
 @t.test(1)
