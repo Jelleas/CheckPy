@@ -3,6 +3,9 @@ import re
 
 def exact(actual, expected):
     return actual == expected
+
+def between(actual, lower, upper):
+	return lower <= actual <= upper
     
 def ignoreWhiteSpace(actual, expected):        
     return exact(lib.removeWhiteSpace(actual), lib.removeWhiteSpace(expected))
