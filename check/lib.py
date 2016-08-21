@@ -16,8 +16,7 @@ def _stdoutIO(stdout=None):
 	sys.stdout = old
 
 def getFunction(functionName, fileName):
-	moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
-	return getattr(createModule(moduleName, sourceOfDefinitions(fileName)), functionName)
+	return getattr(createModule(fileName), functionName)
 
 def outputOf(fileName):
 	exception = None
@@ -60,7 +59,11 @@ def sourceOfDefinitions(fileName):
 				insideDefinition = False
 	return newSource
 
-def createModule(moduleName, source):
+def createModule(fileName):
+	return createModuleFromSource(fileName, sourceOfDefinitions(fileName))
+
+def createModuleFromSource(fileName, source):
+	moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 	try:
 		mod = imp.new_module(moduleName)
 		exec source in mod.__dict__

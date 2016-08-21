@@ -3,8 +3,7 @@ import lib
 import assertlib
 
 def init():
-	mod = lib.createModule("appel", lib.sourceOfDefinitions(_fileName))
-	lib.neutralizeFunctionFromImport(mod, "show", "matplotlib.pyplot")
+	lib.neutralizeFunctionFromImport(lib.createModule(_fileName), "show", "matplotlib.pyplot")
 
 @t.test(0)
 def correctTime(test):
