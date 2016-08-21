@@ -14,7 +14,7 @@ Requires python 2.7
 * The test designer need not concern herself with exception handling and printing
 * The full scope of Python is available when designing tests
 * Full control over displayed information
-* Support for importing modules without executing scripts that are not wrapped by `if \_\_name\_\_ == "\_\_main\_\_"'
+* Support for importing modules without executing scripts that are not wrapped by `if __name__ == "__main__"`
 
 ## An example
 Tests in checkPy are collections of abstract methods that you as a test designer need to implement. A test may look something like the following:
