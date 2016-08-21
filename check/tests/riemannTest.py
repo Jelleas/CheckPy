@@ -1,7 +1,6 @@
 import test as t
 import lib
 import assertlib
-import sys
 import math
 
 @t.test(0)
