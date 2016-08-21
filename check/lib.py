@@ -17,19 +17,7 @@ def _stdoutIO(stdout=None):
 
 def getFunction(functionName, fileName):
 	moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
-	return getFunctionFromModule(functionName, createModule(moduleName, sourceOfDefinitions(fileName)))
-
-def getFunctionFromModule(functionName, module):
-	func = getattr(module, functionName)
-	def exceptionWrapper(*args, **kwargs):
-		try:
-			return func(*args, **kwargs)
-		except Exception as e:
-			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["%s=%s" %(func.__code__.co_varnames[i], args[i]) for i in range(len(args))])
-			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
-				argListRepr += ", %s=%s" %(kwargName, kwargs[kwargName])
-			raise excep.SourceException(e, "while trying to execute the function %s with arguments \"%s\"" %(functionName, argListRepr))
-	return exceptionWrapper
+	return getattr(createModule(moduleName, sourceOfDefinitions(fileName)), functionName)
 
 def outputOf(fileName):
 	exception = None
@@ -66,20 +54,48 @@ def sourceOfDefinitions(fileName):
 			elif line.startswith("def ") or line.startswith("class "):
 				newSource += line
 				insideDefinition = True
-			elif line.startswith("import "):
+			elif line.startswith("import ") or line.startswith("from "):
 				newSource += line
 			else:
 				insideDefinition = False
 	return newSource
 
-def createModule(name, source):
+def createModule(moduleName, source):
 	try:
-		mod = imp.new_module(name)
+		mod = imp.new_module(moduleName)
 		exec source in mod.__dict__
-		sys.modules[name] = mod
+		sys.modules[moduleName] = mod
 	except Exception as e:
 		raise excep.SourceException(e, "while trying to import the code")
+
+	for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
+		if func.__module__ == moduleName:
+			setattr(mod, name, wrapFunctionWithExceptionHandler(func))
 	return mod
+
+def neutralizeFunction(mod, functionName):
+	if hasattr(mod, functionName):
+		def dummy(*args, **kwargs):
+			pass
+		setattr(getattr(mod, functionName), "__code__", dummy.__code__)
+
+def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
+	for attr in [getattr(mod, name) for name in dir(mod)]:
+		if getattr(attr, "__name__", None) == importedModuleName:
+			neutralizeFunction(attr, functionName)
+		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
+			neutralizeFunction(mod, functionName)
+	
+def wrapFunctionWithExceptionHandler(func):
+	def exceptionWrapper(*args, **kwargs):
+		try:
+			return func(*args, **kwargs)
+		except Exception as e:
+			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["%s=%s" %(func.__code__.co_varnames[i], args[i]) for i in range(len(args))])
+			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
+				argListRepr += ", %s=%s" %(kwargName, kwargs[kwargName])
+			raise excep.SourceException(e, "while trying to execute the function %s with arguments \"%s\"" %(func.__name__, argListRepr))
+	return exceptionWrapper
 
 def removeWhiteSpace(s):
 	return re.sub(r"\s+", "", s, flags=re.UNICODE)
