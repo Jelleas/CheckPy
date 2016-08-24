@@ -15,6 +15,7 @@ Requires python 2.7
 * The full scope of Python is available when designing tests
 * Full control over displayed information
 * Support for importing modules without executing scripts that are not wrapped by `if __name__ == "__main__"`
+* Support for overriding functions from imports in order to for instance prevent blocking function calls.
 
 ## An example
 Tests in checkPy are collections of abstract methods that you as a test designer need to implement. A test may look something like the following:
@@ -23,7 +24,7 @@ Tests in checkPy are collections of abstract methods that you as a test designer
 0| @t.failed(exact)
 1| @t.test(1)
 2| def contains(test):
-3|     test.test = lambda : (assertlib.contains(lib.outputOf(_fileName), "100"), "")
+3|     test.test = lambda : assertlib.contains(lib.outputOf(_fileName), "100")
 4|     test.description = lambda : "contains 100 in the output"
 5|     test.success = lambda info : "the correct answer (100) can be found in the output"
 6|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
@@ -51,7 +52,7 @@ A test minimally consists of the following:
 import test as t
 @t.test(0)
 def someTest(test):
-  test.test = lambda : (False, "")
+  test.test = lambda : False
   test.description = lambda : "some description"
 ```
 
