@@ -18,5 +18,5 @@ def correct(test):
 
 @t.test(1)
 def returnTypeIsList(test):
-	test.test = lambda : (assertlib.sameType(lib.getFunction("Nulpunten", _fileName)(1,2,-10), []), "")
+	test.test = lambda : assertlib.sameType(lib.getFunction("Nulpunten", _fileName)(1,2,-10), [])
 	test.description = lambda : "correct return type of Nulpunten"

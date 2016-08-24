@@ -25,7 +25,7 @@ def correctMinTemp(test):
 @t.test(11)
 def correctDayOfMinTemp(test):
 	test.test = lambda : (\
-		assertlib.match(lib.outputOf(_fileName).split("\n")[0], ".*27-[0]?1-1942.*"),\
+		assertlib.match(lib.outputOf(_fileName).split("\n")[1], ".*27-[0]?1-1942.*"),\
 		"note: please provide output in the form of DD-MM-YYYY")
 	test.description = lambda : "correct day of minimum temperature"
 

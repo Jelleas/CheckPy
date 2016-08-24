@@ -21,5 +21,5 @@ def correctMijnRandomGetal(test):
 @t.passed(correctMijnRandomGetal)
 @t.test(1)
 def correctVierkant(test):
-	test.test = lambda : (0.45 < lib.getFunction("Vierkant", _fileName)() < 0.55, "")
+	test.test = lambda : assertlib.between(lib.getFunction("Vierkant", _fileName)(), 0.45, 0.55)
 	test.description = lambda : "correct distance calculated by Vierkant"
