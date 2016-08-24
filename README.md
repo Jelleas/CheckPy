@@ -15,7 +15,7 @@ Requires python 2.7
 * The full scope of Python is available when designing tests
 * Full control over displayed information
 * Support for importing modules without executing scripts that are not wrapped by `if __name__ == "__main__"`
-* Support for overriding functions from imports in order to for instance prevent blocking function calls.
+* Support for overriding functions from imports in order to for instance prevent blocking function calls
 
 ## An example
 Tests in checkPy are collections of abstract methods that you as a test designer need to implement. A test may look something like the following:
