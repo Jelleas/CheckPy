@@ -12,7 +12,11 @@ class Test(object):
 		if self._cachedResult:
 			return self._cachedResult
 		try:
-			hasPassed, info = self.test()
+			result = self.test()
+			if type(result) == tuple:
+				hasPassed, info = result
+			else:
+				hasPassed, info = result, ""
 		except Exception as e:
 			self._cachedResult = TestResult(False, self.description(), self.exception(e))
 			return self._cachedResult
@@ -33,7 +37,7 @@ class Test(object):
 	
 	@staticmethod    
 	def fail(info):
-		return ""
+		return info
 		
 	@staticmethod
 	def exception(exception):
