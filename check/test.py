@@ -1,16 +1,13 @@
-_cachedTests = {}
-
 class Test(object):
 	def __init__(self, priority):
 		self._priority = priority
-		self._cachedResult = None
 
 	def __cmp__(self, other):
 		return cmp(self._priority, other._priority)
 
-	def run(self):
-		if self._cachedResult:
-			return self._cachedResult
+	def run(self, memo = {}):
+		if self in memo:
+			return memo[self]
 		try:
 			result = self.test()
 			if type(result) == tuple:
@@ -18,10 +15,11 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
-			self._cachedResult = TestResult(False, self.description(), self.exception(e))
-			return self._cachedResult
-		self._cachedResult = TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
-		return self._cachedResult
+			memo[self] = TestResult(False, self.description(), self.exception(e))
+			return memo[self]
+
+		memo[self] = TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
+		return memo[self]
 	
 	@staticmethod
 	def test():
@@ -62,16 +60,15 @@ class TestResult(object):
 	def hasPassed(self):
 		return self._hasPassed
 
-
-def test(priority):
+def test(priority, memo = {}):
 	def testDecorator(testCreator):
 		def testWrapper():
-			if testCreator in _cachedTests:
-				return _cachedTests[testCreator]
-			test = Test(priority)
-			testCreator(test)
-			_cachedTests[testCreator] = test
-			return test
+			if testCreator in memo:
+				return memo[testCreator]
+			t = Test(priority)
+			testCreator(t)
+			memo[testCreator] = t
+			return t
 		return testWrapper
 	return testDecorator
 

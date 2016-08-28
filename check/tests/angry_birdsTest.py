@@ -2,8 +2,8 @@ import test as t
 import lib
 import assertlib
 
-def init():
-	lib.neutralizeFunctionFromImport(lib.createModule(_fileName), "show", "matplotlib.pyplot")
+def before():
+	lib.neutralizeFunctionFromImport(lib.module(_fileName), "show", "matplotlib.pyplot")
 
 @t.test(0)
 def correctBalBeweging0(test):

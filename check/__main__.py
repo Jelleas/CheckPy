@@ -21,13 +21,16 @@ def main():
 	testCreators = [\
 			method \
 			for _, method in testModule.__dict__.iteritems() \
-			if callable(method) and method.__name__ != "init"\
+			if callable(method) and method.__name__ != "before" and method.__name__ != "after"\
 		]
 
-	if hasattr(testModule, "init"):
-		getattr(testModule, "init")()
+	if hasattr(testModule, "before"):
+		getattr(testModule, "before")()
 
 	for test in sorted(tc() for tc in testCreators):
 		printer.display(test.run())
+
+	if hasattr(testModule, "after"):
+		getattr(testModule, "after")()
 
 main()

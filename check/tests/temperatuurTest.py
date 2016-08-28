@@ -2,8 +2,9 @@ import test as t
 import lib
 import assertlib
 
-def init():
-	lib.neutralizeFunctionFromImport(lib.createModule(_fileName), "show", "matplotlib.pyplot")
+def before():
+	mod = lib.module(_fileName)
+	lib.neutralizeFunctionFromImport(mod, "show", "matplotlib.pyplot")
 
 @t.test(0)
 def correctMaxTemp(test):

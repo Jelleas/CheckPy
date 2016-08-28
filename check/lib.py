@@ -16,29 +16,25 @@ def _stdoutIO(stdout=None):
 	sys.stdout = old
 
 def getFunction(functionName, fileName):
-	return getattr(createModule(fileName), functionName)
-
+	return getattr(module(fileName), functionName)
+	
 def outputOf(fileName):
-	exception = None
-	with open(fileName) as f:
-		try:
-			printOutput = outputOfSource(f.read())
-		except Exception as e:
-			exception = e
-	if exception:
-		raise exception
-	return printOutput
+	return outputOfSource(fileName, source(fileName))
 
-def outputOfSource(source):
+def outputOfSource(fileName, source):
 	exception = None
-	with _stdoutIO() as s:
-		try:
-			exec source in dict()
-		except Exception as e:
-			exception = excep.SourceException(e, "while trying to execute the code")
+
+	_, output = moduleAndOutputFromSource(fileName, source)
 	if exception:
 		raise exception
-	return s.getvalue()
+	
+	return output
+
+def source(fileName):
+	source = ""
+	with open(fileName) as f:
+		source = f.read()
+	return source
 
 def sourceOfDefinitions(fileName):
 	newSource = ""
@@ -57,24 +53,39 @@ def sourceOfDefinitions(fileName):
 				newSource += line
 			else:
 				insideDefinition = False
+
 	return newSource
 
-def createModule(fileName):
-	return createModuleFromSource(fileName, sourceOfDefinitions(fileName))
-
-def createModuleFromSource(fileName, source):
-	moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
-	try:
-		mod = imp.new_module(moduleName)
-		exec source in mod.__dict__
-		sys.modules[moduleName] = mod
-	except Exception as e:
-		raise excep.SourceException(e, "while trying to import the code")
-
-	for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
-		if func.__module__ == moduleName:
-			setattr(mod, name, wrapFunctionWithExceptionHandler(func))
+def module(fileName):
+	mod, _ = moduleAndOutputFromSource(fileName, sourceOfDefinitions(fileName))
 	return mod
+
+def moduleAndOutputFromSource(fileName, source, memo= {}):
+	if (fileName, source) in memo:
+		return memo[(fileName, source)]
+
+	mod = None
+	output = ""
+	exception = None
+	with _stdoutIO() as s:
+		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
+		try:
+			mod = imp.new_module(moduleName)
+			exec source in mod.__dict__
+			sys.modules[moduleName] = mod
+
+		except Exception as e:
+			exception = excep.SourceException(e, "while trying to import the code")
+
+		for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
+			if func.__module__ == moduleName:
+				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
+		output = s.getvalue()
+	if exception:
+		raise exception
+
+	memo[(fileName, source)] = (mod, output)
+	return memo[(fileName, source)]
 
 def neutralizeFunction(mod, functionName):
 	if hasattr(mod, functionName):
