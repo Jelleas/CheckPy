@@ -33,6 +33,3 @@ def _selectColorAndSmiley(testResult):
 
 def displayError(message):
 	print "%s%s %s%s" %(Colors.WARNING, Smileys.CONFUSED, message, Colors.ENDC)
-
-def remove():
-	return max(1,2)
