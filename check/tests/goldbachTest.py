@@ -42,11 +42,7 @@ def allCalculationsContainTwoPrimes(test):
 			if line.strip() == "":
 				continue
 			numbers = lib.getPositiveIntegersFromString(line)
-			count = 0
-			for n in numbers:
-				if n in primes:
-					count += 1
-			if count != 2:
+			if sum(1 for n in numbers if n in primes) != 2:
 				return False, "calculation \"%s\" does not contain exactly two prime numbers" %line
 		return True, ""
 	test.test = testMethod
