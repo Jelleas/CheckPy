@@ -18,11 +18,9 @@ def display(testResult):
 		return
 
 	color, smiley = _selectColorAndSmiley(testResult)
-	print "%s%s %s%s" %(color, smiley, testResult.description, Colors.ENDC),
+	print "%s%s %s%s" %(color, smiley, testResult.description, Colors.ENDC)
 	if testResult.message:
-		 print "- %s" %testResult.message
-	else:
-		print
+		 print "  - %s" %testResult.message
 
 def _selectColorAndSmiley(testResult):
 	if testResult.hasPassed:
