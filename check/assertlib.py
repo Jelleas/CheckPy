@@ -24,6 +24,3 @@ def match(actual, expectedRegEx):
 
 def sameLength(actual, expected):
 	return len(actual) == len(expected)
-
-def test():
-	print [1,2,3][0]
