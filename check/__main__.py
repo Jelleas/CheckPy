@@ -2,6 +2,8 @@ import sys
 import importlib
 import lib
 import printer
+import os
+
 
 def main():
 	if len(sys.argv) != 2:
@@ -9,15 +11,15 @@ def main():
 		return
 		
 	fileName = sys.argv[1] if sys.argv[1].endswith(".py") else sys.argv[1] + ".py"
-	testName = fileName[:-3] + "Test"
-
-	try:
-		testModule = importlib.import_module("tests.%s" %testName)
-		testModule._fileName = fileName
-	except ImportError as e:
-		printer.displayError("No test found for %s" %fileName)
+	
+	testDirPath = getTestDirPath(fileName[:-3] + "Test.py")
+	if testDirPath is None:
+		printer.displayError("No test found for {}".format(fileName))
 		return
-
+	sys.path.append(testDirPath)
+	testModule = importlib.import_module(fileName[:-3] + "Test")
+	testModule._fileName = fileName
+	
 	testCreators = [\
 			method \
 			for _, method in testModule.__dict__.iteritems() \
@@ -32,5 +34,10 @@ def main():
 
 	if hasattr(testModule, "after"):
 		getattr(testModule, "after")()
+
+def getTestDirPath(testFileName):
+	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
+		if testFileName in fileNames:
+			return dirPath
 
 main()
