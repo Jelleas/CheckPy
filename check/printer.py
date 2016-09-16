@@ -6,6 +6,7 @@ class Colors:
 	PASS = '\033[92m'
 	WARNING = '\033[93m'
 	FAIL = '\033[91m'
+	NAME = '\033[96m'
 	ENDC = '\033[0m'
 
 class Smileys:
@@ -21,6 +22,9 @@ def display(testResult):
 	print "%s%s %s%s" %(color, smiley, testResult.description, Colors.ENDC)
 	if testResult.message:
 		 print "  - %s" %testResult.message
+
+def displayTestName(testName):
+	print "{}Testing: {}{}".format(Colors.NAME, testName, Colors.ENDC)
 
 def _selectColorAndSmiley(testResult):
 	if testResult.hasPassed:
