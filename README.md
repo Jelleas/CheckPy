@@ -3,7 +3,15 @@ A Python tool for running tests on Python source files.
 Intended to be used by students whom are taking courses in the [Minor Programming](http://www.mprog.nl/) at the [UvA](http://www.uva.nl/).
 
 ## Usage
-`python check <filename>`
+```
+usage: check [-h] [-m MODULE] [file]
+
+positional arguments:
+  file
+
+optional arguments:
+  -m MODULE
+```
 
 Requires python 2.7
 
