@@ -24,7 +24,7 @@ def main():
 	
 	sys.path.append(testDirPath)
 	testModule = importlib.import_module(fileName[:-3] + "Test")
-	testModule._fileName = fileName
+	testModule._fileName = filePath + "/" + fileName
 	
 	testCreators = [\
 			method \
