@@ -7,7 +7,7 @@ import re
 import argparse
 
 def main():
-	parser = argparse.ArgumentParser(description="checkPy: ")
+	parser = argparse.ArgumentParser(description="checkPy: a simple python testing framework")
 	parser.add_argument('-m', action="store", dest="module")
 	parser.add_argument('file', action="store", nargs="?")
 	args = parser.parse_args()
