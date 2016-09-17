@@ -35,10 +35,5 @@ def numberOfPrimes(test):
 
 @t.test(2)
 def correctThousandthPrime(test):
-	def testMethod():
-		result = lib.outputOf(_fileName).split("\n")[1]
-		testResult = assertlib.exact(result, "7919")
-		return testResult, result
-	test.test = testMethod
-
+	test.test = lambda : assertlib.exact(lib.outputOf(_fileName).split("\n")[1], "7919")
 	test.description = lambda : "correct 1000th prime"

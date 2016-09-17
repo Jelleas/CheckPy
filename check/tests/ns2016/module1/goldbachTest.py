@@ -12,7 +12,7 @@ def allEvenNumbersInOutput(test):
 				continue
 			evenNumbers -= set(lib.getPositiveIntegersFromString(line))
 		testResult = len(evenNumbers) == 0
-		return testResult, result
+		return testResult
 	test.test = testMethod
 
 	test.description = lambda : "all even numbers occur in output"

@@ -11,9 +11,9 @@ def correctDistance(test):
 def correctBarriers(test):
 	def testMethod():
 		result = lib.outputOf(_fileName).split("\n")[1]
-		testResult = assertlib.match(result, ".*9551.*9587.*")
+		testResult = assertlib.match(result, ".*9551.*9587.*") or assertlib.match(result, ".*9587.*9551.*")
 		return testResult, result
 	test.test = testMethod
 
 	test.description = lambda : "correct bounding primes"
-	test.fail = lambda info : "output %s does not contain the correct boundaries" %info
+	test.fail = lambda info : "output \"%s\" does not contain the correct boundaries" %info

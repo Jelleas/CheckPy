@@ -22,12 +22,7 @@ def outputOf(fileName):
 	return outputOfSource(fileName, source(fileName))
 
 def outputOfSource(fileName, source):
-	exception = None
-
 	_, output = moduleAndOutputFromSource(fileName, source)
-	if exception:
-		raise exception
-	
 	return output
 
 def source(fileName):
