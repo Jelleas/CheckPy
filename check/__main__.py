@@ -51,12 +51,15 @@ def runTest(testName, module = ""):
 		getattr(testModule, "after")()
 
 def getTestNames(moduleName):
-	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests/" + moduleName):
-		return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
+	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
+		dirPath = re.sub("\\\\", "/", dirPath)
+		if moduleName in dirPath:
+			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
 def getTestDirPath(testFileName, module = ""):
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
-		if dirPath.endswith(module) and testFileName in fileNames:
+		dirPath = re.sub("\\\\", "/", dirPath)
+		if module in dirPath and testFileName in fileNames:
 			return dirPath
 
 def getFilePathAndName(completeFilePath):
