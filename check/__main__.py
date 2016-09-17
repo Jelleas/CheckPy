@@ -52,7 +52,7 @@ def runTest(testName, module = ""):
 
 def getTestNames(moduleName):
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests/" + moduleName):
-		return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py")]
+		return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
 def getTestDirPath(testFileName, module = ""):
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
@@ -73,4 +73,5 @@ def getFilePathAndName(completeFilePath):
 	
 	return filePath, fileName
 
-main()
+if __name__ == "__main__":
+	main()

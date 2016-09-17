@@ -1,6 +1,6 @@
-import test as t
-import lib
-import assertlib
+import check.test as t
+import check.lib as lib
+import check.assertlib as assertlib
 
 def before():
 	lib.neutralizeFunctionFromImport(lib.module(_fileName), "show", "matplotlib.pyplot")

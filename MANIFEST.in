@@ -1,0 +1,5 @@
+include LICENSE
+
+recursive-include check/tests *.py
+include *.md
+include check/colorama/LICENSE.txt
