@@ -1,6 +1,6 @@
 include LICENSE
 include *.rst
 
-recursive-include check/tests *.py
+recursive-include check *.py
 include check.md
 include check/colorama/LICENSE.txt
