@@ -5,13 +5,13 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README'), encoding='utf-8') as f:
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 	long_description = f.read()
 
 setup(
 	name='checkPy',
 
-	version='0.1.3',
+	version='0.1.5',
 
 	description='A simple python testing framework for educational purposes',
 	long_description=long_description,
