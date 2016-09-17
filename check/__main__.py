@@ -5,13 +5,21 @@ import printer
 import os
 import re
 import argparse
+import requests
+
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 def main():
 	parser = argparse.ArgumentParser(description="checkPy: a simple python testing framework")
 	parser.add_argument('-m', action="store", dest="module")
+	parser.add_argument('-d', action="store", dest="githubLink")
 	parser.add_argument('file', action="store", nargs="?")
 	args = parser.parse_args()
 	
+	if args.githubLink:
+		download(args.githubLink)
+		return
+
 	if args.file and args.module:
 		runTest(args.file, module = args.module)
 	elif args.file and not args.module:
@@ -49,6 +57,25 @@ def runTest(testName, module = ""):
 
 	if hasattr(testModule, "after"):
 		getattr(testModule, "after")()
+
+def download(githubLink):
+	downloadAndInstall("https://api.github.com/repos/" + "/".join(githubLink.split("/")[-2:]) + "/contents", "tests")
+	
+def downloadAndInstall(root, extension):
+	r = requests.get(root + "/" + extension)
+	json = r.json()
+
+	#print r, root, type(r)
+	if type(json) is dict:
+		with open(HERE + "/" + extension, "w+") as f:
+			f.write(requests.get(json["download_url"]).text)
+		return
+	else:
+		if not os.path.exists(HERE + "/" + extension):
+			os.makedirs(HERE + "/" + extension)
+
+	for response in json:
+		downloadAndInstall(root, response["path"])
 
 def getTestNames(moduleName):
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
