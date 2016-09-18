@@ -33,7 +33,11 @@ def main():
 	elif args.file and not args.module:
 		runTest(args.file)
 	else:
-		for testName in getTestNames(args.module):
+		testNames = getTestNames(args.module)
+		if not testNames:
+			printer.displayError("no tests found in module: {}".format(args.module))
+			return
+		for testName in testNames:
 			runTest(testName, module = args.module)
 
 def runTest(testName, module = ""):
