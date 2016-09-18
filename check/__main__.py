@@ -6,16 +6,24 @@ import os
 import re
 import argparse
 import requests
+import zipfile
+import StringIO
+import shutil
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 def main():
 	parser = argparse.ArgumentParser(description="checkPy: a simple python testing framework")
-	parser.add_argument('-m', action="store", dest="module")
-	parser.add_argument('-d', action="store", dest="githubLink")
-	parser.add_argument('file', action="store", nargs="?")
+	parser.add_argument("-m", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
+	parser.add_argument("-d", action="store", dest="githubLink", help="download tests from a Github repository and exit")
+	parser.add_argument("-clean", action="store_true", help="remove all tests from the tests folder and exit")
+	parser.add_argument("file", action="store", nargs="?", help="name of file to be tested")
 	args = parser.parse_args()
 	
+	if args.clean:
+		shutil.rmtree(os.path.join(HERE, "tests"), ignore_errors=True)
+		return
+
 	if args.githubLink:
 		download(args.githubLink)
 		return
@@ -59,47 +67,69 @@ def runTest(testName, module = ""):
 		getattr(testModule, "after")()
 
 def download(githubLink):
-	downloadAndInstall("https://api.github.com/repos/" + "/".join(githubLink.split("/")[-2:]) + "/contents", "tests")
+	zipLink = githubLink + "/archive/master.zip"
+	r = requests.get(zipLink)
 	
-def downloadAndInstall(root, extension):
-	r = requests.get(root + "/" + extension)
-	json = r.json()
-
-	#print r, root, type(r)
-	if type(json) is dict:
-		with open(HERE + "/" + extension, "w+") as f:
-			f.write(requests.get(json["download_url"]).text)
+	if not r.ok:
+		printer.displayError("Failed to download: {}".format(r.reason))
 		return
-	else:
-		if not os.path.exists(HERE + "/" + extension):
-			os.makedirs(HERE + "/" + extension)
 
-	for response in json:
-		downloadAndInstall(root, response["path"])
+	with zipfile.ZipFile(StringIO.StringIO(r.content)) as z:
+		extractTests(z)
+
+def extractTests(zipfile):
+	destPath = HERE + "/tests/"
+
+	getSubfolderName = lambda x : x.split("/tests/")[1]
+
+	for name in zipfile.namelist():
+		fileName = os.path.basename(name)
+
+		# extract directories
+		if not fileName:
+			if "/tests/" in name:
+				subfolderName = getSubfolderName(name)
+				target = os.path.join(destPath, subfolderName)
+				if subfolderName and not os.path.exists(target):
+					os.makedirs(target)
+			continue
+
+		# extract files
+		if "/tests/" in name:
+			subfolderName = getSubfolderName(name)
+			source = zipfile.open(name)
+			target = file(os.path.join(destPath, subfolderName), "wb")
+			with source, target:
+				shutil.copyfileobj(source, target)
 
 def getTestNames(moduleName):
-	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
-		dirPath = re.sub("\\\\", "/", dirPath)
+	moduleName = backslashToForwardslash(moduleName)
+	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
+		dirPath = backslashToForwardslash(dirPath)
 		if moduleName in dirPath:
 			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
 def getTestDirPath(testFileName, module = ""):
-	for (dirPath, dirNames, fileNames) in os.walk(os.path.dirname(os.path.abspath(__file__)) + "/tests"):
-		dirPath = re.sub("\\\\", "/", dirPath)
+	module = backslashToForwardslash(module)
+	testFileName = backslashToForwardslash(testFileName)
+	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
+		dirPath = backslashToForwardslash(dirPath)
 		if module in dirPath and testFileName in fileNames:
 			return dirPath
+
+def backslashToForwardslash(text):
+	return re.sub("\\\\", "/", text)
 
 def getFilePathAndName(completeFilePath):
 	if not completeFilePath.endswith(".py"):
 		completeFilePath += ".py"
 	
-	getFilePath = lambda x : "/".join(re.sub("\\\\", "/", x).split("/")[:-1])
-	filePath = getFilePath(completeFilePath)
-	fileName = re.sub("\\\\", "/", completeFilePath).split("/")[-1]
+	filePath = os.path.dirname(completeFilePath)
+	fileName = os.path.basename(completeFilePath)
 
 	# in case of no path given
 	if not filePath:
-		filePath = getFilePath(os.path.abspath(fileName))
+		filePath = os.path.dirname(os.path.abspath(fileName))
 	
 	return filePath, fileName
 
