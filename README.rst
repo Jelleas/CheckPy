@@ -6,20 +6,56 @@ used by students whom are taking courses in the `Minor
 Programming <http://www.mprog.nl/>`__ at the
 `UvA <http://www.uva.nl/>`__.
 
+Installation
+------------
+
+::
+
+     pip install checkpy
+
+Besides installing checkPy, you might want to download some tests along with it. Simply run checkPy with the ``-d`` arg as follows:
+
+::
+
+    checkpy -d YOUR_GITHUB_TESTS_URL
+
 Usage
 -----
 
 ::
 
-    usage: check [-h] [-m MODULE] [file]
+    usage: checkpy [-h] [-m MODULE] [-d GITHUBLINK] [-clean] [file]
+
+    checkPy: a simple python testing framework
 
     positional arguments:
-      file
+      file           name of file to be tested
 
     optional arguments:
-      -m MODULE
+      -h, --help     show this help message and exit
+      -m MODULE      provide a module name or path to run all tests from the
+                     module, or target a module for a specific test
+      -d GITHUBLINK  download tests from a Github repository and exit
+      -clean         remove all tests from the tests folder and exit
 
-Requires python 2.7
+
+To simply test a single file, call:
+
+::
+
+     checkpy YOUR_FILE_NAME
+     
+If you are unsure whether multiple tests exist with the same name, you can target a specific test by specifying its module:
+
+::
+
+     checkpy YOUR_FILE_NAME -m YOUR_MODULE_NAME
+
+If you want to test all files from a module within your current working directory, then this is the command for you:
+
+::
+
+     checkpy -m YOUR_MODULE_NAME
 
 Features
 --------
@@ -35,6 +71,8 @@ Features
    wrapped by ``if __name__ == "__main__"``
 -  Support for overriding functions from imports in order to for
    instance prevent blocking function calls
+-  Support for grouping tests in modules, 
+   allowing the user to target tests from a specific module or run all tests in a module with a single command.
 
 An example
 ----------
@@ -50,8 +88,7 @@ following:
     2| def contains(test):
     3|     test.test = lambda : assertlib.contains(lib.outputOf(_fileName), "100")
     4|     test.description = lambda : "contains 100 in the output"
-    5|     test.success = lambda info : "the correct answer (100) can be found in the output"
-    6|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
+    5|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
 
 From top to bottom:
 
@@ -74,16 +111,12 @@ From top to bottom:
    to the user. In this case however, no message is provided.
 -  On line 4 the ``description`` method is bound to a lambda which when
    called produces a string message describing the intent of the test.
--  On line 5 the ``success`` method is bound to a lambda taking in a
-   message (``info``) and returning a string which describes the
-   information that should be shown to the user in case the test passes.
-   The argument ``info`` comes from the second returned value of the
-   ``test`` method, and can be used to relay information found during
+-  On line 5 the ``fail`` method is bound to a lambda. This method is
+   used to provide information that should be shown to the user in case
+   the test fails. The method takes in a
+   message (``info``) which comes from the second returned value of the
+   ``test`` method. This message can be used to relay information found during
    execution of the test to the user.
--  On line 6 the ``fail`` method is bound to a lambda. This method is
-   used to describe information that should be shown to the user in case
-   the test fails. Its workings are the same as the ``success`` method
-   on the previous line.
 
 Writing tests
 -------------
@@ -98,7 +131,7 @@ A test minimally consists of the following:
 
 ::
 
-    import test as t
+    import check.test as t
     @t.test(0)
     def someTest(test):
       test.test = lambda : False
@@ -124,4 +157,13 @@ Effectively all other parts of code are wrapped by
 provides a collection of assertions that one may find usefull when
 implementing tests.
 
-For inspiration inspect the tests that are included with checkPy.
+For inspiration inspect some existing collections of tests like the tests for `progNS2016 <https://github.com/Jelleas/progNS2016Tests>`__.
+
+
+Distributing tests
+------------------
+
+CheckPy can download tests directly from Github repos. 
+The only requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules).
+Simply call checkPy with the optional ``-d`` argument and pass your github repo url.
+Tests will then be automatically downloaded and installed. 
