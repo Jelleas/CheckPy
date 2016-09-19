@@ -86,6 +86,9 @@ def extractTests(zipfile):
 
 	getSubfolderName = lambda x : x.split("/tests/")[1]
 
+	if not os.path.exists(os.path.join(destPath, "tests")):
+		os.makedirs(os.path.join(destPath, "tests"))
+
 	for name in zipfile.namelist():
 		fileName = os.path.basename(name)
 
