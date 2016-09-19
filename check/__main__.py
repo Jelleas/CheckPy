@@ -32,13 +32,16 @@ def main():
 		runTest(args.file, module = args.module)
 	elif args.file and not args.module:
 		runTest(args.file)
-	else:
+	elif not args.file and args.module:
 		testNames = getTestNames(args.module)
 		if not testNames:
 			printer.displayError("no tests found in module: {}".format(args.module))
 			return
 		for testName in testNames:
 			runTest(testName, module = args.module)
+	else:
+		parser.print_help()
+		return
 
 def runTest(testName, module = ""):
 	filePath, fileName = getFilePathAndName(testName)
