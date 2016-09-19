@@ -82,12 +82,11 @@ def download(githubLink):
 		extractTests(z)
 
 def extractTests(zipfile):
-	destPath = HERE + "/tests/"
+	destPath = os.path.join(HERE, "tests")
+	if not os.path.exists(destPath):
+		os.makedirs(destPath)
 
 	getSubfolderName = lambda x : x.split("/tests/")[1]
-
-	if not os.path.exists(os.path.join(destPath, "tests")):
-		os.makedirs(os.path.join(destPath, "tests"))
 
 	for name in zipfile.namelist():
 		fileName = os.path.basename(name)
