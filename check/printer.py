@@ -1,15 +1,16 @@
 import exception as excep
-from colorama import init
-init()
+import os
+import colorama
+colorama.init()
 
-class Colors:
+class _Colors:
 	PASS = '\033[92m'
 	WARNING = '\033[93m'
 	FAIL = '\033[91m'
 	NAME = '\033[96m'
 	ENDC = '\033[0m'
 
-class Smileys:
+class _Smileys:
 	HAPPY = ":)"
 	SAD = ":("
 	CONFUSED = ":S"
@@ -19,19 +20,25 @@ def display(testResult):
 		return
 
 	color, smiley = _selectColorAndSmiley(testResult)
-	print "%s%s %s%s" %(color, smiley, testResult.description, Colors.ENDC)
+	print "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
-		 print "  - %s" %testResult.message
+		 print "  - {}".format(testResult.message)
 
 def displayTestName(testName):
-	print "{}Testing: {}{}".format(Colors.NAME, testName, Colors.ENDC)
+	print "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)
+
+def displayUpdate(fileName):
+	print "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+
+def displayCustom(message):
+	print message
+
+def displayError(message):
+	print "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
 
 def _selectColorAndSmiley(testResult):
 	if testResult.hasPassed:
-		return Colors.PASS, Smileys.HAPPY
+		return _Colors.PASS, _Smileys.HAPPY
 	if type(testResult.message) is excep.SourceException:
-		return Colors.WARNING, Smileys.CONFUSED
-	return Colors.FAIL, Smileys.SAD
-
-def displayError(message):
-	print "%s%s %s%s" %(Colors.WARNING, Smileys.CONFUSED, message, Colors.ENDC)
+		return _Colors.WARNING, _Smileys.CONFUSED
+	return _Colors.FAIL, _Smileys.SAD
