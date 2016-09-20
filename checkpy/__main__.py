@@ -4,6 +4,7 @@ import argparse
 import downloader
 import printer
 import tester
+import shutil
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
