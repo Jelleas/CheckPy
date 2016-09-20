@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
 	name='checkPy',
 
-	version='0.2.1',
+	version='0.2.2',
 
 	description='A simple python testing framework for educational purposes',
 	long_description=long_description,
@@ -56,7 +56,7 @@ setup(
 
 	entry_points={
 		'console_scripts': [
-			'checkpy=check.__main__:main',
+			'checkpy=checkpy.__main__:main',
 		],
 	},
 )
