@@ -7,26 +7,45 @@ import re
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 def test(testName, module = ""):
-	filePath, fileName = _getFilePathAndName(testName)
-	sys.path.append(filePath)
+	fileName = _getFileName(testName)
+	filePath = _getFilePath(testName)
+	if filePath not in sys.path:
+		sys.path.append(filePath)
 
-	testPath = _getTestDirPath(fileName[:-3] + "Test.py", module = module)
-	if testPath is None:
+	testFileName = fileName[:-3] + "Test.py"
+	testFilePath = _getTestDirPath(testFileName, module = module)
+	if testFilePath is None:
 		printer.displayError("No test found for {}".format(fileName))
 		return
 	
-	sys.path.append(testPath)
-	testModule = importlib.import_module(fileName[:-3] + "Test")
+	if testFilePath not in sys.path:
+		sys.path.append(testFilePath)
+	
+	testModule = importlib.import_module(testFileName[:-3])
 	testModule._fileName = os.path.join(filePath, fileName)
 	
+	reservedNames = ["before", "after"]
 	testCreators = [\
 			method \
 			for _, method in testModule.__dict__.iteritems() \
-			if callable(method) and method.__name__ != "before" and method.__name__ != "after"\
+			if callable(method) and method.__name__ not in reservedNames\
 		]
 
-	printer.displayTestName(testName)
+	_runTests(testModule, testCreators)
 
+def testModule(module):
+	testNames = _getTestNames(module)
+
+	if not testNames:
+		printer.displayError("no tests found in module: {}".format(module))
+		return
+
+	for testName in testNames:
+		test(testName, module = module)
+
+def _runTests(testModule, testCreators):
+	printer.displayTestName(testModule.__name__)
+	
 	if hasattr(testModule, "before"):
 		getattr(testModule, "before")()
 
@@ -36,41 +55,31 @@ def test(testName, module = ""):
 	if hasattr(testModule, "after"):
 		getattr(testModule, "after")()
 
-def testModule(module):
-	testNames = _getTestNames(module)
-	if not testNames:
-		printer.displayError("no tests found in module: {}".format(module))
-		return
-	for testName in testNames:
-		test(testName, module = module)
-
 def _getTestNames(moduleName):
-	moduleName = backslashToForwardslash(moduleName)
+	moduleName = _backslashToForwardslash(moduleName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
-		dirPath = backslashToForwardslash(dirPath)
+		dirPath = _backslashToForwardslash(dirPath)
 		if moduleName in dirPath:
 			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
 def _getTestDirPath(testFileName, module = ""):
-	module = backslashToForwardslash(module)
-	testFileName = backslashToForwardslash(testFileName)
+	module = _backslashToForwardslash(module)
+	testFileName = _backslashToForwardslash(testFileName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
-		dirPath = backslashToForwardslash(dirPath)
-		if module in dirPath and testFileName in fileNames:
+		if module in _backslashToForwardslash(dirPath) and testFileName in fileNames:
 			return dirPath
 
-def _getFilePathAndName(completeFilePath):
-	if not completeFilePath.endswith(".py"):
-		completeFilePath += ".py"
-	
-	filePath = os.path.dirname(completeFilePath)
+def _getFileName(completeFilePath):
 	fileName = os.path.basename(completeFilePath)
-
-	# in case of no path given
-	if not filePath:
-		filePath = os.path.dirname(os.path.abspath(fileName))
+	if not fileName.endswith(".py"):
+		fileName += ".py"
+	return fileName
 	
-	return filePath, fileName
+def _getFilePath(completeFilePath):
+	filePath = os.path.dirname(completeFilePath)
+	if not filePath:
+		filePath = os.path.dirname(os.path.abspath(_getFileName(completeFilePath)))
+	return filePath
 
-def backslashToForwardslash(text):
+def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
