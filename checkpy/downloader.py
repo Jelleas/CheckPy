@@ -1,6 +1,6 @@
 import printer
 import requests
-import zipfile
+import zipfile as zf
 import StringIO
 import os
 import shutil
@@ -15,7 +15,7 @@ def download(githubLink):
 		printer.displayError("Failed to download: {}".format(r.reason))
 		return
 
-	with zipfile.ZipFile(StringIO.StringIO(r.content)) as z:
+	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
 		_extractTests(z)
 
 	printer.displayCustom("Finished downloading")
@@ -25,34 +25,27 @@ def _extractTests(zipfile):
 	if not os.path.exists(destPath):
 		os.makedirs(destPath)
 
-	getSubfolderName = lambda x : x.split("/tests/")[1]
-
 	for name in zipfile.namelist():
-		fileName = os.path.basename(name)
+		_extractTest(zipfile, name, destPath)
 
-		# extract directories
-		if not fileName:
-			if "/tests/" in name:
-				subfolderName = getSubfolderName(name)
-				target = os.path.join(destPath, subfolderName)
-				if subfolderName and not os.path.exists(target):
-					os.makedirs(target)
-			continue
+def _extractTest(zipfile, name, destPath):
+	if not "/tests/" in name:
+		return
 
-		# extract files
-		if "/tests/" in name:
-			subfolderName = getSubfolderName(name)
-			targetPath = os.path.join(destPath, subfolderName)
+	fileName = os.path.basename(name)
+	subfolderName = name.split("/tests/")[1]
+	filePath = os.path.join(destPath, subfolderName)
 
-			# report updates of existing files
-			with zipfile.open(name) as source:
-				if os.path.isfile(targetPath):
-					with file(targetPath, "r") as existingFile:
-						if existingFile.read() != source.read():
-							printer.displayUpdate(name)
-
-			# copy zipped file to actual file
-			source = zipfile.open(name)
-			target = file(os.path.join(destPath, subfolderName), "wb+")
-			with source, target:
-				shutil.copyfileobj(source, target)
+	if fileName:
+		_extractFile(zipfile, name, filePath)
+	elif subfolderName and not os.path.exists(filePath):
+		os.makedirs(filePath)
+			
+def _extractFile(zipfile, name, filePath):
+	if os.path.isfile(filePath):
+		with zipfile.open(name) as new, file(filePath, "r") as existing:
+			if existing.read() != new.read():
+				printer.displayUpdate(name)
+				
+	with zipfile.open(name) as source, file(filePath, "wb+") as target:
+		shutil.copyfileobj(source, target)
