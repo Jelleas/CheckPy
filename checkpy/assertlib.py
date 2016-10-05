@@ -1,5 +1,6 @@
 import lib
 import re
+import os
 
 def exact(actual, expected):
 	return actual == expected
@@ -24,3 +25,6 @@ def match(actual, expectedRegEx):
 
 def sameLength(actual, expected):
 	return len(actual) == len(expected)
+
+def fileExists(fileName):
+	return os.path.isfile(fileName) 

@@ -4,9 +4,9 @@ import StringIO
 import contextlib
 import importlib
 import imp
+import cStringIO
+import tokenize
 import exception as excep
-
-import printer
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
@@ -35,6 +35,7 @@ def source(fileName):
 
 def sourceOfDefinitions(fileName):
 	newSource = ""
+
 	with open(fileName) as f:
 		insideDefinition = False
 		for line in removeComments(f.read()).split("\n"):
@@ -51,7 +52,6 @@ def sourceOfDefinitions(fileName):
 				newSource += line
 			else:
 				insideDefinition = False
-
 	return newSource
 
 def module(fileName):
@@ -116,7 +116,39 @@ def removeWhiteSpace(s):
 def getPositiveIntegersFromString(s):
 	return [int(i) for i in re.findall(r"\d+", s)]
 
-# source: http://stackoverflow.com/questions/2319019/using-regex-to-remove-comments-from-source-files
+# inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source):
-	source = re.sub(re.compile("\"\"\".*?\"\"\"",re.DOTALL), "", source) # remove all occurance streamed comments ("""COMMENT """) from string
-	return re.sub(re.compile("#.*?\n"), "\n", source) # remove all occurance singleline comments (//COMMENT\n ) from string
+	io_obj = cStringIO.StringIO(source)
+	out = ""
+	prev_toktype = tokenize.INDENT
+	last_lineno = -1
+	last_col = 0
+	indentation = "\t"
+	for token_type, token_string, (start_line, start_col), (end_line, end_col), ltext in tokenize.generate_tokens(io_obj.readline):
+		if start_line > last_lineno:
+			last_col = 0
+
+		# figure out type of indentation used
+		if token_type == tokenize.INDENT:
+			indentation = "\t" if "\t" in token_string else " "
+
+		# write indentation
+		if start_col > last_col and last_col == 0:
+			out += indentation * (start_col - last_col)
+		# write other whitespace
+		elif start_col > last_col:
+			out += " " * (start_col - last_col)
+
+		# ignore comments
+		if token_type == tokenize.COMMENT:
+			pass
+		# put all docstrings on a single line
+		elif token_type == tokenize.STRING:
+			out += re.sub("\n", " ", token_string)
+		else:
+			out += token_string
+
+		prev_toktype = token_type
+		last_col = end_col
+		last_lineno = end_line
+	return out
