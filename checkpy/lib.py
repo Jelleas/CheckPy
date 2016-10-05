@@ -6,6 +6,8 @@ import importlib
 import imp
 import exception as excep
 
+import printer
+
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
 	old = sys.stdout
@@ -35,7 +37,8 @@ def sourceOfDefinitions(fileName):
 	newSource = ""
 	with open(fileName) as f:
 		insideDefinition = False
-		for line in f.readlines():
+		for line in removeComments(f.read()).split("\n"):
+			line += "\n"
 			if not line.strip():
 				continue
 
@@ -62,6 +65,7 @@ def moduleAndOutputFromSource(fileName, source, memo= {}):
 	mod = None
 	output = ""
 	exception = None
+	
 	with _stdoutIO() as s:
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
@@ -111,3 +115,8 @@ def removeWhiteSpace(s):
 
 def getPositiveIntegersFromString(s):
 	return [int(i) for i in re.findall(r"\d+", s)]
+
+# source: http://stackoverflow.com/questions/2319019/using-regex-to-remove-comments-from-source-files
+def removeComments(source):
+	source = re.sub(re.compile("\"\"\".*?\"\"\"",re.DOTALL), "", source) # remove all occurance streamed comments ("""COMMENT """) from string
+	return re.sub(re.compile("#.*?\n"), "\n", source) # remove all occurance singleline comments (//COMMENT\n ) from string
