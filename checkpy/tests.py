@@ -1,5 +1,4 @@
 import cacher
-cache = cacher.Cache()
 
 class Test(object):
 	def __init__(self, priority):
@@ -63,15 +62,15 @@ class TestResult(object):
 	def hasPassed(self):
 		return self._hasPassed
 
-def test(priority):
+def test(priority, cache = cacher.Cache()):
 	def testDecorator(testCreator):
 		def testWrapper():
-			cacheResult = cache.get("test", testCreator)
+			cacheResult = cache.get(testCreator)
 			if cacheResult:
 				return cacheResult
 			t = Test(priority)
 			testCreator(t)
-			cache.put("test", testCreator, t)
+			cache.put(testCreator, t)
 			return t
 		return testWrapper
 	return testDecorator
