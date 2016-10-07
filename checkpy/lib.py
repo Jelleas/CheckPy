@@ -106,10 +106,10 @@ def wrapFunctionWithExceptionHandler(func):
 		try:
 			return func(*args, **kwargs)
 		except Exception as e:
-			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["%s=%s" %(func.__code__.co_varnames[i], args[i]) for i in range(len(args))])
+			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["{}={}".format(func.__code__.co_varnames[i], args[i]) for i in range(len(args))])
 			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
-				argListRepr += ", %s=%s" %(kwargName, kwargs[kwargName])
-			raise excep.SourceException(e, "while trying to execute the function %s with arguments \"%s\"" %(func.__name__, argListRepr))
+				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
+			raise excep.SourceException(e, "while trying to execute the function {} with arguments \"{}\"".format(func.__name__, argListRepr))
 	return exceptionWrapper
 
 def removeWhiteSpace(s):

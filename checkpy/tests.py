@@ -7,9 +7,10 @@ class Test(object):
 	def __cmp__(self, other):
 		return cmp(self._priority, other._priority)
 
-	def run(self, memo = {}):
-		if self in memo:
-			return memo[self]
+	def run(self, cache = cacher.Cache()):
+		cacheResult = cache.get(self)
+		if cacheResult:
+			return cacheResult
 		try:
 			result = self.test()
 			if type(result) == tuple:
@@ -17,11 +18,11 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
-			memo[self] = TestResult(False, self.description(), self.exception(e))
-			return memo[self]
-
-		memo[self] = TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
-		return memo[self]
+			cache.put(self, TestResult(False, self.description(), self.exception(e)))
+			return cache.get(self)
+		
+		cache.put(self, TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info)))
+		return cache.get(self)
 	
 	@staticmethod
 	def test():
