@@ -3,8 +3,14 @@ import os
 import sys
 import importlib
 import re
+import cacher
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+def clearCacheAndTest(*args, **kwargs):
+	cacher.clearAllCaches()
+	test(*args, **kwargs)
 
 def test(testName, module = ""):
 	fileName = _getFileName(testName)
@@ -32,6 +38,10 @@ def test(testName, module = ""):
 		]
 
 	_runTests(testModule, testCreators)
+
+def clearCacheAndTestModule(*args, **kwargs):
+	cacher.clearAllCaches()
+	testModule(*args, **kwargs)
 
 def testModule(module):
 	testNames = _getTestNames(module)

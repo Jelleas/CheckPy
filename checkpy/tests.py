@@ -1,3 +1,6 @@
+import cacher
+cache = cacher.Cache()
+
 class Test(object):
 	def __init__(self, priority):
 		self._priority = priority
@@ -60,14 +63,15 @@ class TestResult(object):
 	def hasPassed(self):
 		return self._hasPassed
 
-def test(priority, memo = {}):
+def test(priority):
 	def testDecorator(testCreator):
 		def testWrapper():
-			if testCreator in memo:
-				return memo[testCreator]
+			cacheResult = cache.get("test", testCreator)
+			if cacheResult:
+				return cacheResult
 			t = Test(priority)
 			testCreator(t)
-			memo[testCreator] = t
+			cache.put("test", testCreator, t)
 			return t
 		return testWrapper
 	return testDecorator

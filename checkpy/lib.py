@@ -7,6 +7,9 @@ import imp
 import cStringIO
 import tokenize
 import exception as excep
+import cacher
+
+cache = cacher.Cache()
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
@@ -58,9 +61,10 @@ def module(fileName):
 	mod, _ = moduleAndOutputFromSource(fileName, sourceOfDefinitions(fileName))
 	return mod
 
-def moduleAndOutputFromSource(fileName, source, memo= {}):
-	if (fileName, source) in memo:
-		return memo[(fileName, source)]
+def moduleAndOutputFromSource(fileName, source):
+	cacheResult = cache.get("moduleAndOutputFromSource", (fileName, source))
+	if cacheResult:
+		return cacheResult
 
 	mod = None
 	output = ""
@@ -83,8 +87,8 @@ def moduleAndOutputFromSource(fileName, source, memo= {}):
 	if exception:
 		raise exception
 
-	memo[(fileName, source)] = (mod, output)
-	return memo[(fileName, source)]
+	cache.put("moduleAndOutputFromSource", (fileName, source), (mod, output)) 
+	return cache.get("moduleAndOutputFromSource", (fileName, source))
 
 def neutralizeFunction(mod, functionName):
 	if hasattr(mod, functionName):
