@@ -1,4 +1,4 @@
-import cacher
+import caches
 
 class Test(object):
 	def __init__(self, priority):
@@ -7,10 +7,8 @@ class Test(object):
 	def __cmp__(self, other):
 		return cmp(self._priority, other._priority)
 
-	def run(self, cache = cacher.Cache()):
-		cacheResult = cache.get(self)
-		if cacheResult:
-			return cacheResult
+	@caches.cache()
+	def run(self):
 		try:
 			result = self.test()
 			if type(result) == tuple:
@@ -18,11 +16,9 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
-			cache.put(self, TestResult(False, self.description(), self.exception(e)))
-			return cache.get(self)
-		
-		cache.put(self, TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info)))
-		return cache.get(self)
+			return TestResult(False, self.description(), self.exception(e))
+
+		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
 	
 	@staticmethod
 	def test():
@@ -63,15 +59,12 @@ class TestResult(object):
 	def hasPassed(self):
 		return self._hasPassed
 
-def test(priority, cache = cacher.Cache()):
+def test(priority):
 	def testDecorator(testCreator):
+		@caches.cache(testCreator)
 		def testWrapper():
-			cacheResult = cache.get(testCreator)
-			if cacheResult:
-				return cacheResult
 			t = Test(priority)
 			testCreator(t)
-			cache.put(testCreator, t)
 			return t
 		return testWrapper
 	return testDecorator
