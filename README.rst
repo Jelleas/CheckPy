@@ -81,7 +81,7 @@ Tests in checkPy are collections of abstract methods that you as a test
 designer need to implement. A test may look something like the
 following:
 
-::
+.. code-block:: python
 
     0| @t.failed(exact)
     1| @t.test(1)
@@ -129,7 +129,7 @@ modules.
 
 A test minimally consists of the following:
 
-::
+.. code-block:: python
 
     import check.test as t
     @t.test(0)
