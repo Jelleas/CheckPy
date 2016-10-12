@@ -1,13 +1,15 @@
+import traceback
+
 class SourceException(Exception):
 	def __init__(self, exception, message):
 		self._exception = exception
 		self._message = message
 
 	def __str__(self):
-		return "An exception \"%s\" occured" %repr(self._exception) + " " + self._message
+		return "\"%s\" occured" %repr(self._exception) + " " + self._message
 
 	def __repr__(self):
-		return "SourceException()"
+		return self.__str__()
 
 """
 def TestException(Exception):

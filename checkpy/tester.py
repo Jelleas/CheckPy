@@ -7,11 +7,6 @@ import caches
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-
-def clearCacheAndTest(*args, **kwargs):
-	caches.clearAllCaches()
-	test(*args, **kwargs)
-
 def test(testName, module = ""):
 	fileName = _getFileName(testName)
 	filePath = _getFilePath(testName)
@@ -38,10 +33,6 @@ def test(testName, module = ""):
 		]
 
 	_runTests(testModule, testCreators)
-
-def clearCacheAndTestModule(*args, **kwargs):
-	caches.clearAllCaches()
-	testModule(*args, **kwargs)
 
 def testModule(module):
 	testNames = _getTestNames(module)
