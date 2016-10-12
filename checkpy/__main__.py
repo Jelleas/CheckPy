@@ -5,6 +5,7 @@ import downloader
 import printer
 import tester
 import shutil
+import time
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 

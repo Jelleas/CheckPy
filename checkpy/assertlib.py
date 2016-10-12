@@ -29,6 +29,9 @@ def sameLength(actual, expected):
 def fileExists(fileName):
 	return os.path.isfile(fileName) 
 
+def numberOnLine(number, line, deviation = 0):
+	return any(between(n, number - deviation, number + deviation) for n in lib.getNumbersFromString(line))
+
 def fileContainsFunctionCalls(fileName, *functionNames):
 	source = lib.source(fileName)
 	fCallInSrc = lambda fName, src : re.match(re.compile(".*{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)

@@ -114,6 +114,9 @@ def removeWhiteSpace(s):
 def getPositiveIntegersFromString(s):
 	return [int(i) for i in re.findall(r"\d+", s)]
 
+def getNumbersFromString(s):
+	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|\d+", s)]
+
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source):
 	io_obj = cStringIO.StringIO(source)
