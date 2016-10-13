@@ -5,6 +5,9 @@ import os
 def exact(actual, expected):
 	return actual == expected
 
+def exactAndSameType(actual, expected):
+	return exact(actual, expected) and sameType(actual, expected)
+
 def between(actual, lower, upper):
 	return lower <= actual <= upper
 	

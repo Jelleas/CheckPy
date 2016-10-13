@@ -120,6 +120,13 @@ def getPositiveIntegersFromString(s):
 def getNumbersFromString(s):
 	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|\d+", s)]
 
+def getLine(text, lineNumber):
+	lines = text.split("\n")
+	try:
+		return lines[lineNumber]
+	except IndexError:
+		raise IndexError("Expected to have atleast {} lines in:\n{}".format(lineNumber + 1, text))
+
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source):
 	io_obj = cStringIO.StringIO(source)

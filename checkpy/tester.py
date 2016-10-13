@@ -45,16 +45,18 @@ def testModule(module):
 		test(testName, module = module)
 
 def _runTests(testModule, testCreators):
-	printer.displayTestName(testModule.__name__)
+	printer.displayTestName(os.path.basename(testModule._fileName))
 	
 	if hasattr(testModule, "before"):
-		getattr(testModule, "before")()
+		testModule.before()
 
 	for test in sorted(tc() for tc in testCreators):
-		printer.display(test.run())
+		testResult = test.run()
+		if testResult != None:
+			printer.display(testResult)
 
 	if hasattr(testModule, "after"):
-		getattr(testModule, "after")()
+		testModule.after()
 
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)

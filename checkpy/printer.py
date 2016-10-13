@@ -16,9 +16,6 @@ class _Smileys:
 	CONFUSED = ":S"
 	
 def display(testResult):
-	if testResult == None:
-		return
-
 	color, smiley = _selectColorAndSmiley(testResult)
 	print "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
