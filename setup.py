@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
 	name='checkPy',
 
-	version='0.2.7',
+	version='0.2.8',
 
 	description='A simple python testing framework for educational purposes',
 	long_description=long_description,
@@ -42,7 +42,7 @@ setup(
 
 	include_package_data=True,
 
-	install_requires=["requests"],
+	install_requires=["requests", "tinydb"],
 
 	extras_require={
 		'dev': [],

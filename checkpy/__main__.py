@@ -7,12 +7,12 @@ import tester
 import shutil
 import time
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
 def main():
 	parser = argparse.ArgumentParser(description="checkPy: a simple python testing framework")
 	parser.add_argument("-m", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
 	parser.add_argument("-d", action="store", dest="githubLink", help="download tests from a Github repository and exit")
+	parser.add_argument("-update", action="store_true", help="update all downloaded tests and exit")
+	parser.add_argument("-list", action="store_true", help="list all download locations and exit")
 	parser.add_argument("-clean", action="store_true", help="remove all tests from the tests folder and exit")
 	parser.add_argument("file", action="store", nargs="?", help="name of file to be tested")
 	args = parser.parse_args()
@@ -21,13 +21,20 @@ def main():
 	if rootPath not in sys.path:
 		sys.path.append(rootPath)	
 
-	if args.clean:
-		shutil.rmtree(os.path.join(HERE, "tests"), ignore_errors=True)
-		printer.displayCustom("Removed all tests")
-		return
-
 	if args.githubLink:
 		downloader.download(args.githubLink)
+		return
+
+	if args.update:
+		downloader.update()
+		return
+
+	if args.list:
+		downloader.list()
+		return
+
+	if args.clean:
+		downloader.clean()
 		return
 
 	if args.file and args.module:

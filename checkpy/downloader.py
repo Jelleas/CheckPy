@@ -1,24 +1,58 @@
-import printer
 import requests
 import zipfile as zf
 import StringIO
 import os
 import shutil
+import tinydb
+import caches
+import printer
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+DBPATH = os.path.join(HERE, "storage")
+DBFILEPATH = os.path.join(DBPATH, "downloadLocations.json")
 
-def download(githubLink):
+def download(githubLink):	
 	zipLink = githubLink + "/archive/master.zip"
 	r = requests.get(zipLink)
 	
 	if not r.ok:
-		printer.displayError("Failed to download: {}".format(r.reason))
+		printer.displayError("Failed to download {} because: {}".format(githubLink, r.reason))
 		return
+
+	_addToDownloadLocations(githubLink)
 
 	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
 		_extractTests(z)
 
-	printer.displayCustom("Finished downloading")
+	printer.displayCustom("Finished downloading: {}".format(githubLink))
+
+def update():
+	for loc in (entry["link"] for entry in _downloadLocationsDatabase().all()):
+		download(loc)
+
+def list():
+	for loc in (entry["link"] for entry in _downloadLocationsDatabase().all()):
+		printer.displayCustom(loc)
+
+def clean():
+	shutil.rmtree(os.path.join(HERE, "tests"), ignore_errors=True)
+	os.remove(DBFILEPATH)
+	printer.displayCustom("Removed all tests")
+	return
+
+@caches.cache()
+def _downloadLocationsDatabase():
+	if not os.path.exists(DBPATH):
+		os.makedirs(DBPATH)
+	if not os.path.isfile(DBFILEPATH):
+		with open(DBFILEPATH, 'w') as f:
+			pass
+	return tinydb.TinyDB(DBFILEPATH)
+
+def _addToDownloadLocations(githubLink):
+	query = tinydb.Query()
+	if not _downloadLocationsDatabase().contains(query.link == githubLink):
+		_downloadLocationsDatabase().insert({"link" : githubLink})
 
 def _extractTests(zipfile):
 	destPath = os.path.join(HERE, "tests")

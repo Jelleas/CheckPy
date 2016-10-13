@@ -28,4 +28,4 @@ def test(fileName):
 	except:
 		pass
 
-from downloader import download
+from downloader import download, update
