@@ -26,11 +26,7 @@ def test(testName, module = ""):
 	testModule._fileName = os.path.join(filePath, fileName)
 	
 	reservedNames = ["before", "after"]
-	testCreators = [\
-			method \
-			for _, method in testModule.__dict__.iteritems() \
-			if callable(method) and method.__name__ not in reservedNames\
-		]
+	testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
 
 	_runTests(testModule, testCreators)
 
@@ -48,7 +44,11 @@ def _runTests(testModule, testCreators):
 	printer.displayTestName(os.path.basename(testModule._fileName))
 	
 	if hasattr(testModule, "before"):
-		testModule.before()
+		try:
+			testModule.before()
+		except Exception as e:
+			printer.displayError("Something went wrong at setup:\n{}".format(e))
+			return
 
 	for test in sorted(tc() for tc in testCreators):
 		testResult = test.run()
@@ -56,7 +56,11 @@ def _runTests(testModule, testCreators):
 			printer.display(testResult)
 
 	if hasattr(testModule, "after"):
-		testModule.after()
+		try:
+			testModule.after()
+		except Exception as e:
+			printer.displayError("Something went wrong at closing:\n{}".format(e))
+			return
 
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
