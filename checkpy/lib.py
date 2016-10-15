@@ -55,8 +55,10 @@ def sourceOfDefinitions(fileName):
 				insideDefinition = False
 	return newSource
 
-def module(fileName):
-	mod, _ = moduleAndOutputFromSource(fileName, sourceOfDefinitions(fileName))
+def module(fileName, src = None):
+	if not src:
+		src = source(fileName)
+	mod, _ = moduleAndOutputFromSource(fileName, src)
 	return mod
 
 @caches.cache()
@@ -84,18 +86,20 @@ def moduleAndOutputFromSource(fileName, source):
 
 	return mod, output
 
-def neutralizeFunction(mod, functionName):
-	if hasattr(mod, functionName):
-		def dummy(*args, **kwargs):
-			pass
-		setattr(getattr(mod, functionName), "__code__", dummy.__code__)
+def neutralizeFunction(function):
+	def dummy(*args, **kwargs):
+		pass
+	setattr(function, "__code__", dummy.__code__)
+
 
 def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 	for attr in [getattr(mod, name) for name in dir(mod)]:
 		if getattr(attr, "__name__", None) == importedModuleName:
-			neutralizeFunction(attr, functionName)
+			if hasattr(attr, functionName):
+				neutralizeFunction(getattr(attr, functionName))
 		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
-			neutralizeFunction(mod, functionName)
+			if hasattr(attr, functionName):
+				neutralizeFunction(getattr(mod, functionName))
 	
 def wrapFunctionWithExceptionHandler(func):
 	def exceptionWrapper(*args, **kwargs):
