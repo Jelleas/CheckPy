@@ -98,7 +98,7 @@ def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 			if hasattr(attr, functionName):
 				neutralizeFunction(getattr(attr, functionName))
 		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
-			if hasattr(attr, functionName):
+			if hasattr(mod, functionName):
 				neutralizeFunction(getattr(mod, functionName))
 	
 def wrapFunctionWithExceptionHandler(func):

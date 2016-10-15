@@ -44,11 +44,11 @@ def _runTests(testModule, testCreators):
 	printer.displayTestName(os.path.basename(testModule._fileName))
 	
 	if hasattr(testModule, "before"):
-		#try:
+		try:
 			testModule.before()
-		#except Exception as e:
-		#	printer.displayError("Something went wrong at setup:\n{}".format(e))
-	#		return
+		except Exception as e:
+			printer.displayError("Something went wrong at setup:\n{}".format(e))
+			return
 
 	for test in sorted(tc() for tc in testCreators):
 		testResult = test.run()
