@@ -11,6 +11,7 @@ class Test(object):
 	def run(self):
 		try:
 			result = self.test()
+
 			if type(result) == tuple:
 				hasPassed, info = result
 			else:

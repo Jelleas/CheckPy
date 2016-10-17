@@ -7,9 +7,10 @@ import caches
 import multiprocessing
 import time
 import dill
+import queue
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-TIMEOUT = 20 # timeout of a module set of tests in seconds
+TIMEOUT = 10 # timeout of a single test in seconds
 
 def test(testName, module = ""):
 	fileName = _getFileName(testName)
@@ -42,7 +43,7 @@ def testModule(module):
 		test(testName, module = module)
 	
 def _runTests(testModule):
-	def _runner(testModule):
+	def runner(testModule, queue):
 		reservedNames = ["before", "after"]
 		testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
 
@@ -59,6 +60,7 @@ def _runTests(testModule):
 			testResult = test.run()
 			if testResult != None:
 				printer.display(testResult)
+				queue.put(testResult)
 		
 		if hasattr(testModule, "after"):
 			try:
@@ -66,16 +68,22 @@ def _runTests(testModule):
 			except Exception as e:
 				printer.displayError("Something went wrong at closing:\n{}".format(e))
 
-	p = multiprocessing.Process(target=_runner, name="Run", args=(testModule,))
+	q = multiprocessing.Queue()
+	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, q))
 	p.start()
-
 	start = time.time()
+	
 	while p.is_alive():
+		while not q.empty():
+			q.get()
+			start = time.time()
+
 		if time.time() - start > TIMEOUT:
 			printer.displayError("Timeout ({} seconds) reached, stopped testing.".format(TIMEOUT))
 			p.terminate()
 			p.join()
 			return
+		
 		time.sleep(0.1)
 	
 def _getTestNames(moduleName):
