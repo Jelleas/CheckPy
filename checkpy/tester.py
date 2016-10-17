@@ -5,9 +5,7 @@ import importlib
 import re
 import caches
 import multiprocessing
-import lib
 import time
-import queue
 import dill
 
 HERE = os.path.abspath(os.path.dirname(__file__))
