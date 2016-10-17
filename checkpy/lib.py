@@ -91,6 +91,8 @@ def neutralizeFunction(function):
 		pass
 	setattr(function, "__code__", dummy.__code__)
 
+def restoreFunction(function, codeObject):
+	function.__code__ = codeObject
 
 def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 	for attr in [getattr(mod, name) for name in dir(mod)]:

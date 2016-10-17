@@ -4,8 +4,14 @@ import sys
 import importlib
 import re
 import caches
+import multiprocessing
+import lib
+import time
+import queue
+import dill
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+TIMEOUT = 20 # timeout of a module set of tests in seconds
 
 def test(testName, module = ""):
 	fileName = _getFileName(testName)
@@ -25,10 +31,7 @@ def test(testName, module = ""):
 	testModule = importlib.import_module(testFileName[:-3])
 	testModule._fileName = os.path.join(filePath, fileName)
 	
-	reservedNames = ["before", "after"]
-	testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-
-	_runTests(testModule, testCreators)
+	_runTests(testModule)
 
 def testModule(module):
 	testNames = _getTestNames(module)
@@ -39,29 +42,47 @@ def testModule(module):
 
 	for testName in testNames:
 		test(testName, module = module)
-
-def _runTests(testModule, testCreators):
-	printer.displayTestName(os.path.basename(testModule._fileName))
 	
-	if hasattr(testModule, "before"):
-		try:
-			testModule.before()
-		except Exception as e:
-			printer.displayError("Something went wrong at setup:\n{}".format(e))
+def _runTests(testModule):
+	def _runner(testModule):
+		reservedNames = ["before", "after"]
+		testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+
+		printer.displayTestName(os.path.basename(testModule._fileName))
+
+		if hasattr(testModule, "before"):
+			try:
+				testModule.before()
+			except Exception as e:
+				printer.displayError("Something went wrong at setup:\n{}".format(e))
+				return
+		
+		for test in sorted(tc() for tc in testCreators):
+			testResult = test.run()
+			if testResult != None:
+				printer.display(testResult)
+		
+		if hasattr(testModule, "after"):
+			try:
+				testModule.after()
+			except Exception as e:
+				printer.displayError("Something went wrong at closing:\n{}".format(e))
+
+	reservedNames = ["before", "after"]
+	testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+
+	p = multiprocessing.Process(target=_runner, name="Run", args=(testModule,))
+	p.start()
+
+	start = time.time()
+	while p.is_alive():
+		if time.time() - start > TIMEOUT:
+			printer.displayError("Timeout ({} seconds) reached, stopped testing.".format(TIMEOUT))
+			p.terminate()
+			p.join()
 			return
-
-	for test in sorted(tc() for tc in testCreators):
-		testResult = test.run()
-		if testResult != None:
-			printer.display(testResult)
-
-	if hasattr(testModule, "after"):
-		try:
-			testModule.after()
-		except Exception as e:
-			printer.displayError("Something went wrong at closing:\n{}".format(e))
-			return
-
+		time.sleep(0.1)
+	
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
