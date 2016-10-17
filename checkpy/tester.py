@@ -7,7 +7,6 @@ import caches
 import multiprocessing
 import time
 import dill
-import queue
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 TIMEOUT = 10 # timeout of a single test in seconds
