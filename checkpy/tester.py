@@ -66,9 +66,6 @@ def _runTests(testModule):
 			except Exception as e:
 				printer.displayError("Something went wrong at closing:\n{}".format(e))
 
-	reservedNames = ["before", "after"]
-	testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-
 	p = multiprocessing.Process(target=_runner, name="Run", args=(testModule,))
 	p.start()
 
