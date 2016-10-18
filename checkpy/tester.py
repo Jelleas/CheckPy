@@ -88,7 +88,7 @@ def _runTests(testModule):
 			start = time.time()
 
 		if isTiming and time.time() - start > timeout:
-			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, test.description()))
+			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description))
 			p.terminate()
 			p.join()
 			return
