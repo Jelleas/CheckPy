@@ -69,7 +69,8 @@ def _runTests(testModule):
 
 		# print test results in order
 		for test in sorted(cachedResults.keys()):
-			printer.display(cachedResults[test])
+			if cachedResults[test] != None:
+				printer.display(cachedResults[test])
 
 		if hasattr(testModule, "after"):
 			try:
@@ -96,21 +97,12 @@ def _runTests(testModule):
 		
 		time.sleep(0.1)
 
-def _getTestsInExecutionOrder(tests, testsInExecutionOrder = None, cachedTestCreators = None):
+def _getTestsInExecutionOrder(tests, testsInExecutionOrder = None):
 	if not testsInExecutionOrder:
 		testsInExecutionOrder = []
 
-	if not cachedTestCreators:
-		cachedTestCreators = {}
-
 	for i, test in enumerate(tests):
-		dependencies = []
-		for tc in test.dependencies():
-			if tc not in cachedTestCreators:
-				cachedTestCreators[tc] = tc()
-			dependencies.append(cachedTestCreators[tc])
-
-		testsInExecutionOrder = _getTestsInExecutionOrder(dependencies, testsInExecutionOrder, cachedTestCreators)
+		testsInExecutionOrder = _getTestsInExecutionOrder([tc() for tc in test.dependencies()], testsInExecutionOrder)
 		if test not in testsInExecutionOrder:
 			testsInExecutionOrder.append(test)
 		
