@@ -24,11 +24,8 @@ def test(testName, module = ""):
 	
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
-	
-	testModule = importlib.import_module(testFileName[:-3])
-	testModule._fileName = os.path.join(filePath, fileName)
-	
-	_runTests(testModule)
+		
+	_runTests(importlib.import_module(testFileName[:-3]), os.path.join(filePath, fileName))
 
 def testModule(module):
 	testNames = _getTestNames(module)
@@ -40,8 +37,9 @@ def testModule(module):
 	for testName in testNames:
 		test(testName, module = module)
 	
-def _runTests(testModule):
-	def runner(testModule, queue):
+def _runTests(testModule, fileName):
+	def runner(testModule, fileName, queue):
+		testModule._fileName = fileName
 		queue.put((False, None, None)) # signal stop timing
 
 		reservedNames = ["before", "after"]
@@ -76,7 +74,7 @@ def _runTests(testModule):
 				printer.displayError("Something went wrong at closing:\n{}".format(e))
 
 	q = multiprocessing.Queue()
-	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, q))
+	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, fileName, q))
 	p.start()
 
 	start = time.time()
