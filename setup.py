@@ -42,7 +42,7 @@ setup(
 
 	include_package_data=True,
 
-	install_requires=["requests", "tinydb", "dill"],
+	install_requires=["requests", "tinydb", "dill", "colorama"],
 
 	extras_require={
 		'dev': [],
