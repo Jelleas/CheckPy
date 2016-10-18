@@ -1,15 +1,14 @@
 import printer
+import caches
 import os
 import sys
 import importlib
 import re
-import caches
 import multiprocessing
 import time
 import dill
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-TIMEOUT = 10 # timeout of a single test in seconds
 
 def test(testName, module = ""):
 	fileName = _getFileName(testName)
@@ -43,7 +42,7 @@ def testModule(module):
 	
 def _runTests(testModule):
 	def runner(testModule, queue):
-		queue.put(False) # signal stop timing
+		queue.put((False, None, None)) # signal stop timing
 
 		reservedNames = ["before", "after"]
 		testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
@@ -61,11 +60,9 @@ def _runTests(testModule):
 
 		# run tests in noncolliding execution order
 		for test in _getTestsInExecutionOrder([tc() for tc in testCreators]):
-			queue.put(True) # signal start timing, and reset timer
+			queue.put((True, test.description(), test.timeout())) # signal start timing, and reset timer
 			cachedResults[test] = test.run()
-			queue.put(True) # signal start timing, and reset timer
-		
-		queue.put(False) # signal stop timing
+			queue.put((False, None, None)) # signal stop timing
 
 		# print test results in order
 		for test in sorted(cachedResults.keys()):
@@ -81,16 +78,17 @@ def _runTests(testModule):
 	q = multiprocessing.Queue()
 	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, q))
 	p.start()
+
 	start = time.time()
 	isTiming = False
-
+	
 	while p.is_alive():
 		while not q.empty():
-			isTiming = q.get()
+			isTiming, description, timeout = q.get()
 			start = time.time()
 
-		if isTiming and time.time() - start > TIMEOUT:
-			printer.displayError("Timeout ({} seconds) reached, stopped testing.".format(TIMEOUT))
+		if isTiming and time.time() - start > timeout:
+			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, test.description()))
 			p.terminate()
 			p.join()
 			return

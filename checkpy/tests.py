@@ -44,6 +44,10 @@ class Test(object):
 	@staticmethod
 	def dependencies():
 		return set()
+
+	@staticmethod
+	def timeout():
+		return 10
 		
 		
 class TestResult(object):
