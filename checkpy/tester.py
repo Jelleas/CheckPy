@@ -97,15 +97,11 @@ def _runTests(testModule):
 		
 		time.sleep(0.1)
 
-def _getTestsInExecutionOrder(tests, testsInExecutionOrder = None):
-	if not testsInExecutionOrder:
-		testsInExecutionOrder = []
-
+def _getTestsInExecutionOrder(tests):
+	testsInExecutionOrder = []
 	for i, test in enumerate(tests):
-		testsInExecutionOrder = _getTestsInExecutionOrder([tc() for tc in test.dependencies()], testsInExecutionOrder)
-		if test not in testsInExecutionOrder:
-			testsInExecutionOrder.append(test)
-		
+		dependencies = _getTestsInExecutionOrder([tc() for tc in test.dependencies()]) + [test]
+		testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
 	return testsInExecutionOrder
 
 def _getTestNames(moduleName):
