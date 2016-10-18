@@ -43,6 +43,8 @@ def testModule(module):
 	
 def _runTests(testModule):
 	def runner(testModule, queue):
+		queue.put(False) # signal stop timing
+
 		reservedNames = ["before", "after"]
 		testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
 
@@ -54,13 +56,21 @@ def _runTests(testModule):
 			except Exception as e:
 				printer.displayError("Something went wrong at setup:\n{}".format(e))
 				return
+
+		cachedResults = {}
+
+		# run tests in noncolliding execution order
+		for test in _getTestsInExecutionOrder([tc() for tc in testCreators]):
+			queue.put(True) # signal start timing, and reset timer
+			cachedResults[test] = test.run()
+			queue.put(True) # signal start timing, and reset timer
 		
-		for test in sorted(tc() for tc in testCreators):
-			testResult = test.run()
-			if testResult != None:
-				printer.display(testResult)
-				queue.put(testResult)
-		
+		queue.put(False) # signal stop timing
+
+		# print test results in order
+		for test in sorted(cachedResults.keys()):
+			printer.display(cachedResults[test])
+
 		if hasattr(testModule, "after"):
 			try:
 				testModule.after()
@@ -71,20 +81,41 @@ def _runTests(testModule):
 	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, q))
 	p.start()
 	start = time.time()
-	
+	isTiming = False
+
 	while p.is_alive():
 		while not q.empty():
-			q.get()
+			isTiming = q.get()
 			start = time.time()
 
-		if time.time() - start > TIMEOUT:
+		if isTiming and time.time() - start > TIMEOUT:
 			printer.displayError("Timeout ({} seconds) reached, stopped testing.".format(TIMEOUT))
 			p.terminate()
 			p.join()
 			return
 		
 		time.sleep(0.1)
-	
+
+def _getTestsInExecutionOrder(tests, testsInExecutionOrder = None, cachedTestCreators = None):
+	if not testsInExecutionOrder:
+		testsInExecutionOrder = []
+
+	if not cachedTestCreators:
+		cachedTestCreators = {}
+
+	for i, test in enumerate(tests):
+		dependencies = []
+		for tc in test.dependencies():
+			if tc not in cachedTestCreators:
+				cachedTestCreators[tc] = tc()
+			dependencies.append(cachedTestCreators[tc])
+
+		testsInExecutionOrder = _getTestsInExecutionOrder(dependencies, testsInExecutionOrder, cachedTestCreators)
+		if test not in testsInExecutionOrder:
+			testsInExecutionOrder.append(test)
+		
+	return testsInExecutionOrder
+
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):

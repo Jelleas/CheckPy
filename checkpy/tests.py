@@ -40,6 +40,10 @@ class Test(object):
 	@staticmethod
 	def exception(exception):
 		return exception
+
+	@staticmethod
+	def dependencies():
+		return set()
 		
 		
 class TestResult(object):
@@ -75,6 +79,8 @@ def failed(*precondTestCreators):
 	def failedDecorator(testCreator):
 		def testWrapper():
 			test = testCreator()
+			dependencies = test.dependencies
+			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
 			test.run = lambda : run() if not any(t().run().hasPassed for t in precondTestCreators) else None
 			return test
@@ -86,6 +92,8 @@ def passed(*precondTestCreators):
 	def passedDecorator(testCreator):
 		def testWrapper():
 			test = testCreator()
+			dependencies = test.dependencies
+			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
 			test.run = lambda : run() if all(t().run().hasPassed for t in precondTestCreators) else None
 			return test
