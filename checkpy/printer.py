@@ -19,7 +19,7 @@ def display(testResult):
 	color, smiley = _selectColorAndSmiley(testResult)
 	print "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
-		 print "  - {}".format(testResult.message)
+		print "  - {}".format(testResult.message)
 
 def displayTestName(testName):
 	print "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)

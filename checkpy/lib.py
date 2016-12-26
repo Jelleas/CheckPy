@@ -18,11 +18,21 @@ def _stdoutIO(stdout=None):
 	yield stdout
 	sys.stdout = old
 
+@contextlib.contextmanager
+def _stdinIO(stdin=None):
+	old = sys.stdin
+	if stdin is None:
+		stdin = StringIO.StringIO()
+	sys.stdin = stdin
+	yield stdin
+	sys.stdin = old
+
 def getFunction(functionName, fileName):
 	return getattr(module(fileName), functionName)
 	
-def outputOf(fileName):
-	return outputOfSource(fileName, source(fileName))
+def outputOf(fileName, stdinArgs = ()):
+	_, output = moduleAndOutputFromSource(fileName, source(fileName), stdinArgs = tuple(stdinArgs))
+	return output
 
 def outputOfSource(fileName, source):
 	_, output = moduleAndOutputFromSource(fileName, source)
@@ -62,12 +72,17 @@ def module(fileName, src = None):
 	return mod
 
 @caches.cache()
-def moduleAndOutputFromSource(fileName, source):
+def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 	mod = None
 	output = ""
 	exception = None
 	
-	with _stdoutIO() as s:
+	with _stdoutIO() as stdout, _stdinIO() as stdin:
+		if stdinArgs:
+			for arg in stdinArgs:
+				stdin.write(str(arg) + "\n")
+			stdin.seek(0)
+
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
 			mod = imp.new_module(moduleName)
@@ -80,7 +95,7 @@ def moduleAndOutputFromSource(fileName, source):
 		for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
-		output = s.getvalue()
+		output = stdout.getvalue()
 	if exception:
 		raise exception
 

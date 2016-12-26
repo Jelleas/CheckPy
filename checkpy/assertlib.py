@@ -44,4 +44,3 @@ def fileContainsFunctionDefinitions(fileName, *functionNames):
 	source = lib.source(fileName)
 	fDefInSrc = lambda fName, src : re.match(re.compile(".*def[ \\t]+{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)
 	return all(fDefInSrc(fName, source) for fName in functionNames)
-		
