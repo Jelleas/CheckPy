@@ -20,11 +20,19 @@ def _stdoutIO(stdout=None):
 
 @contextlib.contextmanager
 def _stdinIO(stdin=None):
+	old_input = input
+	def new_input(prompt = None):
+		return old_input()
+	__builtins__["input"] = new_input
+
 	old = sys.stdin
 	if stdin is None:
 		stdin = StringIO.StringIO()
 	sys.stdin = stdin
+
 	yield stdin
+
+	__builtins__["input"] = old_input
 	sys.stdin = old
 
 def getFunction(functionName, fileName):
