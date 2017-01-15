@@ -86,7 +86,10 @@ def failed(*precondTestCreators):
 			dependencies = test.dependencies
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
-			test.run = lambda : run() if not any(t().run().hasPassed for t in precondTestCreators) else None
+			def runMethod():
+				testResults = [t().run() for t in precondTestCreators]
+				return run() if not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults) else None
+			test.run = runMethod
 			return test
 		return testWrapper
 	return failedDecorator
@@ -99,7 +102,10 @@ def passed(*precondTestCreators):
 			dependencies = test.dependencies
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
-			test.run = lambda : run() if all(t().run().hasPassed for t in precondTestCreators) else None
+			def runMethod():
+				testResults = [t().run() for t in precondTestCreators]
+				return run() if not any(t is None for t in testResults) and all(t.hasPassed for t in testResults) else None
+			test.run = runMethod
 			return test
 		return testWrapper
 	return passedDecorator
