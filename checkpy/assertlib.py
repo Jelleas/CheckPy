@@ -36,11 +36,11 @@ def numberOnLine(number, line, deviation = 0):
 	return any(between(n, number - deviation, number + deviation) for n in lib.getNumbersFromString(line))
 
 def fileContainsFunctionCalls(fileName, *functionNames):
-	source = lib.source(fileName)
+	source = lib.removeComments(lib.source(fileName))
 	fCallInSrc = lambda fName, src : re.match(re.compile(".*{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)
 	return all(fCallInSrc(fName, source) for fName in functionNames)
 
 def fileContainsFunctionDefinitions(fileName, *functionNames):
-	source = lib.source(fileName)
+	source = lib.removeComments(lib.source(fileName))
 	fDefInSrc = lambda fName, src : re.match(re.compile(".*def[ \\t]+{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)
 	return all(fDefInSrc(fName, source) for fName in functionNames)
