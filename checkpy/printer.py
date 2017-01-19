@@ -27,6 +27,12 @@ def displayTestName(testName):
 def displayUpdate(fileName):
 	print "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
 
+def displayRemoved(fileName):
+	print "{}Removed: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)	
+
+def displayAdded(fileName):
+	print "{}Added:   {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)		
+
 def displayCustom(message):
 	print message
 
