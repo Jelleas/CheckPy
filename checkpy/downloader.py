@@ -7,26 +7,46 @@ import tinydb
 import caches
 import printer
 
+class Folder(object):
+	def __init__(self, name, path):
+		self.name = name
+		self.path = path
+
+	def pathAsString(self):
+		return self.path.asString()
+
+class File(object):
+	def __init__(self, name, path):
+		self.name = name
+		self.path = path
+
+	def pathAsString(self):
+		return self.path.asString()
+
 class Path(object):
 	def __init__(self, path):
 		self._path = os.path.normpath(path)
 
 	@property
-	def path(self):
-		return self._path
+	def fileName(self):
+		return os.path.basename(self.asString())
 
 	@property
-	def fileName(self):
-		return os.path.basename(self.path)
+	def folderName(self):
+		_, name = os.path.split(os.path.dirname(self.asString()))
+		return name
+
+	def asString(self):
+		return self._path
 
 	def isPythonFile(self):
 		return self.fileName.endswith(".py")
 
 	def exists(self):
-		return os.path.exists(self.path)
+		return os.path.exists(self.asString())
 
 	def walk(self):
-		for path, subdirs, files in os.walk(self.path):
+		for path, subdirs, files in os.walk(self.asString()):
 			yield Path(path), [Path(sd) for sd in subdirs], [Path(f) for f in files]
 
 	def pathFromFolder(self, folderName):
@@ -40,7 +60,9 @@ class Path(object):
 		return Path(path)
 
 	def __add__(self, other):
-		return Path(os.path.join(self.path, other.path))
+		if isinstance(other, str) or isinstance(other, unicode):
+			return Path(os.path.join(self.asString(), other))
+		return Path(os.path.join(self.asString(), other.asString()))
 
 	def __sub__(self, other):
 		my_items = [item for item in self]
@@ -48,11 +70,11 @@ class Path(object):
 		return Path(reduce(lambda total, i : os.path.join(total, i), my_items[len(other_items):], ""))
 
 	def __iter__(self):
-		for item in self._path.split(os.path.sep):
+		for item in self.asString().split(os.path.sep):
 			yield item
 
 	def __repr__(self):
-		return self.path
+		return self.asString()
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -64,13 +86,14 @@ class Path(object):
 		return item in [item for item in self]
 
 	def __nonzero__ (self):
-		return len(self.path) != 0
+		return len(self.asString()) != 0
 
 
 HERE = Path(os.path.abspath(os.path.dirname(__file__)))
-TESTSPATH = HERE + Path("tests")
-DBPATH = HERE + Path("storage")
-DBFILEPATH = DBPATH + Path("downloadLocations.json")
+HEREFOLDER = Folder(HERE.folderName, HERE)
+TESTSFOLDER = Folder("tests", HERE + "tests")
+DBFOLDER = Folder("storage", HERE + "storage")
+DBFILE = File("downloadLocations.json", DBFOLDER.path + "downloadLocations.json")
 
 
 def download(githubLink):
@@ -83,19 +106,23 @@ def download(githubLink):
 
 def update():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
-		download(username, repoName)
+		_download(username, repoName)
 
 def list():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
 		printer.displayCustom("{} from {}".format(repoName, username))
 
 def clean():
-	shutil.rmtree(TESTSPATH.path, ignore_errors=True)
-	os.remove(DBFILEPATH.path)
+	shutil.rmtree(TESTSFOLDER.pathAsString(), ignore_errors=True)
+	if (DBFILE.path.exists()):
+		os.remove(DBFILE.pathAsString())
 	printer.displayCustom("Removed all tests")
 	return
 
 def _download(githubUserName, githubRepoName):
+	githubUserName = githubUserName.lower()
+	githubRepoName = githubRepoName.lower()
+
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/master.zip"
 	r = requests.get(zipLink)
@@ -107,37 +134,39 @@ def _download(githubUserName, githubRepoName):
 	_addToDownloadLocations(githubUserName, githubRepoName)
 
 	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
-		dest = TESTSPATH + Path(githubRepoName)
+		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
 		
 		existingTests = set()
-		for path, subdirs, files in dest.walk():
+		for path, subdirs, files in destFolder.path.walk():
 			for f in files:
-				existingTests.add((path + f) - dest)
+				existingTests.add((path + f) - destFolder.path)
 
 		newTests = set()
 		for path in [Path(name) for name in z.namelist()]:
 			if path.isPythonFile():
 				newTests.add(path.pathFromFolder("tests"))
 
+		for filePath in [fp for fp in existingTests - newTests if fp.isPythonFile()]:
+			printer.displayRemoved(filePath.asString())
+
+		for filePath in [fp for fp in newTests - existingTests if fp.isPythonFile()]:
+			printer.displayAdded(filePath.asString())
+
 		for filePath in existingTests - newTests:
-			printer.displayRemoved(filePath.path)
-			os.remove((dest + filePath).path)
+			os.remove((destFolder.path + filePath).asString())
 
-		for filePath in newTests - existingTests:
-			printer.displayAdded(filePath.path)
-
-		_extractTests(z, dest)
+		_extractTests(z, destFolder)
 
 	printer.displayCustom("Finished downloading: {}".format(githubLink))
 
 @caches.cache()
 def _downloadLocationsDatabase():
-	if not DBPATH.exists():
-		os.makedirs(DBPATH.path)
-	if not os.path.isfile(DBFILEPATH.path):
-		with open(DBFILEPATH.path, 'w') as f:
+	if not DBFOLDER.path.exists():
+		os.makedirs(DBFOLDER.pathAsString())
+	if not os.path.isfile(DBFILE.pathAsString()):
+		with open(DBFILE.pathAsString(), 'w') as f:
 			pass
-	return tinydb.TinyDB(DBFILEPATH.path)
+	return tinydb.TinyDB(DBFILE.pathAsString())
 
 def _isKnownDownloadLocation(username, repoName):
 	query = tinydb.Query()
@@ -147,31 +176,31 @@ def _addToDownloadLocations(username, repoName):
 	if not _isKnownDownloadLocation(username, repoName):
 		_downloadLocationsDatabase().insert({"user" : username, "repo" : repoName})
 	
-def _extractTests(zipfile, destPath):
-	if not destPath.exists():
-		os.makedirs(destPath.path)
+def _extractTests(zipfile, destFolder):
+	if not destFolder.path.exists():
+		os.makedirs(destFolder.pathAsString())
 
 	for path in [Path(name) for name in zipfile.namelist()]:
-		_extractTest(zipfile, path, destPath)
+		_extractTest(zipfile, path, destFolder)
 
-def _extractTest(zipfile, path, destPath):
+def _extractTest(zipfile, path, destFolder):
 	if "tests" not in path:
 		return
 
 	subfolderPath = path.pathFromFolder("tests")
-	filePath = destPath + subfolderPath
+	filePath = destFolder.path + subfolderPath
 
 	if path.isPythonFile():
 		_extractFile(zipfile, path, filePath)
-	elif subfolderPath and not os.path.exists(filePath.path):
-		os.makedirs(filePath.path)
+	elif subfolderPath and not os.path.exists(filePath.asString()):
+		os.makedirs(filePath.asString())
 			
 def _extractFile(zipfile, path, filePath):
-	zipPathString = path.path.replace("\\", "/")
-	if os.path.isfile(filePath.path):
-		with zipfile.open(zipPathString) as new, file(filePath.path, "r") as existing:
+	zipPathString = path.asString().replace("\\", "/")
+	if os.path.isfile(filePath.asString()):
+		with zipfile.open(zipPathString) as new, file(filePath.asString(), "r") as existing:
 			if existing.read() != new.read():
-				printer.displayUpdate(path.path)
+				printer.displayUpdate(path.asString())
 				
-	with zipfile.open(zipPathString) as source, file(filePath.path, "wb+") as target:
+	with zipfile.open(zipPathString) as source, file(filePath.asString(), "wb+") as target:
 		shutil.copyfileobj(source, target)
