@@ -9,8 +9,8 @@ import time
 
 def main():
 	parser = argparse.ArgumentParser(description="checkPy: a simple python testing framework")
-	parser.add_argument("-m", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
-	parser.add_argument("-d", action="store", dest="githubLink", help="download tests from a Github repository and exit")
+	parser.add_argument("-module", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
+	parser.add_argument("-download", action="store", dest="githubLink", help="download tests from a Github repository and exit")
 	parser.add_argument("-update", action="store_true", help="update all downloaded tests and exit")
 	parser.add_argument("-list", action="store_true", help="list all download locations and exit")
 	parser.add_argument("-clean", action="store_true", help="remove all tests from the tests folder and exit")
