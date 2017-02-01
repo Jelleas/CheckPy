@@ -5,13 +5,14 @@ def testModule(moduleName):
 	import caches
 	caches.clearAllCaches()
 	import tester
-	tester.testModule(moduleName)
+	results = tester.testModule(moduleName)
 	try:
 		if __IPYTHON__:
 			import matplotlib.pyplot
 			matplotlib.pyplot.close("all")
 	except:
 		pass
+	return results
 
 def test(fileName):
 	"""
@@ -20,12 +21,13 @@ def test(fileName):
 	import caches
 	caches.clearAllCaches()
 	import tester
-	tester.test(fileName)
+	result = tester.test(fileName)
 	try:
 		if __IPYTHON__:
 			import matplotlib.pyplot
 			matplotlib.pyplot.close("all")
 	except:
 		pass
+	return result
 
 from downloader import download, update

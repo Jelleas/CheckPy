@@ -25,7 +25,7 @@ def test(testName, module = ""):
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 		
-	_runTests(importlib.import_module(testFileName[:-3]), os.path.join(filePath, fileName))
+	return _runTests(importlib.import_module(testFileName[:-3]), os.path.join(filePath, fileName))
 
 def testModule(module):
 	testNames = _getTestNames(module)
@@ -34,8 +34,8 @@ def testModule(module):
 		printer.displayError("no tests found in module: {}".format(module))
 		return
 
-	for testName in testNames:
-		test(testName, module = module)
+	return [test(testName, module = module) for testName in testNames]
+
 
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
@@ -66,6 +66,48 @@ def _getFilePath(completeFilePath):
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
 
+def _runTests(module, fileName):
+	signalQueue = multiprocessing.Queue()
+	resultQueue = multiprocessing.Queue()
+	tester = _Tester(module, fileName, signalQueue, resultQueue)
+	p = multiprocessing.Process(target=tester.run, name="Tester")
+	p.start()
+
+	start = time.time()
+	isTiming = False
+	
+	while p.is_alive():
+		while not signalQueue.empty():
+			signal = signalQueue.get()
+			isTiming = signal.isTiming
+			description = signal.description
+			timeout = signal.timeout
+			if signal.resetTimer:
+				start = time.time()
+
+		if isTiming and time.time() - start > timeout:
+			result = TesterResult()
+			result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
+			p.terminate()
+			p.join()
+			return result
+		
+		time.sleep(0.1)
+
+	if not resultQueue.empty():
+		return resultQueue.get()
+
+class TesterResult(object):
+	def __init__(self):
+		self.nTests = 0
+		self.nPassedTests = 0
+		self.nFailedTests = 0
+		self.nRunTests = 0
+		self.output = []
+
+	def addOutput(self, output):
+		self.output.append(output)
+
 class _Signal(object):
 	def __init__(self, isTiming = False, resetTimer = False, description = None, timeout = None):
 		self.isTiming = isTiming
@@ -74,33 +116,48 @@ class _Signal(object):
 		self.timeout = timeout
 
 class _Tester(object):
-	def __init__(self, module, fileName, queue):
+	def __init__(self, module, fileName, signalQueue, resultQueue):
 		self.module = module
 		self.fileName = fileName
-		self.queue = queue
+		self.signalQueue = signalQueue
+		self.resultQueue = resultQueue
 
 	def run(self):
+		result = TesterResult()
+
 		self.module._fileName = self.fileName
 		self._sendSignal(_Signal(isTiming = False))
 
-		printer.displayTestName(os.path.basename(self.module._fileName))
+		result.addOutput(printer.displayTestName(os.path.basename(self.module._fileName)))
 
 		if hasattr(self.module, "before"):
 			try:
 				self.module.before()
 			except Exception as e:
-				printer.displayError("Something went wrong at setup:\n{}".format(e))
+				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
 		reservedNames = ["before", "after"]
 		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-		self._runTests(testCreators)
+		
+		result.nTests = len(testCreators)
+
+		testResults = self._runTests(testCreators)
+
+		result.nRunTests = len(testResults)
+		result.nPassedTests = len([tr for tr in testResults if tr.hasPassed])
+		result.nFailedTests = len([tr for tr in testResults if not tr.hasPassed])
+
+		for testResult in testResults:
+			result.addOutput(printer.display(testResult))
 
 		if hasattr(self.module, "after"):
 			try:
 				self.module.after()
 			except Exception as e:
-				printer.displayError("Something went wrong at closing:\n{}".format(e))
+				result.addOutput(printer.displayError("Something went wrong at closing:\n{}".format(e)))
+
+		self._sendResult(result)
 
 	def _runTests(self, testCreators):
 		cachedResults = {}
@@ -111,13 +168,14 @@ class _Tester(object):
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
 
-		# print test results in specified order
-		for test in sorted(cachedResults.keys()):
-			if cachedResults[test] != None:
-				printer.display(cachedResults[test])
+		# return test results in specified order
+		return [cachedResults[test] for test in sorted(cachedResults.keys()) if cachedResults[test] != None]
+				
+	def _sendResult(self, result):
+		self.resultQueue.put(result)
 
 	def _sendSignal(self, signal):
-		self.queue.put(signal)
+		self.signalQueue.put(signal)
 
 	def _getTestsInExecutionOrder(self, tests):
 		testsInExecutionOrder = []
@@ -125,29 +183,3 @@ class _Tester(object):
 			dependencies = self._getTestsInExecutionOrder([tc() for tc in test.dependencies()]) + [test]
 			testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
 		return testsInExecutionOrder
-	
-def _runTests(module, fileName):
-	q = multiprocessing.Queue()
-	tester = _Tester(module, fileName, q)
-	p = multiprocessing.Process(target=tester.run, name="Tester")
-	p.start()
-
-	start = time.time()
-	isTiming = False
-	
-	while p.is_alive():
-		while not q.empty():
-			signal = q.get()
-			isTiming = signal.isTiming
-			description = signal.description
-			timeout = signal.timeout
-			if signal.resetTimer:
-				start = time.time()
-
-		if isTiming and time.time() - start > timeout:
-			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description))
-			p.terminate()
-			p.join()
-			return
-		
-		time.sleep(0.1)

@@ -17,27 +17,40 @@ class _Smileys:
 	
 def display(testResult):
 	color, smiley = _selectColorAndSmiley(testResult)
-	print "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
+	msg = "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
-		print "  - {}".format(testResult.message)
+		msg += "\n  - {}".format(testResult.message)
+	print msg
+	return msg
 
 def displayTestName(testName):
-	print "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)
+	msg = "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)
+	print msg
+	return msg
 
 def displayUpdate(fileName):
-	print "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+	msg = "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+	print msg
+	return msg
 
 def displayRemoved(fileName):
-	print "{}Removed: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)	
+	msg = "{}Removed: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+	print msg
+	return msg
 
 def displayAdded(fileName):
-	print "{}Added:   {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)		
+	msg = "{}Added:   {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+	print msg
+	return msg	
 
 def displayCustom(message):
 	print message
+	return message
 
 def displayError(message):
-	print "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
+	msg = "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
+	print msg
+	return msg
 
 def _selectColorAndSmiley(testResult):
 	if testResult.hasPassed:
