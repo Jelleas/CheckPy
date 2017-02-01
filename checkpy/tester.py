@@ -83,9 +83,6 @@ class _Tester(object):
 		self.module._fileName = self.fileName
 		self._sendSignal(_Signal(isTiming = False))
 
-		reservedNames = ["before", "after"]
-		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-
 		printer.displayTestName(os.path.basename(self.module._fileName))
 
 		if hasattr(self.module, "before"):
@@ -95,6 +92,17 @@ class _Tester(object):
 				printer.displayError("Something went wrong at setup:\n{}".format(e))
 				return
 
+		reservedNames = ["before", "after"]
+		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+		self._runTests(testCreators)
+
+		if hasattr(self.module, "after"):
+			try:
+				self.module.after()
+			except Exception as e:
+				printer.displayError("Something went wrong at closing:\n{}".format(e))
+
+	def _runTests(self, testCreators):
 		cachedResults = {}
 
 		# run tests in noncolliding execution order
@@ -103,16 +111,10 @@ class _Tester(object):
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
 
-		# print test results in order
+		# print test results in specified order
 		for test in sorted(cachedResults.keys()):
 			if cachedResults[test] != None:
 				printer.display(cachedResults[test])
-
-		if hasattr(self.module, "after"):
-			try:
-				self.module.after()
-			except Exception as e:
-				printer.displayError("Something went wrong at closing:\n{}".format(e))
 
 	def _sendSignal(self, signal):
 		self.queue.put(signal)
