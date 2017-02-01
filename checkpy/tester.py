@@ -36,69 +36,6 @@ def testModule(module):
 
 	for testName in testNames:
 		test(testName, module = module)
-	
-def _runTests(testModule, fileName):
-	def runner(testModule, fileName, queue):
-		testModule._fileName = fileName
-		queue.put((False, None, None)) # signal stop timing
-
-		reservedNames = ["before", "after"]
-		testCreators = [method for method in testModule.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-
-		printer.displayTestName(os.path.basename(testModule._fileName))
-
-		if hasattr(testModule, "before"):
-			try:
-				testModule.before()
-			except Exception as e:
-				printer.displayError("Something went wrong at setup:\n{}".format(e))
-				return
-
-		cachedResults = {}
-
-		# run tests in noncolliding execution order
-		for test in _getTestsInExecutionOrder([tc() for tc in testCreators]):
-			queue.put((True, test.description(), test.timeout())) # signal start timing, and reset timer
-			cachedResults[test] = test.run()
-			queue.put((False, None, None)) # signal stop timing
-
-		# print test results in order
-		for test in sorted(cachedResults.keys()):
-			if cachedResults[test] != None:
-				printer.display(cachedResults[test])
-
-		if hasattr(testModule, "after"):
-			try:
-				testModule.after()
-			except Exception as e:
-				printer.displayError("Something went wrong at closing:\n{}".format(e))
-
-	q = multiprocessing.Queue()
-	p = multiprocessing.Process(target=runner, name="Tester", args=(testModule, fileName, q))
-	p.start()
-
-	start = time.time()
-	isTiming = False
-	
-	while p.is_alive():
-		while not q.empty():
-			isTiming, description, timeout = q.get()
-			start = time.time()
-
-		if isTiming and time.time() - start > timeout:
-			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description))
-			p.terminate()
-			p.join()
-			return
-		
-		time.sleep(0.1)
-
-def _getTestsInExecutionOrder(tests):
-	testsInExecutionOrder = []
-	for i, test in enumerate(tests):
-		dependencies = _getTestsInExecutionOrder([tc() for tc in test.dependencies()]) + [test]
-		testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
-	return testsInExecutionOrder
 
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
@@ -128,3 +65,87 @@ def _getFilePath(completeFilePath):
 
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
+
+class _Signal(object):
+	def __init__(self, isTiming = False, resetTimer = False, description = None, timeout = None):
+		self.isTiming = isTiming
+		self.resetTimer = resetTimer
+		self.description = description
+		self.timeout = timeout
+
+class _Tester(object):
+	def __init__(self, module, fileName, queue):
+		self.module = module
+		self.fileName = fileName
+		self.queue = queue
+
+	def run(self):
+		self.module._fileName = self.fileName
+		self._sendSignal(_Signal(isTiming = False))
+
+		reservedNames = ["before", "after"]
+		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+
+		printer.displayTestName(os.path.basename(self.module._fileName))
+
+		if hasattr(self.module, "before"):
+			try:
+				self.module.before()
+			except Exception as e:
+				printer.displayError("Something went wrong at setup:\n{}".format(e))
+				return
+
+		cachedResults = {}
+
+		# run tests in noncolliding execution order
+		for test in self._getTestsInExecutionOrder([tc() for tc in testCreators]):
+			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout())) 
+			cachedResults[test] = test.run()
+			self._sendSignal(_Signal(isTiming = False))
+
+		# print test results in order
+		for test in sorted(cachedResults.keys()):
+			if cachedResults[test] != None:
+				printer.display(cachedResults[test])
+
+		if hasattr(self.module, "after"):
+			try:
+				self.module.after()
+			except Exception as e:
+				printer.displayError("Something went wrong at closing:\n{}".format(e))
+
+	def _sendSignal(self, signal):
+		self.queue.put(signal)
+
+	def _getTestsInExecutionOrder(self, tests):
+		testsInExecutionOrder = []
+		for i, test in enumerate(tests):
+			dependencies = self._getTestsInExecutionOrder([tc() for tc in test.dependencies()]) + [test]
+			testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
+		return testsInExecutionOrder
+	
+def _runTests(module, fileName):
+	q = multiprocessing.Queue()
+	tester = _Tester(module, fileName, q)
+	p = multiprocessing.Process(target=tester.run, name="Tester")
+	p.start()
+
+	start = time.time()
+	isTiming = False
+	
+	while p.is_alive():
+		while not q.empty():
+			signal = q.get()
+			isTiming = signal.isTiming
+			description = signal.description
+			timeout = signal.timeout
+			if signal.resetTimer:
+				start = time.time()
+
+		if isTiming and time.time() - start > timeout:
+			printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description))
+			p.terminate()
+			p.join()
+			return
+		
+		time.sleep(0.1)

@@ -2,7 +2,6 @@ import sys
 import os
 import argparse
 import downloader
-import printer
 import tester
 import shutil
 import time
