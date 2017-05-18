@@ -1,4 +1,4 @@
-import exception as excep
+from . import exception as excep
 import os
 import colorama
 colorama.init()
@@ -20,36 +20,36 @@ def display(testResult):
 	msg = "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
 		msg += "\n  - {}".format(testResult.message)
-	print msg
+	print(msg)
 	return msg
 
 def displayTestName(testName):
 	msg = "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)
-	print msg
+	print(msg)
 	return msg
 
 def displayUpdate(fileName):
 	msg = "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print msg
+	print(msg)
 	return msg
 
 def displayRemoved(fileName):
 	msg = "{}Removed: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print msg
+	print(msg)
 	return msg
 
 def displayAdded(fileName):
 	msg = "{}Added:   {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print msg
+	print(msg)
 	return msg	
 
 def displayCustom(message):
-	print message
+	print(message)
 	return message
 
 def displayError(message):
 	msg = "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
-	print msg
+	print(msg)
 	return msg
 
 def _selectColorAndSmiley(testResult):

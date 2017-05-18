@@ -1,5 +1,5 @@
-import printer
-import caches
+from . import printer
+from . import caches
 import os
 import sys
 import importlib
@@ -7,6 +7,7 @@ import re
 import multiprocessing
 import time
 import dill
+import collections
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -138,7 +139,7 @@ class _Tester(object):
 				return
 
 		reservedNames = ["before", "after"]
-		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+		testCreators = [method for method in list(self.module.__dict__.values()) if isinstance(method, collections.Callable) and method.__name__ not in reservedNames]
 		
 		result.nTests = len(testCreators)
 

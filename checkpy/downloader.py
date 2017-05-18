@@ -1,11 +1,12 @@
 import requests
 import zipfile as zf
-import StringIO
+import io
 import os
 import shutil
 import tinydb
-import caches
-import printer
+from . import caches
+from . import printer
+from functools import reduce
 
 class Folder(object):
 	def __init__(self, name, path):
@@ -60,7 +61,7 @@ class Path(object):
 		return Path(path)
 
 	def __add__(self, other):
-		if isinstance(other, str) or isinstance(other, unicode):
+		if isinstance(other, str) or isinstance(other, str):
 			return Path(os.path.join(self.asString(), other))
 		return Path(os.path.join(self.asString(), other.asString()))
 
@@ -85,7 +86,7 @@ class Path(object):
 	def __contains__(self, item):
 		return item in [item for item in self]
 
-	def __nonzero__ (self):
+	def __bool__ (self):
 		return len(self.asString()) != 0
 
 
@@ -133,7 +134,7 @@ def _download(githubUserName, githubRepoName):
 
 	_addToDownloadLocations(githubUserName, githubRepoName)
 
-	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
+	with zf.ZipFile(io.StringIO(r.content)) as z:
 		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
 		
 		existingTests = set()

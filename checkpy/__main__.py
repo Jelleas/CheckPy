@@ -1,8 +1,8 @@
 import sys
 import os
 import argparse
-import downloader
-import tester
+from . import downloader
+from . import tester
 import shutil
 import time
 

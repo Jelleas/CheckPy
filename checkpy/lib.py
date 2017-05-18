@@ -1,19 +1,21 @@
 import sys
 import re
-import StringIO
+import io
 import contextlib
 import importlib
 import imp
-import cStringIO
+import io
 import tokenize
-import exception as excep
-import caches
+from . import exception as excep
+from . import caches
+import collections
+from functools import reduce
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
 	old = sys.stdout
 	if stdout is None:
-		stdout = StringIO.StringIO()
+		stdout = io.StringIO()
 	sys.stdout = stdout
 	yield stdout
 	sys.stdout = old
@@ -27,7 +29,7 @@ def _stdinIO(stdin=None):
 
 	old = sys.stdin
 	if stdin is None:
-		stdin = StringIO.StringIO()
+		stdin = io.StringIO()
 	sys.stdin = stdin
 
 	yield stdin
@@ -94,13 +96,13 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
 			mod = imp.new_module(moduleName)
-			exec source in mod.__dict__
+			exec(source, mod.__dict__)
 			sys.modules[moduleName] = mod
 
 		except Exception as e:
 			exception = excep.SourceException(e, "while trying to import the code")
 
-		for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
+		for name, func in [(name, f) for name, f in mod.__dict__.items() if isinstance(f, collections.Callable)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
 		output = stdout.getvalue()
@@ -129,7 +131,7 @@ def wrapFunctionWithExceptionHandler(func):
 			return func(*args, **kwargs)
 		except Exception as e:
 			argListRepr = reduce(lambda xs, x : xs + ", " + x, ["{}={}".format(func.__code__.co_varnames[i], args[i]) for i in range(len(args))]) if args else ""
-			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
+			for kwargName in func.__code__.co_varnames[len(args):func.__code__.co_argcount]:
 				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
 
 			if not argListRepr:
@@ -155,7 +157,7 @@ def getLine(text, lineNumber):
 
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source):
-	io_obj = cStringIO.StringIO(source)
+	io_obj = io.StringIO(source)
 	out = ""
 	prev_toktype = tokenize.INDENT
 	last_lineno = -1
