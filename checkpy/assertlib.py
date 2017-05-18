@@ -1,4 +1,4 @@
-import lib
+from . import lib
 import re
 import os
 
@@ -18,7 +18,7 @@ def contains(actual, expectedElement):
 	return expectedElement in actual
 
 def containsOnly(actual, expectedElements):
-	return len(filter(lambda e : e not in expectedElements, actual)) == 0
+	return len([e for e in actual if e not in expectedElements]) == 0
 	
 def sameType(actual, expected):
 	return type(actual) is type(expected)

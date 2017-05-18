@@ -2,9 +2,9 @@ def testModule(moduleName):
 	"""
 	Test all files from module
 	"""
-	import caches
+	from . import caches
 	caches.clearAllCaches()
-	import tester
+	from . import tester
 	results = tester.testModule(moduleName)
 	try:
 		if __IPYTHON__:
@@ -18,9 +18,9 @@ def test(fileName):
 	"""
 	Run tests for a single file
 	"""
-	import caches
+	from . import caches
 	caches.clearAllCaches()
-	import tester
+	from . import tester
 	result = tester.test(fileName)
 	try:
 		if __IPYTHON__:
@@ -30,4 +30,4 @@ def test(fileName):
 		pass
 	return result
 
-from downloader import download, update
+from .downloader import download, update
