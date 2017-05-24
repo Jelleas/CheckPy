@@ -6,6 +6,7 @@ import shutil
 import tinydb
 import caches
 import printer
+import exception
 
 class Folder(object):
 	def __init__(self, name, path):
@@ -108,21 +109,19 @@ def download(githubLink):
 	repoName = githubLink.split("/")[-1]
 
 	try:
-		_syncRelease(username, repoName)
-		_download(username, repoName)
-	# no internet connection available
-	except requests.exceptions.ConnectionError:
-		printer.displayError("Oh no! It seems like there is no internet connection available?!")
-
+		if _syncRelease(username, repoName):
+			_download(username, repoName)
+	except exception.DownloadError as e:
+		printer.displayError(str(e))
+	
 def update():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
 		try:
-			_syncRelease(username, repoName)
-			_download(username, repoName)
-		# no internet connection available
-		except requests.exceptions.ConnectionError:
-			printer.displayError("Oh no! It seems like there is no internet connection available?!")
-
+			if _syncRelease(username, repoName):
+				_download(username, repoName)
+		except exception.DownloadError as e:
+			printer.displayError(str(e))
+		
 def list():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
 		printer.displayCustom("{} from {}".format(repoName, username))
@@ -139,8 +138,7 @@ def updateSilently():
 		try:
 			if _newReleaseAvailable(username, repoName):	
 				_download(username, repoName)
-		# no internet connection available
-		except requests.exceptions.ConnectionError:
+		except exception.DownloadError as e:
 			pass
 
 def _newReleaseAvailable(githubUserName, githubRepoName):
@@ -151,62 +149,50 @@ def _newReleaseAvailable(githubUserName, githubRepoName):
 	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
 		return True
 
-	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases".format(githubUserName, githubRepoName)
-
-	r = requests.get(apiReleaseLink)
-		
-	# exceeded rate limit, silently ignore
-	if r.status_code == 403:
-		return False
-
-	# random error
-	if not r.ok:
-		printer.displayError("Failed to check for new tests from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
-		return False
-
-	releaseJson = r.json()
-
-	# no releases found in repo
-	if len(releaseJson) == 0:
-		printer.displayError("Failed to download {}/{} because: no releases found".format(githubUserName, githubRepoName))
-		return False
+	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
 	# new release id found
-	if releaseJson[0]["id"] != _releaseId(githubUserName, githubRepoName):
-		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+	if releaseJson["id"] != _releaseId(githubUserName, githubRepoName):
+		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 		return True
 
 	# no new release found
 	return False
 
-# 
 def _syncRelease(githubUserName, githubRepoName):
-	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases".format(githubUserName, githubRepoName)
-	r = requests.get(apiReleaseLink)
-		
-	# exceeded rate limit, 
-	if r.status_code == 403:
-		printer.displayError("Tried finding new releases from {}/{} but exceeded the rate limit, try again within an hour!".format(githubUserName, githubRepoName))
-		return False
-
-	# random error
-	if not r.ok:
-		printer.displayError("Failed to sync releases from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
-		return False
-
-	releaseJson = r.json()
-
-	# no releases found in repo
-	if len(releaseJson) == 0:
-		printer.displayError("Failed to sync releases from {}/{} because: no releases found".format(githubUserName, githubRepoName))
-		return False
+	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
 	if _isKnownDownloadLocation(githubUserName, githubRepoName):
-		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 	else:
-		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 	
 	return True
+
+# this performs one api call, beware of rate limit!!!
+# returns a dictionary representing the json returned by github
+# incase of an error, raises an exception.DownloadError
+def _getReleaseJson(githubUserName, githubRepoName):
+	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases/latest".format(githubUserName, githubRepoName)
+	
+	try:
+		r = requests.get(apiReleaseLink)	
+	except requests.exceptions.ConnectionError as e:
+		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
+
+	# exceeded rate limit, 
+	if r.status_code == 403:
+		raise exception.DownloadError(message = "Tried finding new releases from {}/{} but exceeded the rate limit, try again within an hour!".format(githubUserName, githubRepoName))
+		
+	# no releases found or page not found
+	if r.status_code == 404:
+		raise exception.DownloadError(message = "Failed to check for new tests from {}/{} because: no releases found (404)".format(githubUserName, githubRepoName))
+		
+	# random error
+	if not r.ok:
+		raise exception.DownloadError(message = "Failed to sync releases from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
+		
+	return r.json()
 
 # download tests for githubUserName and githubRepoName from what is known in downloadlocations.json
 # use _syncRelease() to force an update in downloadLocations.json
@@ -216,11 +202,14 @@ def _download(githubUserName, githubRepoName):
 
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
-	r = requests.get(zipLink)
 	
+	try:
+		r = requests.get(zipLink)
+	except requests.exceptions.ConnectionError as e:
+		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
+
 	if not r.ok:
-		printer.displayError("Failed to download {} because: {}".format(githubLink, r.reason))
-		return
+		raise exception.DownloadError(message = "Failed to download {} because: {}".format(githubLink, r.reason))
 
 	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
 		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
@@ -300,7 +289,7 @@ def _extractFile(zipfile, path, filePath):
 	zipPathString = path.asString().replace("\\", "/")
 	if os.path.isfile(filePath.asString()):
 		with zipfile.open(zipPathString) as new, file(filePath.asString(), "r") as existing:
-			if existing.read() != new.read():
+			if new.read().strip() != existing.read().strip():
 				printer.displayUpdate(path.asString())
 				
 	with zipfile.open(zipPathString) as source, file(filePath.asString(), "wb+") as target:
