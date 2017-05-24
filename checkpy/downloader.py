@@ -100,13 +100,28 @@ def download(githubLink):
 	if githubLink.endswith("/"):
 		githubLink = githubLink[:-1]
 
+	if "/" not in githubLink:
+		printer.displayError("{} is not a valid download location".format(githubLink))
+		return
+
 	username = githubLink.split("/")[-2]
 	repoName = githubLink.split("/")[-1]
-	_download(username, repoName)
+
+	try:
+		_syncRelease(username, repoName)
+		_download(username, repoName)
+	# no internet connection available
+	except requests.exceptions.ConnectionError:
+		printer.displayError("Oh no! It seems like there is no internet connection available?!")
 
 def update():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
-		_download(username, repoName)
+		try:
+			_syncRelease(username, repoName)
+			_download(username, repoName)
+		# no internet connection available
+		except requests.exceptions.ConnectionError:
+			printer.displayError("Oh no! It seems like there is no internet connection available?!")
 
 def list():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
@@ -119,19 +134,93 @@ def clean():
 	printer.displayCustom("Removed all tests")
 	return
 
+def updateSilently():
+	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
+		try:
+			if _newReleaseAvailable(username, repoName):	
+				_download(username, repoName)
+		# no internet connection available
+		except requests.exceptions.ConnectionError:
+			pass
+
+def _newReleaseAvailable(githubUserName, githubRepoName):
+	githubUserName = githubUserName.lower()
+	githubRepoName = githubRepoName.lower()
+
+	# unknown/new download
+	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
+		return True
+
+	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases".format(githubUserName, githubRepoName)
+
+	r = requests.get(apiReleaseLink)
+		
+	# exceeded rate limit, silently ignore
+	if r.status_code == 403:
+		return False
+
+	# random error
+	if not r.ok:
+		printer.displayError("Failed to check for new tests from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
+		return False
+
+	releaseJson = r.json()
+
+	# no releases found in repo
+	if len(releaseJson) == 0:
+		printer.displayError("Failed to download {}/{} because: no releases found".format(githubUserName, githubRepoName))
+		return False
+
+	# new release id found
+	if releaseJson[0]["id"] != _releaseId(githubUserName, githubRepoName):
+		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+		return True
+
+	# no new release found
+	return False
+
+# 
+def _syncRelease(githubUserName, githubRepoName):
+	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases".format(githubUserName, githubRepoName)
+	r = requests.get(apiReleaseLink)
+		
+	# exceeded rate limit, 
+	if r.status_code == 403:
+		printer.displayError("Tried finding new releases from {}/{} but exceeded the rate limit, try again within an hour!".format(githubUserName, githubRepoName))
+		return False
+
+	# random error
+	if not r.ok:
+		printer.displayError("Failed to sync releases from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
+		return False
+
+	releaseJson = r.json()
+
+	# no releases found in repo
+	if len(releaseJson) == 0:
+		printer.displayError("Failed to sync releases from {}/{} because: no releases found".format(githubUserName, githubRepoName))
+		return False
+
+	if _isKnownDownloadLocation(githubUserName, githubRepoName):
+		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+	else:
+		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson[0]["id"], releaseJson[0]["tag_name"])
+	
+	return True
+
+# download tests for githubUserName and githubRepoName from what is known in downloadlocations.json
+# use _syncRelease() to force an update in downloadLocations.json
 def _download(githubUserName, githubRepoName):
 	githubUserName = githubUserName.lower()
 	githubRepoName = githubRepoName.lower()
 
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
-	zipLink = githubLink + "/archive/master.zip"
+	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
 	r = requests.get(zipLink)
 	
 	if not r.ok:
 		printer.displayError("Failed to download {} because: {}".format(githubLink, r.reason))
 		return
-
-	_addToDownloadLocations(githubUserName, githubRepoName)
 
 	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
 		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
@@ -172,10 +261,22 @@ def _isKnownDownloadLocation(username, repoName):
 	query = tinydb.Query()
 	return _downloadLocationsDatabase().contains((query.user == username) & (query.repo == repoName))
 
-def _addToDownloadLocations(username, repoName):
+def _addToDownloadLocations(username, repoName, releaseId, releaseTag):
 	if not _isKnownDownloadLocation(username, repoName):
-		_downloadLocationsDatabase().insert({"user" : username, "repo" : repoName})
-	
+		_downloadLocationsDatabase().insert({"user" : username, "repo" : repoName, "release" : releaseId, "tag" : releaseTag})
+
+def _updateDownloadLocations(username, repoName, releaseId, releaseTag):
+	query = tinydb.Query()
+	_downloadLocationsDatabase().update({"user" : username, "repo" : repoName, "release" : releaseId, "tag" : releaseTag}, query.user == username and query.repo == repoName)
+
+def _releaseId(username, repoName):
+	query = tinydb.Query()
+	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["release"]
+
+def _releaseTag(username, repoName):
+	query = tinydb.Query()
+	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["tag"]
+
 def _extractTests(zipfile, destFolder):
 	if not destFolder.path.exists():
 		os.makedirs(destFolder.pathAsString())

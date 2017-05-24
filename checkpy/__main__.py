@@ -37,10 +37,13 @@ def main():
 		return
 
 	if args.file and args.module:
+		downloader.updateSilently()
 		tester.test(args.file, module = args.module)
 	elif args.file and not args.module:
+		downloader.updateSilently()
 		tester.test(args.file)
 	elif not args.file and args.module:
+		downloader.updateSilently()
 		tester.testModule(args.module)
 	else:
 		parser.print_help()

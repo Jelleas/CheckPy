@@ -5,6 +5,8 @@ def testModule(moduleName):
 	import caches
 	caches.clearAllCaches()
 	import tester
+	import downloader
+	downloader.updateSilently()
 	results = tester.testModule(moduleName)
 	try:
 		if __IPYTHON__:
@@ -21,6 +23,8 @@ def test(fileName):
 	import caches
 	caches.clearAllCaches()
 	import tester
+	import downloader
+	downloader.updateSilently()
 	result = tester.test(fileName)
 	try:
 		if __IPYTHON__:
