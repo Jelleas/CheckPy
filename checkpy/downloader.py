@@ -106,8 +106,8 @@ def download(githubLink):
 		printer.displayError("{} is not a valid download location".format(githubLink))
 		return
 
-	username = githubLink.split("/")[-2]
-	repoName = githubLink.split("/")[-1]
+	username = githubLink.split("/")[-2].lower()
+	repoName = githubLink.split("/")[-1].lower()
 
 	try:
 		_syncRelease(username, repoName)
@@ -148,9 +148,6 @@ def updateSilently():
 			pass
 
 def _newReleaseAvailable(githubUserName, githubRepoName):
-	githubUserName = githubUserName.lower()
-	githubRepoName = githubRepoName.lower()
-
 	# unknown/new download
 	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
 		return True
@@ -201,9 +198,6 @@ def _getReleaseJson(githubUserName, githubRepoName):
 # download tests for githubUserName and githubRepoName from what is known in downloadlocations.json
 # use _syncRelease() to force an update in downloadLocations.json
 def _download(githubUserName, githubRepoName):
-	githubUserName = githubUserName.lower()
-	githubRepoName = githubRepoName.lower()
-
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
 	
