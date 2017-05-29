@@ -4,6 +4,7 @@ import StringIO
 import os
 import shutil
 import tinydb
+import time
 import caches
 import printer
 import exception
@@ -135,6 +136,11 @@ def clean():
 
 def updateSilently():
 	for username, repoName in _forEachUserAndRepo():
+		# only attempt update if 300 sec have passed
+		if time.time() - _timestamp(username, repoName) < 300:
+			continue
+		
+		_setTimestamp(username, repoName)	
 		try:
 			if _newReleaseAvailable(username, repoName):	
 				_download(username, repoName)
@@ -254,11 +260,36 @@ def _isKnownDownloadLocation(username, repoName):
 
 def _addToDownloadLocations(username, repoName, releaseId, releaseTag):
 	if not _isKnownDownloadLocation(username, repoName):
-		_downloadLocationsDatabase().insert({"user" : username, "repo" : repoName, "release" : releaseId, "tag" : releaseTag})
+		_downloadLocationsDatabase().insert(\
+			{
+				"user" 		: username,
+				"repo" 		: repoName,
+				"release" 		: releaseId,
+				"tag" 			: releaseTag,
+				"timestamp" 	: time.time()
+			})
 
 def _updateDownloadLocations(username, repoName, releaseId, releaseTag):
 	query = tinydb.Query()
-	_downloadLocationsDatabase().update({"user" : username, "repo" : repoName, "release" : releaseId, "tag" : releaseTag}, query.user == username and query.repo == repoName)
+	_downloadLocationsDatabase().update(\
+		{
+			"user" 		: username,
+			"repo" 		: repoName,
+			"release" 		: releaseId,
+			"tag" 			: releaseTag,
+			"timestamp" 	: time.time()
+		}, query.user == username and query.repo == repoName)
+
+def _timestamp(username, repoName):
+	query = tinydb.Query()
+	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["timestamp"]
+
+def _setTimestamp(username, repoName):
+	query = tinydb.Query()
+	_downloadLocationsDatabase().update(\
+		{
+			"timestamp" : time.time()
+		}, query.user == username and query.repo == repoName)
 
 def _releaseId(username, repoName):
 	query = tinydb.Query()
