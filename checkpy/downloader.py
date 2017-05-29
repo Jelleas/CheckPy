@@ -109,21 +109,21 @@ def download(githubLink):
 	repoName = githubLink.split("/")[-1]
 
 	try:
-		if _syncRelease(username, repoName):
-			_download(username, repoName)
+		_syncRelease(username, repoName)
+		_download(username, repoName)
 	except exception.DownloadError as e:
 		printer.displayError(str(e))
 	
 def update():
-	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
+	for username, repoName in _forEachUserAndRepo():
 		try:
-			if _syncRelease(username, repoName):
-				_download(username, repoName)
+			_syncRelease(username, repoName)
+			_download(username, repoName)
 		except exception.DownloadError as e:
 			printer.displayError(str(e))
 		
 def list():
-	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
+	for username, repoName in _forEachUserAndRepo():
 		printer.displayCustom("{} from {}".format(repoName, username))
 
 def clean():
@@ -134,7 +134,7 @@ def clean():
 	return
 
 def updateSilently():
-	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
+	for username, repoName in _forEachUserAndRepo():
 		try:
 			if _newReleaseAvailable(username, repoName):	
 				_download(username, repoName)
@@ -167,8 +167,6 @@ def _syncRelease(githubUserName, githubRepoName):
 	else:
 		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 	
-	return True
-
 # this performs one api call, beware of rate limit!!!
 # returns a dictionary representing the json returned by github
 # incase of an error, raises an exception.DownloadError
@@ -245,6 +243,10 @@ def _downloadLocationsDatabase():
 		with open(DBFILE.pathAsString(), 'w') as f:
 			pass
 	return tinydb.TinyDB(DBFILE.pathAsString())
+
+def _forEachUserAndRepo():
+	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
+		yield username, repoName	
 
 def _isKnownDownloadLocation(username, repoName):
 	query = tinydb.Query()
