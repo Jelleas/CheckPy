@@ -262,8 +262,8 @@ def _addToDownloadLocations(username, repoName, releaseId, releaseTag):
 	if not _isKnownDownloadLocation(username, repoName):
 		_downloadLocationsDatabase().insert(\
 			{
-				"user" 		: username,
-				"repo" 		: repoName,
+				"user" 			: username,
+				"repo" 			: repoName,
 				"release" 		: releaseId,
 				"tag" 			: releaseTag,
 				"timestamp" 	: time.time()
@@ -273,8 +273,8 @@ def _updateDownloadLocations(username, repoName, releaseId, releaseTag):
 	query = tinydb.Query()
 	_downloadLocationsDatabase().update(\
 		{
-			"user" 		: username,
-			"repo" 		: repoName,
+			"user" 			: username,
+			"repo" 			: repoName,
 			"release" 		: releaseId,
 			"tag" 			: releaseTag,
 			"timestamp" 	: time.time()
