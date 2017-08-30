@@ -1,10 +1,14 @@
 import sys
 import re
-import StringIO
+try:
+	# Python 2
+	import StringIO
+except:
+	# Python 3
+	import io as StringIO
 import contextlib
 import importlib
 import imp
-import cStringIO
 import tokenize
 import exception as excep
 import caches
@@ -37,7 +41,7 @@ def _stdinIO(stdin=None):
 
 def getFunction(functionName, fileName):
 	return getattr(module(fileName), functionName)
-	
+
 def outputOf(fileName, stdinArgs = ()):
 	_, output = moduleAndOutputFromSource(fileName, source(fileName), stdinArgs = tuple(stdinArgs))
 	return output
@@ -84,7 +88,7 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 	mod = None
 	output = ""
 	exception = None
-	
+
 	with _stdoutIO() as stdout, _stdinIO() as stdin:
 		if stdinArgs:
 			for arg in stdinArgs:
@@ -94,13 +98,13 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
 			mod = imp.new_module(moduleName)
-			exec source in mod.__dict__
+			exec(source) in mod.__dict__
 			sys.modules[moduleName] = mod
 
 		except Exception as e:
 			exception = excep.SourceException(e, "while trying to import the code")
 
-		for name, func in [(name, f) for name, f in mod.__dict__.iteritems() if callable(f)]:
+		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
 		output = stdout.getvalue()
@@ -122,7 +126,7 @@ def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
 			if hasattr(mod, functionName):
 				neutralizeFunction(getattr(mod, functionName))
-	
+
 def wrapFunctionWithExceptionHandler(func):
 	def exceptionWrapper(*args, **kwargs):
 		try:
@@ -133,7 +137,7 @@ def wrapFunctionWithExceptionHandler(func):
 				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
 
 			if not argListRepr:
-				raise excep.SourceException(e, "while trying to execute the function {}".format(func.__name__)) 
+				raise excep.SourceException(e, "while trying to execute the function {}".format(func.__name__))
 			raise excep.SourceException(e, "while trying to execute the function {} with arguments ({})".format(func.__name__, argListRepr))
 	return exceptionWrapper
 
@@ -155,7 +159,7 @@ def getLine(text, lineNumber):
 
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source):
-	io_obj = cStringIO.StringIO(source)
+	io_obj = StringIO.StringIO(source)
 	out = ""
 	prev_toktype = tokenize.INDENT
 	last_lineno = -1

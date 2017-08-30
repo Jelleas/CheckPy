@@ -1,4 +1,5 @@
 import caches
+import traceback
 
 class Test(object):
 	def __init__(self, priority):
@@ -17,26 +18,28 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
+			print(e)
+			traceback.print_exc()
 			return TestResult(False, self.description(), self.exception(e))
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
-	
+
 	@staticmethod
 	def test():
 		raise NotImplementedError()
-	
+
 	@staticmethod
 	def description():
 		raise NotImplementedError()
-	
+
 	@staticmethod
 	def success(info):
 		return ""
-	
-	@staticmethod    
+
+	@staticmethod
 	def fail(info):
 		return info
-		
+
 	@staticmethod
 	def exception(exception):
 		return exception
@@ -48,22 +51,22 @@ class Test(object):
 	@staticmethod
 	def timeout():
 		return 10
-		
-		
+
+
 class TestResult(object):
 	def __init__(self, hasPassed, description, message):
 		self._hasPassed = hasPassed
 		self._description = description
 		self._message = message
-		
+
 	@property
 	def description(self):
 		return self._description
-	
+
 	@property
 	def message(self):
 		return self._message
-		
+
 	@property
 	def hasPassed(self):
 		return self._hasPassed
