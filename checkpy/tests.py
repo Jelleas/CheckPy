@@ -1,5 +1,4 @@
 import caches
-import traceback
 
 class Test(object):
 	def __init__(self, priority):
@@ -18,8 +17,6 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
-			print(e)
-			traceback.print_exc()
 			return TestResult(False, self.description(), self.exception(e))
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
