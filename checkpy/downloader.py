@@ -1,6 +1,6 @@
 import requests
 import zipfile as zf
-import StringIO
+from io import StringIO
 import os
 import shutil
 import tinydb
@@ -114,7 +114,7 @@ def download(githubLink):
 		_download(username, repoName)
 	except exception.DownloadError as e:
 		printer.displayError(str(e))
-	
+
 def update():
 	for username, repoName in _forEachUserAndRepo():
 		try:
@@ -122,7 +122,7 @@ def update():
 			_download(username, repoName)
 		except exception.DownloadError as e:
 			printer.displayError(str(e))
-		
+
 def list():
 	for username, repoName in _forEachUserAndRepo():
 		printer.displayCustom("{} from {}".format(repoName, username))
@@ -139,10 +139,10 @@ def updateSilently():
 		# only attempt update if 300 sec have passed
 		if time.time() - _timestamp(username, repoName) < 300:
 			continue
-		
-		_setTimestamp(username, repoName)	
+
+		_setTimestamp(username, repoName)
 		try:
-			if _newReleaseAvailable(username, repoName):	
+			if _newReleaseAvailable(username, repoName):
 				_download(username, repoName)
 		except exception.DownloadError as e:
 			pass
@@ -169,30 +169,30 @@ def _syncRelease(githubUserName, githubRepoName):
 		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 	else:
 		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
-	
+
 # this performs one api call, beware of rate limit!!!
 # returns a dictionary representing the json returned by github
 # incase of an error, raises an exception.DownloadError
 def _getReleaseJson(githubUserName, githubRepoName):
 	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases/latest".format(githubUserName, githubRepoName)
-	
+
 	try:
-		r = requests.get(apiReleaseLink)	
+		r = requests.get(apiReleaseLink)
 	except requests.exceptions.ConnectionError as e:
 		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
 
-	# exceeded rate limit, 
+	# exceeded rate limit,
 	if r.status_code == 403:
 		raise exception.DownloadError(message = "Tried finding new releases from {}/{} but exceeded the rate limit, try again within an hour!".format(githubUserName, githubRepoName))
-		
+
 	# no releases found or page not found
 	if r.status_code == 404:
 		raise exception.DownloadError(message = "Failed to check for new tests from {}/{} because: no releases found (404)".format(githubUserName, githubRepoName))
-		
+
 	# random error
 	if not r.ok:
 		raise exception.DownloadError(message = "Failed to sync releases from {}/{} because: {}".format(githubUserName, githubRepoName, r.reason))
-		
+
 	return r.json()
 
 # download tests for githubUserName and githubRepoName from what is known in downloadlocations.json
@@ -200,7 +200,7 @@ def _getReleaseJson(githubUserName, githubRepoName):
 def _download(githubUserName, githubRepoName):
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
-	
+
 	try:
 		r = requests.get(zipLink)
 	except requests.exceptions.ConnectionError as e:
@@ -211,7 +211,7 @@ def _download(githubUserName, githubRepoName):
 
 	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
 		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
-		
+
 		existingTests = set()
 		for path, subdirs, files in destFolder.path.walk():
 			for f in files:
@@ -246,7 +246,7 @@ def _downloadLocationsDatabase():
 
 def _forEachUserAndRepo():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
-		yield username, repoName	
+		yield username, repoName
 
 def _isKnownDownloadLocation(username, repoName):
 	query = tinydb.Query()
@@ -311,13 +311,13 @@ def _extractTest(zipfile, path, destFolder):
 		_extractFile(zipfile, path, filePath)
 	elif subfolderPath and not os.path.exists(filePath.asString()):
 		os.makedirs(filePath.asString())
-			
+
 def _extractFile(zipfile, path, filePath):
 	zipPathString = path.asString().replace("\\", "/")
 	if os.path.isfile(filePath.asString()):
 		with zipfile.open(zipPathString) as new, file(filePath.asString(), "r") as existing:
 			if new.read().strip() != existing.read().strip():
 				printer.displayUpdate(path.asString())
-				
+
 	with zipfile.open(zipPathString) as source, file(filePath.asString(), "wb+") as target:
 		shutil.copyfileobj(source, target)
