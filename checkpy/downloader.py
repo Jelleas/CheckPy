@@ -74,8 +74,11 @@ class Path(object):
 	def __sub__(self, other):
 		my_items = [item for item in self]
 		other_items = [item for item in other]
-		return Path(reduce(lambda total, i : os.path.join(total, i), my_items[len(other_items):], ""))
-
+		total = ""
+		for item in my_items[len(other_items):]:
+			total = os.path.join(total, item)
+		return Path(total)
+		
 	def __iter__(self):
 		for item in self.asString().split(os.path.sep):
 			yield item
