@@ -1,6 +1,5 @@
 import requests
 import zipfile as zf
-from io import StringIO
 import os
 import shutil
 import tinydb
@@ -62,8 +61,14 @@ class Path(object):
 		return Path(path)
 
 	def __add__(self, other):
-		if isinstance(other, str) or isinstance(other, unicode):
-			return Path(os.path.join(self.asString(), other))
+		try:
+			# Python 3
+			if isinstance(other, bytes) or isinstance(other, str):
+				return Path(os.path.join(self.asString(), other))
+		except NameError:
+			# Python 2
+			if isinstance(other, str) or isinstance(other, unicode):
+				return Path(os.path.join(self.asString(), other))
 		return Path(os.path.join(self.asString(), other.asString()))
 
 	def __sub__(self, other):
@@ -209,7 +214,16 @@ def _download(githubUserName, githubRepoName):
 	if not r.ok:
 		raise exception.DownloadError(message = "Failed to download {} because: {}".format(githubLink, r.reason))
 
-	with zf.ZipFile(StringIO.StringIO(r.content)) as z:
+	try:
+		# Python 2
+		import StringIO
+		f = StringIO.StringIO(r.content)
+	except ModuleNotFoundError:
+		# Python 3
+		import io
+		f = io.BytesIO(r.content)
+
+	with zf.ZipFile(f) as z:
 		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
 
 		existingTests = set()
@@ -315,9 +329,9 @@ def _extractTest(zipfile, path, destFolder):
 def _extractFile(zipfile, path, filePath):
 	zipPathString = path.asString().replace("\\", "/")
 	if os.path.isfile(filePath.asString()):
-		with zipfile.open(zipPathString) as new, file(filePath.asString(), "r") as existing:
+		with zipfile.open(zipPathString) as new, open(filePath.asString(), "r") as existing:
 			if new.read().strip() != existing.read().strip():
 				printer.displayUpdate(path.asString())
 
-	with zipfile.open(zipPathString) as source, file(filePath.asString(), "wb+") as target:
+	with zipfile.open(zipPathString) as source, open(filePath.asString(), "wb+") as target:
 		shutil.copyfileobj(source, target)
