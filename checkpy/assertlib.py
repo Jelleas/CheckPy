@@ -10,15 +10,15 @@ def exactAndSameType(actual, expected):
 
 def between(actual, lower, upper):
 	return lower <= actual <= upper
-	
-def ignoreWhiteSpace(actual, expected):        
+
+def ignoreWhiteSpace(actual, expected):
 	return exact(lib.removeWhiteSpace(actual), lib.removeWhiteSpace(expected))
 
 def contains(actual, expectedElement):
 	return expectedElement in actual
 
 def containsOnly(actual, expectedElements):
-	return len(filter(lambda e : e not in expectedElements, actual)) == 0
+	return len([el for el in actual if el not in expectedElements]) == 0
 	
 def sameType(actual, expected):
 	return type(actual) is type(expected)
@@ -30,7 +30,7 @@ def sameLength(actual, expected):
 	return len(actual) == len(expected)
 
 def fileExists(fileName):
-	return os.path.isfile(fileName) 
+	return os.path.isfile(fileName)
 
 def numberOnLine(number, line, deviation = 0):
 	return any(between(n, number - deviation, number + deviation) for n in lib.getNumbersFromString(line))
