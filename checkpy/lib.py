@@ -134,8 +134,8 @@ def wrapFunctionWithExceptionHandler(func):
 		except Exception as e:
 			argListRepr = ""
 			if args:
-				for x in ["{}={}".format(func.__code__.co_varnames[i], args[i]) for i in range(len(args))]:
-					argListRepr += ", " + x
+				for i in range(len(args)):
+					argListRepr += ", " + "{}={}".format(func.__code__.co_varnames[i], args[i]) 
 			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
 				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
 
