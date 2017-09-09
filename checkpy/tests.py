@@ -4,8 +4,8 @@ class Test(object):
 	def __init__(self, priority):
 		self._priority = priority
 
-	def __cmp__(self, other):
-		return cmp(self._priority, other._priority)
+	def __lt__(self, other):
+		return self._priority < other._priority
 
 	@caches.cache()
 	def run(self):
