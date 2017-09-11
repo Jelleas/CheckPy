@@ -1,3 +1,5 @@
+import sys
+
 _caches = []
 
 class _Cache(object):
@@ -13,7 +15,7 @@ class _Cache(object):
 
 	def __contains__(self, key):
 		return key in self._cache
-	
+
 	def delete(self, key):
 		if key not in self._cache:
 			return False
@@ -35,7 +37,7 @@ def cache(*keys):
 			if keys:
 				key = keys
 			else:
-				key = args + tuple(kwargs.values())
+				key = args + tuple(kwargs.values()) + tuple(sys.argv)
 
 			if key not in localCache:
 				localCache[key] = func(*args, **kwargs)
