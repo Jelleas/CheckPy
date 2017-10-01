@@ -25,7 +25,7 @@ def test(testName, module = ""):
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 		
-	return _runTests(importlib.import_module(testFileName[:-3]), os.path.join(filePath, fileName))
+	return _runTests(testFileName[:-3], os.path.join(filePath, fileName))
 
 def testModule(module):
 	testNames = _getTestNames(module)
@@ -66,10 +66,10 @@ def _getFilePath(completeFilePath):
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
 
-def _runTests(module, fileName):
+def _runTests(moduleName, fileName):
 	signalQueue = multiprocessing.Queue()
 	resultQueue = multiprocessing.Queue()
-	tester = _Tester(module, fileName, signalQueue, resultQueue)
+	tester = _Tester(moduleName, fileName, signalQueue, resultQueue)
 	p = multiprocessing.Process(target=tester.run, name="Tester")
 	p.start()
 
@@ -116,29 +116,30 @@ class _Signal(object):
 		self.timeout = timeout
 
 class _Tester(object):
-	def __init__(self, module, fileName, signalQueue, resultQueue):
-		self.module = module
+	def __init__(self, moduleName, fileName, signalQueue, resultQueue):
+		self.moduleName = moduleName
 		self.fileName = fileName
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
 
 	def run(self):
+		module = importlib.import_module(self.moduleName)
 		result = TesterResult()
 
-		self.module._fileName = self.fileName
+		module._fileName = self.fileName
 		self._sendSignal(_Signal(isTiming = False))
 
-		result.addOutput(printer.displayTestName(os.path.basename(self.module._fileName)))
+		result.addOutput(printer.displayTestName(os.path.basename(module._fileName)))
 
-		if hasattr(self.module, "before"):
+		if hasattr(module, "before"):
 			try:
-				self.module.before()
+				module.before()
 			except Exception as e:
 				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
 		reservedNames = ["before", "after"]
-		testCreators = [method for method in self.module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+		testCreators = [method for method in module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
 		
 		result.nTests = len(testCreators)
 
@@ -151,9 +152,9 @@ class _Tester(object):
 		for testResult in testResults:
 			result.addOutput(printer.display(testResult))
 
-		if hasattr(self.module, "after"):
+		if hasattr(module, "after"):
 			try:
-				self.module.after()
+				module.after()
 			except Exception as e:
 				result.addOutput(printer.displayError("Something went wrong at closing:\n{}".format(e)))
 
