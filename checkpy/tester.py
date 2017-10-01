@@ -36,12 +36,11 @@ def testModule(module):
 
 	return [test(testName, module = module) for testName in testNames]
 
-
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
 		dirPath = _backslashToForwardslash(dirPath)
-		if moduleName in dirPath:
+		if moduleName in dirPath.split("/")[-1]:
 			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
 def _getTestDirPath(testFileName, module = ""):
