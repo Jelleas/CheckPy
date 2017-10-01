@@ -1,5 +1,5 @@
-import checkpy.printer as printer
-import checkpy.caches as caches
+from . import printer
+from . import caches
 import os
 import sys
 import importlib

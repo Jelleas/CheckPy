@@ -10,8 +10,8 @@ import contextlib
 import importlib
 import imp
 import tokenize
-import checkpy.exception as excep
-import checkpy.caches as caches
+from . import exception
+from . import caches
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
@@ -87,7 +87,7 @@ def module(fileName, src = None):
 def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 	mod = None
 	output = ""
-	exception = None
+	excep = None
 
 	with _stdoutIO() as stdout, _stdinIO() as stdin:
 		if stdinArgs:
@@ -102,14 +102,14 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 			sys.modules[moduleName] = mod
 
 		except Exception as e:
-			exception = excep.SourceException(e, "while trying to import the code")
+			excep = exception.SourceException(e, "while trying to import the code")
 
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
 		output = stdout.getvalue()
-	if exception:
-		raise exception
+	if excep:
+		raise excep
 
 	return mod, output
 
@@ -140,8 +140,8 @@ def wrapFunctionWithExceptionHandler(func):
 				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
 
 			if not argListRepr:
-				raise excep.SourceException(e, "while trying to execute the function {}".format(func.__name__))
-			raise excep.SourceException(e, "while trying to execute the function {} with arguments ({})".format(func.__name__, argListRepr))
+				raise exception.SourceException(e, "while trying to execute the function {}".format(func.__name__))
+			raise exception.SourceException(e, "while trying to execute the function {} with arguments ({})".format(func.__name__, argListRepr))
 	return exceptionWrapper
 
 def removeWhiteSpace(s):

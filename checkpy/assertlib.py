@@ -1,4 +1,4 @@
-import checkpy.lib as lib
+from . import lib
 import re
 import os
 

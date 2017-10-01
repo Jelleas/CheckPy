@@ -4,9 +4,9 @@ import os
 import shutil
 import tinydb
 import time
-import checkpy.caches as caches
-import checkpy.printer as printer
-import checkpy.exception as exception
+from . import caches
+from . import printer
+from . import exception
 
 class Folder(object):
 	def __init__(self, name, path):

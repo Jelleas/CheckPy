@@ -1,4 +1,4 @@
-import checkpy.exception as excep
+from . import exception
 import os
 import colorama
 colorama.init()
@@ -55,6 +55,6 @@ def displayError(message):
 def _selectColorAndSmiley(testResult):
 	if testResult.hasPassed:
 		return _Colors.PASS, _Smileys.HAPPY
-	if type(testResult.message) is excep.SourceException:
+	if type(testResult.message) is exception.SourceException:
 		return _Colors.WARNING, _Smileys.CONFUSED
 	return _Colors.FAIL, _Smileys.SAD

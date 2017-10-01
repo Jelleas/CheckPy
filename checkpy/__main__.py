@@ -1,8 +1,8 @@
 import sys
 import os
 import argparse
-import checkpy.downloader as downloader
-import checkpy.tester as tester
+from . import downloader
+from . import tester
 import shutil
 import time
 
