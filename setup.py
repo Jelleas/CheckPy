@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
 	name='checkPy',
 
-	version='0.2.15',
+	version='0.3.1',
 
 	description='A simple python testing framework for educational purposes',
 	long_description=long_description,
@@ -25,7 +25,7 @@ setup(
 
 	# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
 	classifiers=[
-		'Development Status :: 3 - Alpha',
+		'Development Status :: 4 - Beta',
 
 		'Intended Audience :: Education',
 		'Topic :: Education :: Testing',
@@ -34,6 +34,8 @@ setup(
 
 		'Programming Language :: Python :: 2',
 		'Programming Language :: Python :: 2.7',
+		'Programming Language :: Python :: 3',
+		'Programming Language :: Python :: 3.6',
 	],
 
 	keywords='new unexperienced programmers automatic testing minor programming',

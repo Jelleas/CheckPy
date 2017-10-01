@@ -1,4 +1,4 @@
-import exception as excep
+import checkpy.exception as excep
 import os
 import colorama
 colorama.init()

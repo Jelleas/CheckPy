@@ -10,8 +10,8 @@ import contextlib
 import importlib
 import imp
 import tokenize
-import exception as excep
-import caches
+import checkpy.exception as excep
+import checkpy.caches as caches
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):

@@ -1,4 +1,4 @@
-import caches
+import checkpy.caches as caches
 
 class Test(object):
 	def __init__(self, priority):

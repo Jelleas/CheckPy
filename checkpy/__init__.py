@@ -2,10 +2,10 @@ def testModule(moduleName):
 	"""
 	Test all files from module
 	"""
-	import caches
+	import checkpy.caches as caches
 	caches.clearAllCaches()
-	import tester
-	import downloader
+	import checkpy.tester as tester
+	import checkpy.downloader as downloader
 	downloader.updateSilently()
 	results = tester.testModule(moduleName)
 	try:
@@ -20,10 +20,10 @@ def test(fileName):
 	"""
 	Run tests for a single file
 	"""
-	import caches
+	import checkpy.caches as caches
 	caches.clearAllCaches()
-	import tester
-	import downloader
+	import checkpy.tester as tester
+	import checkpy.downloader as downloader
 	downloader.updateSilently()
 	result = tester.test(fileName)
 	try:
@@ -34,4 +34,4 @@ def test(fileName):
 		pass
 	return result
 
-from downloader import download, update
+from checkpy.downloader import download, update
