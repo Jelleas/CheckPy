@@ -98,7 +98,12 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
 			mod = imp.new_module(moduleName)
-			exec(source) in mod.__dict__
+			# Python 3
+			if sys.version_info > (3,0):
+				exec(source, mod.__dict__)
+			# Python 2
+			else:
+				exec(source) in mod.__dict__
 			sys.modules[moduleName] = mod
 
 		except Exception as e:
