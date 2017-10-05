@@ -18,6 +18,8 @@ class Test(object):
 				hasPassed, info = result, ""
 		except Exception as e:
 			return TestResult(False, self.description(), self.exception(e))
+		except SystemExit as e:
+			return TestResult(False, self.description(), self.exception(e))
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
 

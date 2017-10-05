@@ -46,8 +46,8 @@ def outputOf(fileName, stdinArgs = ()):
 	_, output = moduleAndOutputFromSource(fileName, source(fileName), stdinArgs = tuple(stdinArgs))
 	return output
 
-def outputOfSource(fileName, source):
-	_, output = moduleAndOutputFromSource(fileName, source)
+def outputOfSource(fileName, source, stdinArgs = ()):
+	_, output = moduleAndOutputFromSource(fileName, source, stdinArgs = tuple(stdinArgs))
 	return output
 
 def source(fileName):
@@ -105,9 +105,15 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 			else:
 				exec(source) in mod.__dict__
 			sys.modules[moduleName] = mod
-
 		except Exception as e:
-			excep = exception.SourceException(e, "while trying to import the code")
+			excep = exception.SourceException(
+				exception = e,
+				message = "while trying to import the code",
+				output = stdout.getvalue())
+		except SystemExit as e:
+			excep = exception.ExitError(
+				message = "exit({}) while trying to import the code".format(int(e.args[0])),
+				output = stdout.getvalue())
 
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
