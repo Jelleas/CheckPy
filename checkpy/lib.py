@@ -42,14 +42,6 @@ def _stdinIO(stdin=None):
 def getFunction(functionName, fileName):
 	return getattr(module(fileName), functionName)
 
-def outputOf(fileName, stdinArgs = ()):
-	_, output = moduleAndOutputFromSource(fileName, source(fileName), stdinArgs = tuple(stdinArgs))
-	return output
-
-def outputOfSource(fileName, source, stdinArgs = ()):
-	_, output = moduleAndOutputFromSource(fileName, source, stdinArgs = tuple(stdinArgs))
-	return output
-
 def source(fileName):
 	source = ""
 	with open(fileName) as f:
@@ -77,14 +69,33 @@ def sourceOfDefinitions(fileName):
 				insideDefinition = False
 	return newSource
 
-def module(fileName, src = None):
-	if not src:
-		src = source(fileName)
-	mod, _ = moduleAndOutputFromSource(fileName, src)
+def outputOf(*args, **kwargs):
+	_, output = moduleAndOutputOf(*args, **kwargs)
+	return output
+
+def module(*args, **kwargs):
+	mod, _ = moduleAndOutputOf(*args, **kwargs)
 	return mod
 
 @caches.cache()
-def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
+def moduleAndOutputOf(
+		fileName,
+		src = None,
+		stdinArgs = None,
+		ignoreExceptions = (),
+		overwriteAttributes = ()
+	):
+	"""
+	This function handles most of checkpy's under the hood functionality
+	fileName: the name of the file to run
+	source: the source code to be run
+	stdinArgs: optional arguments passed to stdin
+	ignoredExceptions: a collection of Exceptions that will silently pass
+	overwriteAttributes: a list of tuples [(attribute, value), ...]
+	"""
+	if src == None:
+		src = source(fileName)
+
 	mod = None
 	output = ""
 	excep = None
@@ -98,13 +109,19 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
 		try:
 			mod = imp.new_module(moduleName)
+
+			for attr, value in overwriteAttributes:
+				setattr(mod, attr, value)
+
 			# Python 3
 			if sys.version_info > (3,0):
-				exec(source, mod.__dict__)
+				exec(src, mod.__dict__)
 			# Python 2
 			else:
-				exec(source) in mod.__dict__
+				exec(src) in mod.__dict__
 			sys.modules[moduleName] = mod
+		except tuple(ignoreExceptions) as e:
+			pass
 		except Exception as e:
 			excep = exception.SourceException(
 				exception = e,
@@ -118,6 +135,7 @@ def moduleAndOutputFromSource(fileName, source, stdinArgs = None):
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
+
 		output = stdout.getvalue()
 	if excep:
 		raise excep

@@ -37,7 +37,14 @@ def cache(*keys):
 			if keys:
 				key = keys
 			else:
-				key = args + tuple(kwargs.values()) + tuple(sys.argv)
+				# treat all collections in kwargs as tuples for hashing purposes
+				values = list(kwargs.values())
+				for i in range(len(values)):
+					try:
+						values[i] = tuple(values[i])
+					except TypeError:
+						pass
+				key = args + tuple(values) + tuple(sys.argv)
 
 			if key not in localCache:
 				localCache[key] = func(*args, **kwargs)
