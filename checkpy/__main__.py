@@ -5,12 +5,16 @@ from . import downloader
 from . import tester
 import shutil
 import time
+import pkg_resources
 
 def main():
 	parser = argparse.ArgumentParser(
 		description =
-			"checkPy: a python testing framework for education. You are running Python version {}.{}.{}."
-				.format(*sys.version_info[:3])
+			"""
+			checkPy: a python testing framework for education.
+			You are running Python version {}.{}.{} and checkpy version {}.
+			"""
+			.format(*sys.version_info[:3], pkg_resources.get_distribution("checkpy").version)
 	)
 
 	parser.add_argument("-module", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
