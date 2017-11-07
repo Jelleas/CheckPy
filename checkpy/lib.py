@@ -10,6 +10,7 @@ import contextlib
 import importlib
 import imp
 import tokenize
+import traceback
 from . import exception
 from . import caches
 
@@ -126,11 +127,13 @@ def moduleAndOutputOf(
 			excep = exception.SourceException(
 				exception = e,
 				message = "while trying to import the code",
-				output = stdout.getvalue())
+				output = stdout.getvalue(),
+				stacktrace = traceback.format_exc())
 		except SystemExit as e:
 			excep = exception.ExitError(
 				message = "exit({}) while trying to import the code".format(int(e.args[0])),
-				output = stdout.getvalue())
+				output = stdout.getvalue(),
+				stacktrace = traceback.format_exc())
 
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:

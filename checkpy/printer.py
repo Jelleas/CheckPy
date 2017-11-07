@@ -3,6 +3,8 @@ import os
 import colorama
 colorama.init()
 
+DEBUG_MODE = False
+
 class _Colors:
 	PASS = '\033[92m'
 	WARNING = '\033[93m'
@@ -20,6 +22,10 @@ def display(testResult):
 	msg = "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
 		msg += "\n  - {}".format(testResult.message)
+	
+	if DEBUG_MODE and testResult.exception:
+		msg += "\n {}".format(testResult.exception.stacktrace())
+
 	print(msg)
 	return msg
 

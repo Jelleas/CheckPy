@@ -1,13 +1,17 @@
 import traceback
 
 class CheckpyError(Exception):
-	def __init__(self, exception = None, message = "", output = ""):
+	def __init__(self, exception = None, message = "", output = "", stacktrace = ""):
 		self._exception = exception
 		self._message = message
 		self._output = output
+		self._stacktrace = stacktrace
 
 	def output(self):
 		return self._output
+
+	def stacktrace(self):
+		return self._stacktrace
 
 	def __str__(self):
 		if self._exception:

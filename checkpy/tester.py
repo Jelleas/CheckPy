@@ -10,7 +10,7 @@ import dill
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-def test(testName, module = ""):
+def test(testName, module = "", debugMode = False):
 	fileName = _getFileName(testName)
 	filePath = _getFilePath(testName)
 	if filePath not in sys.path:
@@ -25,16 +25,16 @@ def test(testName, module = ""):
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 		
-	return _runTests(testFileName[:-3], os.path.join(filePath, fileName))
+	return _runTests(testFileName[:-3], os.path.join(filePath, fileName), debugMode = debugMode)
 
-def testModule(module):
+def testModule(module, debugMode = False):
 	testNames = _getTestNames(module)
 
 	if not testNames:
 		printer.displayError("no tests found in module: {}".format(module))
 		return
 
-	return [test(testName, module = module) for testName in testNames]
+	return [test(testName, module = module, debugMode = debugMode) for testName in testNames]
 
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
@@ -65,10 +65,10 @@ def _getFilePath(completeFilePath):
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
 
-def _runTests(moduleName, fileName):
+def _runTests(moduleName, fileName, debugMode = False):
 	signalQueue = multiprocessing.Queue()
 	resultQueue = multiprocessing.Queue()
-	tester = _Tester(moduleName, fileName, signalQueue, resultQueue)
+	tester = _Tester(moduleName, fileName, debugMode, signalQueue, resultQueue)
 	p = multiprocessing.Process(target=tester.run, name="Tester")
 	p.start()
 
@@ -115,13 +115,17 @@ class _Signal(object):
 		self.timeout = timeout
 
 class _Tester(object):
-	def __init__(self, moduleName, fileName, signalQueue, resultQueue):
+	def __init__(self, moduleName, fileName, debugMode, signalQueue, resultQueue):
 		self.moduleName = moduleName
 		self.fileName = fileName
+		self.debugMode = debugMode
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
 
 	def run(self):
+		if self.debugMode:
+			printer.DEBUG_MODE = True
+
 		module = importlib.import_module(self.moduleName)
 		result = TesterResult()
 

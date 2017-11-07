@@ -17,9 +17,9 @@ class Test(object):
 			else:
 				hasPassed, info = result, ""
 		except Exception as e:
-			return TestResult(False, self.description(), self.exception(e))
+			return TestResult(False, self.description(), self.exception(e), exception = e)
 		except SystemExit as e:
-			return TestResult(False, self.description(), self.exception(e))
+			return TestResult(False, self.description(), self.exception(e), exception = e)
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
 
@@ -53,10 +53,11 @@ class Test(object):
 
 
 class TestResult(object):
-	def __init__(self, hasPassed, description, message):
+	def __init__(self, hasPassed, description, message, exception = None):
 		self._hasPassed = hasPassed
 		self._description = description
 		self._message = message
+		self._exception = exception
 
 	@property
 	def description(self):
@@ -69,6 +70,10 @@ class TestResult(object):
 	@property
 	def hasPassed(self):
 		return self._hasPassed
+
+	@property
+	def exception(self):
+		return self._exception
 
 def test(priority):
 	def testDecorator(testCreator):
