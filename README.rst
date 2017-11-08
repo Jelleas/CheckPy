@@ -23,6 +23,7 @@ Usage
 -----
 
 ::
+
     usage: __main__.py [-h] [-module MODULE] [-download GITHUBLINK] [-update]
                        [-list] [-clean] [-dev]
                        [file]
