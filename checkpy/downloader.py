@@ -159,7 +159,6 @@ def _newReleaseAvailable(githubUserName, githubRepoName):
 	# unknown/new download
 	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
 		return True
-
 	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
 	# new release id found
@@ -208,6 +207,8 @@ def _getReleaseJson(githubUserName, githubRepoName):
 def _download(githubUserName, githubRepoName):
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
+
+	print(zipLink)
 
 	try:
 		r = requests.get(zipLink)

@@ -21,10 +21,10 @@ def test(testName, module = "", debugMode = False):
 	if testFilePath is None:
 		printer.displayError("No test found for {}".format(fileName))
 		return
-	
+
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
-		
+
 	return _runTests(testFileName[:-3], os.path.join(filePath, fileName), debugMode = debugMode)
 
 def testModule(module, debugMode = False):
@@ -55,7 +55,7 @@ def _getFileName(completeFilePath):
 	if not fileName.endswith(".py"):
 		fileName += ".py"
 	return fileName
-	
+
 def _getFilePath(completeFilePath):
 	filePath = os.path.dirname(completeFilePath)
 	if not filePath:
@@ -66,15 +66,21 @@ def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
 
 def _runTests(moduleName, fileName, debugMode = False):
-	signalQueue = multiprocessing.Queue()
-	resultQueue = multiprocessing.Queue()
+	if sys.version_info > (3,4):
+		ctx = multiprocessing.get_context("spawn")
+	else:
+		ctx = multiprocessing
+
+	signalQueue = ctx.Queue()
+	resultQueue = ctx.Queue()
 	tester = _Tester(moduleName, fileName, debugMode, signalQueue, resultQueue)
-	p = multiprocessing.Process(target=tester.run, name="Tester")
+	p = ctx.Process(target=tester.run, name="Tester")
 	p.start()
+
 
 	start = time.time()
 	isTiming = False
-	
+
 	while p.is_alive():
 		while not signalQueue.empty():
 			signal = signalQueue.get()
@@ -90,7 +96,7 @@ def _runTests(moduleName, fileName, debugMode = False):
 			p.terminate()
 			p.join()
 			return result
-		
+
 		time.sleep(0.1)
 
 	if not resultQueue.empty():
@@ -143,7 +149,7 @@ class _Tester(object):
 
 		reservedNames = ["before", "after"]
 		testCreators = [method for method in module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
-		
+
 		result.nTests = len(testCreators)
 
 		testResults = self._runTests(testCreators)
@@ -168,13 +174,13 @@ class _Tester(object):
 
 		# run tests in noncolliding execution order
 		for test in self._getTestsInExecutionOrder([tc() for tc in testCreators]):
-			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout())) 
+			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout()))
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
 
 		# return test results in specified order
 		return [cachedResults[test] for test in sorted(cachedResults.keys()) if cachedResults[test] != None]
-				
+
 	def _sendResult(self, result):
 		self.resultQueue.put(result)
 
