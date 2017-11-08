@@ -160,10 +160,10 @@ notably ``getFunction`` and ``outputOf``. These provide the tester with
 a function from the source file and the complete print output
 respectively. Calling ``getFunction`` has checkpy import the to be
 tested code and retrieves only said function from the resulting module.
-``assertlib.py`` provides a collection of assertions that one may find usefull when
+``assertlib.py`` provides a collection of assertions that one may find useful when
 implementing tests.
 
-For inspiration inspect some existing collections like the tests for `progNS <https://github.com/Jelleas/progNS2016Tests>`__, `progIK <https://github.com/Jelleas/progIKTests>`__, `Semester of Code <https://github.com/Jelleas/progbeta2017tests>`__ or `ProgBG <https://github.com/Jelleas/progBG2017Tests>`__.
+For inspiration inspect some existing collections like the tests for `progNS <https://github.com/Jelleas/progNS2016Tests>`__, `progIK <https://github.com/Jelleas/progIKTests>`__, `Semester of Code <https://github.com/Jelleas/progbeta2017tests>`__ or `progBG <https://github.com/Jelleas/progBG2017Tests>`__.
 
 
 Distributing tests
