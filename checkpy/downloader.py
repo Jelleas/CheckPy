@@ -208,8 +208,6 @@ def _download(githubUserName, githubRepoName):
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
 	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
 
-	print(zipLink)
-
 	try:
 		r = requests.get(zipLink)
 	except requests.exceptions.ConnectionError as e:
