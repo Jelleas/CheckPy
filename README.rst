@@ -24,27 +24,33 @@ Usage
 
 ::
 
-    usage: checkpy [-h] [-m MODULE] [-d GITHUBLINK] [-clean] [file]
+    usage: __main__.py [-h] [-module MODULE] [-download GITHUBLINK] [-update]
+                       [-list] [-clean] [-dev]
+                       [file]
 
-    checkPy: a simple python testing framework
+    checkPy: a python testing framework for education. You are running Python
+    version 3.6.2 and checkpy version 0.3.7.
 
     positional arguments:
-      file           name of file to be tested
+      file                  name of file to be tested
 
     optional arguments:
-      -h, --help     show this help message and exit
-      -m MODULE      provide a module name or path to run all tests from the
-                     module, or target a module for a specific test
-      -d GITHUBLINK  download tests from a Github repository and exit
-      -clean         remove all tests from the tests folder and exit
-
+      -h, --help            show this help message and exit
+      -module MODULE        provide a module name or path to run all tests from
+                            the module, or target a module for a specific test
+      -download GITHUBLINK  download tests from a Github repository and exit
+      -update               update all downloaded tests and exit
+      -list                 list all download locations and exit
+      -clean                remove all tests from the tests folder and exit
+      -dev                  get extra information to support the development of
+                            tests
 
 To simply test a single file, call:
 
 ::
 
      checkpy YOUR_FILE_NAME
-     
+
 If you are unsure whether multiple tests exist with the same name, you can target a specific test by specifying its module:
 
 ::
@@ -71,8 +77,11 @@ Features
    wrapped by ``if __name__ == "__main__"``
 -  Support for overriding functions from imports in order to for
    instance prevent blocking function calls
--  Support for grouping tests in modules, 
+-  Support for grouping tests in modules,
    allowing the user to target tests from a specific module or run all tests in a module with a single command.
+-  No infinite loops, automatically kills tests after a user defined timeout.
+-  Tests are kept up to date as checkpy will periodically look for updates from the downloaded test repos.
+
 
 An example
 ----------
@@ -150,20 +159,19 @@ take a closer look at ``lib.py`` and ``assertlib.py``. ``lib.py``
 provides a collection of useful functions to help implement tests. Most
 notably ``getFunction`` and ``outputOf``. These provide the tester with
 a function from the source file and the complete print output
-respectively. Calling ``getFunction`` makes checkPy evaluate only import
-statements and code inside definitions of the to be tested file.
-Effectively all other parts of code are wrapped by
-``if __name__ == "__main__"`` and thus ignored. ``assertlib.py``
-provides a collection of assertions that one may find usefull when
+respectively. Calling ``getFunction`` has checkpy import the to be
+tested code and retrieves only said function from the resulting module.
+``assertlib.py`` provides a collection of assertions that one may find useful when
 implementing tests.
 
-For inspiration inspect some existing collections of tests like the tests for `progNS2016 <https://github.com/Jelleas/progNS2016Tests>`__.
+For inspiration inspect some existing collections like the tests for `progNS <https://github.com/Jelleas/progNS2016Tests>`__, `progIK <https://github.com/Jelleas/progIKTests>`__, `Semester of Code <https://github.com/Jelleas/progbeta2017tests>`__ or `progBG <https://github.com/Jelleas/progBG2017Tests>`__.
 
 
 Distributing tests
 ------------------
 
-CheckPy can download tests directly from Github repos. 
-The only requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules).
+CheckPy can download tests directly from Github repos.
+The requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules).
+There must also be at least one release in the Github repo. Checkpy will automatically target the latest release.
 Simply call checkPy with the optional ``-d`` argument and pass your github repo url.
-Tests will then be automatically downloaded and installed. 
+Tests will then be automatically downloaded and installed.

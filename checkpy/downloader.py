@@ -159,7 +159,6 @@ def _newReleaseAvailable(githubUserName, githubRepoName):
 	# unknown/new download
 	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
 		return True
-
 	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
 	# new release id found
