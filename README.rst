@@ -42,7 +42,7 @@ Usage
       -update               update all downloaded tests and exit
       -list                 list all download locations and exit
       -clean                remove all tests from the tests folder and exit
-      --dev                  get extra information to support the development of
+      --dev                 get extra information to support the development of
                             tests
 
 To simply test a single file, call:

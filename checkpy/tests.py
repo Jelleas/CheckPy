@@ -1,4 +1,5 @@
 from . import caches
+from . import exception
 
 class Test(object):
 	def __init__(self, priority):
@@ -16,9 +17,7 @@ class Test(object):
 				hasPassed, info = result
 			else:
 				hasPassed, info = result, ""
-		except Exception as e:
-			return TestResult(False, self.description(), self.exception(e), exception = e)
-		except SystemExit as e:
+		except (exception.SourceException, exception.ExitError) as e:
 			return TestResult(False, self.description(), self.exception(e), exception = e)
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
