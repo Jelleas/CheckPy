@@ -66,7 +66,7 @@ def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)
 
 def _runTests(moduleName, fileName, debugMode = False):
-	if sys.version_info > (3,4):
+	if sys.version_info >= (3,4):
 		ctx = multiprocessing.get_context("spawn")
 	else:
 		ctx = multiprocessing
