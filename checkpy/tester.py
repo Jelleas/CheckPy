@@ -109,9 +109,13 @@ class TesterResult(object):
 		self.nFailedTests = 0
 		self.nRunTests = 0
 		self.output = []
+		self.testResults = []
 
 	def addOutput(self, output):
 		self.output.append(output)
+
+	def addResult(self, testResult):
+		self.testResults.append(testResult)
 
 class _Signal(object):
 	def __init__(self, isTiming = False, resetTimer = False, description = None, timeout = None):
@@ -159,6 +163,7 @@ class _Tester(object):
 		result.nFailedTests = len([tr for tr in testResults if not tr.hasPassed])
 
 		for testResult in testResults:
+			result.addResult(testResult)
 			result.addOutput(printer.display(testResult))
 
 		if hasattr(module, "after"):
