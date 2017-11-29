@@ -220,7 +220,7 @@ def _download(githubUserName, githubRepoName):
 		# Python 2
 		import StringIO
 		f = StringIO.StringIO(r.content)
-	except ModuleNotFoundError:
+	except ImportError:
 		# Python 3
 		import io
 		f = io.BytesIO(r.content)
