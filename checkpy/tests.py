@@ -19,6 +19,8 @@ class Test(object):
 				hasPassed, info = result, ""
 		except (exception.SourceException, exception.ExitError) as e:
 			return TestResult(False, self.description(), self.exception(e), exception = e)
+		except Exception as e:
+			return TestResult(False, self.description(), self.exception(e), exception = e)
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
 
