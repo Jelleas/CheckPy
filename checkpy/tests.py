@@ -1,3 +1,4 @@
+import traceback
 from . import caches
 from . import exception
 
@@ -20,6 +21,10 @@ class Test(object):
 		except (exception.SourceException, exception.ExitError) as e:
 			return TestResult(False, self.description(), self.exception(e), exception = e)
 		except Exception as e:
+			e = exception.TestError(
+				exception = e,
+				message = "while testing",
+				stacktrace = traceback.format_exc())
 			return TestResult(False, self.description(), self.exception(e), exception = e)
 
 		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))

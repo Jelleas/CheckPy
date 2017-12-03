@@ -24,6 +24,9 @@ class CheckpyError(Exception):
 class SourceException(CheckpyError):
 	pass
 
+class TestError(CheckpyError):
+	pass
+
 class DownloadError(CheckpyError):
 	pass
 

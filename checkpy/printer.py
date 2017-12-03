@@ -22,7 +22,7 @@ def display(testResult):
 	msg = "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
 		msg += "\n  - {}".format(testResult.message)
-	
+
 	if DEBUG_MODE and testResult.exception:
 		msg += "\n {}".format(testResult.exception.stacktrace())
 
