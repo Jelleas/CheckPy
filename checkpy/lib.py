@@ -27,7 +27,14 @@ def _stdoutIO(stdout=None):
 def _stdinIO(stdin=None):
 	old_input = input
 	def new_input(prompt = None):
-		return old_input()
+		try:
+			return old_input()
+		except EOFError as e:
+			e = exception.InputError(
+				message = "You requested too much user input",
+				stacktrace = traceback.format_exc())
+			raise e
+
 	__builtins__["input"] = new_input
 
 	old = sys.stdin
@@ -123,6 +130,8 @@ def moduleAndOutputOf(
 			sys.modules[moduleName] = mod
 		except tuple(ignoreExceptions) as e:
 			pass
+		except exception.CheckpyError as e:
+			excep = e
 		except Exception as e:
 			excep = exception.SourceException(
 				exception = e,

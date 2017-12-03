@@ -18,7 +18,7 @@ class Test(object):
 				hasPassed, info = result
 			else:
 				hasPassed, info = result, ""
-		except (exception.SourceException, exception.ExitError) as e:
+		except exception.CheckpyError as e:
 			return TestResult(False, self.description(), self.exception(e), exception = e)
 		except Exception as e:
 			e = exception.TestError(
