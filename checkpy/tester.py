@@ -2,6 +2,7 @@ from . import printer
 from . import caches
 from . import exception
 import os
+import subprocess
 import sys
 import importlib
 import re
@@ -31,6 +32,19 @@ def test(testName, module = "", debugMode = False):
 
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
+
+	if path.endswith(".ipynb"):
+		if subprocess.call(['jupyter', 'nbconvert', '--to', 'script', path]) != 0:
+			printer.displayError("Failed to convert Jupyter notebook to .py")
+			return
+
+		path = path.replace(".ipynb", ".py")
+
+		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
+
+		os.remove(path)
+
+		return testerResult
 
 	return _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
 
@@ -89,7 +103,6 @@ def _runTests(moduleName, fileName, debugMode = False):
 	tester = _Tester(moduleName, fileName, debugMode, signalQueue, resultQueue)
 	p = ctx.Process(target=tester.run, name="Tester")
 	p.start()
-
 
 	start = time.time()
 	isTiming = False
