@@ -1,5 +1,6 @@
 from . import printer
 from . import caches
+from . import exception
 import os
 import sys
 import importlib
@@ -11,12 +12,18 @@ import dill
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 def test(testName, module = "", debugMode = False):
-	fileName = _getFileName(testName)
-	filePath = _getFilePath(testName)
+	path = _getPath(testName)
+	if not path:
+		printer.displayError("File not found: {}".format(testName))
+		return
+
+	fileName = os.path.basename(path)
+	filePath = os.path.dirname(path)
+
 	if filePath not in sys.path:
 		sys.path.append(filePath)
 
-	testFileName = fileName[:-3] + "Test.py"
+	testFileName = fileName.split(".")[0] + "Test.py"
 	testFilePath = _getTestDirPath(testFileName, module = module)
 	if testFilePath is None:
 		printer.displayError("No test found for {}".format(fileName))
@@ -25,7 +32,7 @@ def test(testName, module = "", debugMode = False):
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 
-	return _runTests(testFileName[:-3], os.path.join(filePath, fileName), debugMode = debugMode)
+	return _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
 
 def testModule(module, debugMode = False):
 	testNames = _getTestNames(module)
@@ -43,24 +50,30 @@ def _getTestNames(moduleName):
 		if moduleName in dirPath.split("/")[-1]:
 			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
 
+def _getPath(testName):
+	filePath = os.path.dirname(testName)
+	if not filePath:
+		filePath = os.path.dirname(os.path.abspath(testName))
+
+	fileName = os.path.basename(testName)
+
+	if "." in fileName:
+		path = os.path.join(filePath, fileName)
+		return path if os.path.exists(path) else None
+
+	for extension in [".py", ".ipynb"]:
+		path = os.path.join(filePath, fileName + extension)
+		if os.path.exists(path):
+			return path
+
+	return None
+
 def _getTestDirPath(testFileName, module = ""):
 	module = _backslashToForwardslash(module)
 	testFileName = _backslashToForwardslash(testFileName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
 		if module in _backslashToForwardslash(dirPath) and testFileName in fileNames:
 			return dirPath
-
-def _getFileName(completeFilePath):
-	fileName = os.path.basename(completeFilePath)
-	if not fileName.endswith(".py"):
-		fileName += ".py"
-	return fileName
-
-def _getFilePath(completeFilePath):
-	filePath = os.path.dirname(completeFilePath)
-	if not filePath:
-		filePath = os.path.dirname(os.path.abspath(_getFileName(completeFilePath)))
-	return filePath
 
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)

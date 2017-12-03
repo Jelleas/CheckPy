@@ -46,18 +46,21 @@ def main():
 		downloader.clean()
 		return
 
-	if args.file and args.module:
+	if args.file:
 		downloader.updateSilently()
-		tester.test(args.file, module = args.module, debugMode = args.dev)
-	elif args.file and not args.module:
-		downloader.updateSilently()
-		tester.test(args.file, debugMode = args.dev)
-	elif not args.file and args.module:
+
+		if args.module:
+			tester.test(args.file, module = args.module, debugMode = args.dev)
+		else:
+			tester.test(args.file, debugMode = args.dev)
+		return
+
+	if args.module:
 		downloader.updateSilently()
 		tester.testModule(args.module, debugMode = args.dev)
-	else:
-		parser.print_help()
 		return
+
+	parser.print_help()
 
 if __name__ == "__main__":
 	main()
