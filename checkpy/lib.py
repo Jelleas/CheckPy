@@ -169,23 +169,6 @@ def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 			if hasattr(mod, functionName):
 				neutralizeFunction(getattr(mod, functionName))
 
-def wrapFunctionWithExceptionHandler(func):
-	def exceptionWrapper(*args, **kwargs):
-		try:
-			return func(*args, **kwargs)
-		except Exception as e:
-			argListRepr = ""
-			if args:
-				for i in range(len(args)):
-					argListRepr += ", " + "{}={}".format(func.__code__.co_varnames[i], args[i])
-			for kwargName in func.__code__.co_varnames[len(args):func.func_code.co_argcount]:
-				argListRepr += ", {}={}".format(kwargName, kwargs[kwargName])
-
-			if not argListRepr:
-				raise exception.SourceException(e, "while trying to execute the function {}".format(func.__name__))
-			raise exception.SourceException(e, "while trying to execute the function {} with arguments ({})".format(func.__name__, argListRepr))
-	return exceptionWrapper
-
 def removeWhiteSpace(s):
 	return re.sub(r"\s+", "", s, flags=re.UNICODE)
 
