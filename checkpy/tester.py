@@ -123,6 +123,11 @@ def _runTests(moduleName, fileName, debugMode = False):
 			p.join()
 			return result
 
+		if not resultQueue.empty():
+			p.terminate()
+			p.join()
+			break			
+		
 		time.sleep(0.1)
 
 	if not resultQueue.empty():

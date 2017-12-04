@@ -13,6 +13,7 @@ import tokenize
 import traceback
 from . import exception
 from . import caches
+from . import function
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):
@@ -146,7 +147,7 @@ def moduleAndOutputOf(
 
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
-				setattr(mod, name, wrapFunctionWithExceptionHandler(func))
+				setattr(mod, name, function.Function(func))
 
 		output = stdout.getvalue()
 	if excep:
