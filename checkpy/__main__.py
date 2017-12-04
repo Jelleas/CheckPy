@@ -1,8 +1,8 @@
 import sys
 import os
 import argparse
-from . import downloader
-from . import tester
+from checkpy import downloader
+from checkpy import tester
 import shutil
 import time
 import pkg_resources

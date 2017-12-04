@@ -1,4 +1,4 @@
-from . import lib
+from checkpy import lib
 import re
 import os
 

@@ -11,9 +11,9 @@ import importlib
 import imp
 import tokenize
 import traceback
-from . import exception
-from . import caches
-from . import function
+from checkpy.entities import exception
+from checkpy.entities import function
+from checkpy import caches
 
 @contextlib.contextmanager
 def _stdoutIO(stdout=None):

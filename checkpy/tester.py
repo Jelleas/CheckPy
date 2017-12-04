@@ -1,6 +1,6 @@
-from . import printer
-from . import caches
-from . import exception
+from checkpy import printer
+from checkpy import caches
+from checkpy.entities import exception
 import os
 import subprocess
 import sys

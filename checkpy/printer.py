@@ -1,4 +1,4 @@
-from . import exception
+from checkpy.entities import exception
 import os
 import colorama
 colorama.init()

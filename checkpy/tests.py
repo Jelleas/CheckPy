@@ -1,6 +1,6 @@
 import traceback
-from . import caches
-from . import exception
+from checkpy import caches
+from checkpy.entities import exception
 
 class Test(object):
 	def __init__(self, priority):
