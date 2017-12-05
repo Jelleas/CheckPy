@@ -90,6 +90,7 @@ def module(*args, **kwargs):
 def moduleAndOutputOf(
 		fileName,
 		src = None,
+		argv = None,
 		stdinArgs = None,
 		ignoreExceptions = (),
 		overwriteAttributes = ()
@@ -110,24 +111,32 @@ def moduleAndOutputOf(
 	excep = None
 
 	with _stdoutIO() as stdout, _stdinIO() as stdin:
+		# fill stdin with args
 		if stdinArgs:
 			for arg in stdinArgs:
 				stdin.write(str(arg) + "\n")
 			stdin.seek(0)
 
-		moduleName = fileName[:-3] if fileName.endswith(".py") else fileName
+		# if argv given, overwrite sys.argv
+		if argv:
+			sys.argv, argv = argv, sys.argv
+
+		moduleName = fileName.split(".")[0]
+		
 		try:
 			mod = imp.new_module(moduleName)
 
+			# overwrite attributes
 			for attr, value in overwriteAttributes:
 				setattr(mod, attr, value)
 
-			# Python 3
+			# execute code in mod 
 			if sys.version_info > (3,0):
 				exec(src, mod.__dict__)
-			# Python 2
 			else:
 				exec(src) in mod.__dict__
+
+			# add resulting module to sys
 			sys.modules[moduleName] = mod
 		except tuple(ignoreExceptions) as e:
 			pass
@@ -145,9 +154,14 @@ def moduleAndOutputOf(
 				output = stdout.getvalue(),
 				stacktrace = traceback.format_exc())
 
+		# wrap every function in mod with Function
 		for name, func in [(name, f) for name, f in mod.__dict__.items() if callable(f)]:
 			if func.__module__ == moduleName:
 				setattr(mod, name, function.Function(func))
+
+		# reset sys.argv
+		if argv:
+			sys.argv = argv
 
 		output = stdout.getvalue()
 	if excep:

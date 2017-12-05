@@ -48,7 +48,7 @@ def cache(*keys):
 
 			if key not in localCache:
 				localCache[key] = func(*args, **kwargs)
-
+				
 			return localCache[key]
 		return cachedFuncWrapper
 	return cacheWrapper
