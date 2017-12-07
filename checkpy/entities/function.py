@@ -20,8 +20,10 @@ class Function(object):
 			
 			raise exception.SourceException(exception = e, message = message)
 
+	@property
 	def name(self):
 		return self._function.__name__
 
+	@property
 	def arguments(self):
 		return list(self._function.__code__.co_varnames)
