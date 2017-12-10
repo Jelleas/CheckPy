@@ -3,11 +3,16 @@ from checkpy import caches
 from checkpy.entities import exception
 
 class Test(object):
-	def __init__(self, priority):
+	def __init__(self, fileName, priority):
+		self._fileName = fileName
 		self._priority = priority
 
 	def __lt__(self, other):
 		return self._priority < other._priority
+
+	@property
+	def fileName(self):
+		return self._fileName
 
 	@caches.cache()
 	def run(self):
@@ -84,8 +89,8 @@ class TestResult(object):
 def test(priority):
 	def testDecorator(testCreator):
 		@caches.cache(testCreator)
-		def testWrapper():
-			t = Test(priority)
+		def testWrapper(fileName):
+			t = Test(fileName, priority)
 			testCreator(t)
 			return t
 		return testWrapper
@@ -94,8 +99,8 @@ def test(priority):
 
 def failed(*precondTestCreators):
 	def failedDecorator(testCreator):
-		def testWrapper():
-			test = testCreator()
+		def testWrapper(fileName):
+			test = testCreator(fileName)
 			dependencies = test.dependencies
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
@@ -110,8 +115,8 @@ def failed(*precondTestCreators):
 
 def passed(*precondTestCreators):
 	def passedDecorator(testCreator):
-		def testWrapper():
-			test = testCreator()
+		def testWrapper(fileName):
+			test = testCreator(fileName)
 			dependencies = test.dependencies
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run

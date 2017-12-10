@@ -209,7 +209,7 @@ class _Tester(object):
 		cachedResults = {}
 
 		# run tests in noncolliding execution order
-		for test in self._getTestsInExecutionOrder([tc() for tc in testCreators]):
+		for test in self._getTestsInExecutionOrder([tc(self.fileName) for tc in testCreators]):
 			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout()))
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
@@ -226,6 +226,6 @@ class _Tester(object):
 	def _getTestsInExecutionOrder(self, tests):
 		testsInExecutionOrder = []
 		for i, test in enumerate(tests):
-			dependencies = self._getTestsInExecutionOrder([tc() for tc in test.dependencies()]) + [test]
+			dependencies = self._getTestsInExecutionOrder([tc(self.fileName) for tc in test.dependencies()]) + [test]
 			testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
 		return testsInExecutionOrder
