@@ -3,6 +3,7 @@ checkpy/storage/
 checkpy/tests/
 readme.md
 *.json
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

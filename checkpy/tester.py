@@ -40,6 +40,12 @@ def test(testName, module = "", debugMode = False):
 
 		path = path.replace(".ipynb", ".py")
 
+		# remove all magic lines from notebook
+		with open(path, "r") as f:
+			lines = f.readlines()
+		with open(path, "w") as f:
+			f.write("".join([l for l in lines if "get_ipython" not in l]))
+
 		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
 
 		os.remove(path)
@@ -126,8 +132,8 @@ def _runTests(moduleName, fileName, debugMode = False):
 		if not resultQueue.empty():
 			p.terminate()
 			p.join()
-			break			
-		
+			break
+
 		time.sleep(0.1)
 
 	if not resultQueue.empty():
