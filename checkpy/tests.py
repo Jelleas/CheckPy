@@ -1,4 +1,5 @@
 import traceback
+from functools import wraps
 from checkpy import caches
 from checkpy.entities import exception
 
@@ -89,6 +90,7 @@ class TestResult(object):
 def test(priority):
 	def testDecorator(testCreator):
 		@caches.cache(testCreator)
+		@wraps(testCreator)
 		def testWrapper(fileName):
 			t = Test(fileName, priority)
 			testCreator(t)
@@ -99,6 +101,7 @@ def test(priority):
 
 def failed(*precondTestCreators):
 	def failedDecorator(testCreator):
+		@wraps(testCreator)
 		def testWrapper(fileName):
 			test = testCreator(fileName)
 			dependencies = test.dependencies
@@ -115,6 +118,7 @@ def failed(*precondTestCreators):
 
 def passed(*precondTestCreators):
 	def passedDecorator(testCreator):
+		@wraps(testCreator)
 		def testWrapper(fileName):
 			test = testCreator(fileName)
 			dependencies = test.dependencies

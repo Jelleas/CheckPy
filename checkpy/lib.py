@@ -48,9 +48,6 @@ def _stdinIO(stdin=None):
 	__builtins__["input"] = old_input
 	sys.stdin = old
 
-def getFunction(functionName, fileName):
-	return getattr(module(fileName), functionName)
-
 def source(fileName):
 	source = ""
 	with open(fileName) as f:
@@ -77,6 +74,10 @@ def sourceOfDefinitions(fileName):
 			else:
 				insideDefinition = False
 	return newSource
+
+
+def getFunction(functionName, *args, **kwargs):
+	return getattr(module(*args, **kwargs), functionName)
 
 def outputOf(*args, **kwargs):
 	_, output = moduleAndOutputOf(*args, **kwargs)

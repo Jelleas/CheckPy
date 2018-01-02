@@ -173,12 +173,15 @@ class _Tester(object):
 		if self.debugMode:
 			printer.DEBUG_MODE = True
 
+		# overwrite argv so that it seems the file was run directly
+		sys.argv = [self.fileName]
+
 		module = importlib.import_module(self.moduleName)
-		result = TesterResult()
-
 		module._fileName = self.fileName
-		self._sendSignal(_Signal(isTiming = False))
 
+		self._sendSignal(_Signal(isTiming = False))
+		
+		result = TesterResult()
 		result.addOutput(printer.displayTestName(os.path.basename(module._fileName)))
 
 		if hasattr(module, "before"):

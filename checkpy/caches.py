@@ -18,6 +18,15 @@ def cache(*keys):
 	the decorator, take those as key for the cache. Otherwise use the
 	function arguments and sys.argv as key.
 
+	sys.argv is used here because of user-written code like this:
+
+	import sys
+	my_variable = sys.argv[1]
+	def my_function():
+		print(my_variable)
+
+	Depending on the state of sys.argv during execution of the module,
+	the outcome of my_function() changes.
 	"""
 	def cacheWrapper(func):
 		localCache = _Cache()
