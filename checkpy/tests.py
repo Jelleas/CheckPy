@@ -108,7 +108,7 @@ def failed(*precondTestCreators):
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
 			def runMethod():
-				testResults = [t().run() for t in precondTestCreators]
+				testResults = [t(fileName).run() for t in precondTestCreators]
 				return run() if not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults) else None
 			test.run = runMethod
 			return test
@@ -125,7 +125,7 @@ def passed(*precondTestCreators):
 			test.dependencies = lambda : dependencies() | set(precondTestCreators)
 			run = test.run
 			def runMethod():
-				testResults = [t().run() for t in precondTestCreators]
+				testResults = [t(fileName).run() for t in precondTestCreators]
 				return run() if not any(t is None for t in testResults) and all(t.hasPassed for t in testResults) else None
 			test.run = runMethod
 			return test
