@@ -191,7 +191,7 @@ def getPositiveIntegersFromString(s):
 	return [int(i) for i in re.findall(r"\d+", s)]
 
 def getNumbersFromString(s):
-	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|\d+", s)]
+	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", s)]
 
 def getLine(text, lineNumber):
 	lines = text.split("\n")
