@@ -89,3 +89,17 @@ class TestList(BaseClean):
             downloader.list()
         output = out.getvalue()
         self.assertTrue("tests" in output and "jelleas" in output)
+
+class TestClean(Base):
+    def test_clean(self):
+        downloader.clean()
+        with capturedOutput() as (out, err):
+            downloader.list()
+        self.assertEqual(out.getvalue().strip(), "")
+
+    def test_cleanAfterDownload(self):
+        downloader.download("jelleas/tests")
+        downloader.clean()
+        with capturedOutput() as (out, err):
+            downloader.list()
+        self.assertEqual(out.getvalue().strip(), "")
