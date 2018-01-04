@@ -29,7 +29,7 @@ Usage
                        [file]
 
     checkPy: a python testing framework for education. You are running Python
-    version 3.6.2 and checkpy version 0.3.7.
+    version 3.6.2 and checkpy version 0.3.21.
 
     positional arguments:
       file                  name of file to be tested
@@ -175,3 +175,12 @@ The requirement is that a folder called ``tests`` exists within the repo that co
 There must also be at least one release in the Github repo. Checkpy will automatically target the latest release.
 Simply call checkPy with the optional ``-d`` argument and pass your github repo url.
 Tests will then be automatically downloaded and installed.
+
+
+Testing CheckPy
+---------------
+
+::
+    
+    python -m unittest discover unittests "*_test.py"
+    python3 -m unittest discover unittests "*_test.py"
