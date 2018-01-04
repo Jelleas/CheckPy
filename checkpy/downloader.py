@@ -332,7 +332,10 @@ def _extractFile(zipfile, path, filePath):
 	zipPathString = path.asString().replace("\\", "/")
 	if os.path.isfile(filePath.asString()):
 		with zipfile.open(zipPathString) as new, open(filePath.asString(), "r") as existing:
-			if new.read().strip() != existing.read().strip():
+			# read file, decode, strip trailing whitespace, remove carrier return
+			newText = ''.join(new.read().decode('utf-8').strip().splitlines())
+			existingText = ''.join(existing.read().strip().splitlines())
+			if newText != existingText:
 				printer.displayUpdate(path.asString())
 
 	with zipfile.open(zipPathString) as source, open(filePath.asString(), "wb+") as target:

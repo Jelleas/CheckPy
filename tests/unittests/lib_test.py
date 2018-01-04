@@ -11,7 +11,7 @@ class Base(unittest.TestCase):
         self.source = "def f(x):" +\
                       "    return x * 2"
         self.write(self.source)
-        
+
     def tearDown(self):
         os.remove(self.fileName)
         caches.clearAllCaches()
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 """
         self.write(source)
         self.assertEqual(lib.sourceOfDefinitions(self.fileName), "")
-    
+
     @unittest.expectedFailure
     def test_multilineString(self):
         source = \
@@ -79,7 +79,7 @@ if __name__ == "__main__":
 x = \"\"\"foo\"\"\"
 """
         self.write(source)
-        self.assertEqual(lib.sourceOfDefinitions(self.fileName), source)  
+        self.assertEqual(lib.sourceOfDefinitions(self.fileName), source)
 
     def test_import(self):
         source = \
@@ -87,7 +87,7 @@ x = \"\"\"foo\"\"\"
 from os import path
 """
         self.write(source)
-        self.assertEqual(lib.sourceOfDefinitions(self.fileName), source)   
+        self.assertEqual(lib.sourceOfDefinitions(self.fileName), source)
 
 
 class TestGetFunction(Base):
@@ -142,13 +142,13 @@ print(x)
         self.write(source)
         with self.assertRaises(exception.InputError):
             lib.outputOf(self.fileName)
-        
+
     def test_argv(self):
         source = \
 """
 import sys
 print(sys.argv[1])
-"""     
+"""
         self.write(source)
         output = lib.outputOf(self.fileName, argv = [self.fileName, "foo"])
         self.assertEqual(output, "foo\n")
@@ -159,7 +159,7 @@ print(sys.argv[1])
 print("bar")
 raise ValueError
 print("foo")
-"""     
+"""
         self.write(source)
         with self.assertRaises(exception.SourceException):
             output = lib.outputOf(self.fileName, argv = [self.fileName, "foo"])
@@ -171,7 +171,7 @@ print("foo")
 print("foo")
 raise ValueError
 print("bar")
-"""     
+"""
         self.write(source)
         output = lib.outputOf(self.fileName, ignoreExceptions = [ValueError])
         self.assertEqual(output, "foo\n")
@@ -276,7 +276,7 @@ class TestGetPositiveIntegersFromString(unittest.TestCase):
 
     def test_order(self):
         s = "3 1 2"
-        self.assertEqual(lib.getPositiveIntegersFromString(s), [3,1,2])        
+        self.assertEqual(lib.getPositiveIntegersFromString(s), [3,1,2])
 
     def test_negatives(self):
         s = "-2"
@@ -294,7 +294,7 @@ class TestGetNumbersFromString(unittest.TestCase):
 
     def test_order(self):
         s = "3 1 2"
-        self.assertEqual(lib.getNumbersFromString(s), [3,1,2])        
+        self.assertEqual(lib.getNumbersFromString(s), [3,1,2])
 
     def test_negatives(self):
         s = "-2"
@@ -302,7 +302,7 @@ class TestGetNumbersFromString(unittest.TestCase):
 
     def test_floats(self):
         s = "2.0"
-        self.assertEqual(lib.getNumbersFromString(s), [2.0]) 
+        self.assertEqual(lib.getNumbersFromString(s), [2.0])
 
 
 class TestGetLine(unittest.TestCase):
