@@ -76,3 +76,16 @@ class TestUpdate(BaseClean):
             out.getvalue().split("\n")[0].strip(),
             "Finished downloading: https://github.com/jelleas/tests"
         )
+
+class TestList(BaseClean):
+    def test_clean(self):
+        with capturedOutput() as (out, err):
+            downloader.list()
+        self.assertEqual(out.getvalue().strip(), "")
+
+    def test_oneDownloaded(self):
+        downloader.download("jelleas/tests")
+        with capturedOutput() as (out, err):
+            downloader.list()
+        output = out.getvalue()
+        self.assertTrue("tests" in output and "jelleas" in output)
