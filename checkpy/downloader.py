@@ -14,7 +14,7 @@ class Folder(object):
 		self.path = path
 
 	def pathAsString(self):
-		return self.path.asString()
+		return str(self.path)
 
 class File(object):
 	def __init__(self, name, path):
@@ -22,7 +22,7 @@ class File(object):
 		self.path = path
 
 	def pathAsString(self):
-		return self.path.asString()
+		return str(self.path)
 
 class Path(object):
 	def __init__(self, path):
@@ -30,24 +30,21 @@ class Path(object):
 
 	@property
 	def fileName(self):
-		return os.path.basename(self.asString())
+		return os.path.basename(str(self))
 
 	@property
 	def folderName(self):
-		_, name = os.path.split(os.path.dirname(self.asString()))
+		_, name = os.path.split(os.path.dirname(str(self)))
 		return name
-
-	def asString(self):
-		return self._path
 
 	def isPythonFile(self):
 		return self.fileName.endswith(".py")
 
 	def exists(self):
-		return os.path.exists(self.asString())
+		return os.path.exists(str(self))
 
 	def walk(self):
-		for path, subdirs, files in os.walk(self.asString()):
+		for path, subdirs, files in os.walk(str(self)):
 			yield Path(path), [Path(sd) for sd in subdirs], [Path(f) for f in files]
 
 	def pathFromFolder(self, folderName):
@@ -64,12 +61,12 @@ class Path(object):
 		try:
 			# Python 3
 			if isinstance(other, bytes) or isinstance(other, str):
-				return Path(os.path.join(self.asString(), other))
+				return Path(os.path.join(str(self), other))
 		except NameError:
 			# Python 2
 			if isinstance(other, str) or isinstance(other, unicode):
-				return Path(os.path.join(self.asString(), other))
-		return Path(os.path.join(self.asString(), other.asString()))
+				return Path(os.path.join(str(self), other))
+		return Path(os.path.join(str(self), str(other)))
 
 	def __sub__(self, other):
 		my_items = [item for item in self]
@@ -80,11 +77,8 @@ class Path(object):
 		return Path(total)
 
 	def __iter__(self):
-		for item in self.asString().split(os.path.sep):
+		for item in str(self).split(os.path.sep):
 			yield item
-
-	def __repr__(self):
-		return self.asString()
 
 	def __hash__(self):
 		return hash(repr(self))
@@ -96,7 +90,13 @@ class Path(object):
 		return item in [item for item in self]
 
 	def __nonzero__ (self):
-		return len(self.asString()) != 0
+		return len(str(self)) != 0
+
+	def __str__(self):
+		return self._path
+
+	def __repr__(self):
+		return "/".join([item for item in self])
 
 
 HERE = Path(os.path.abspath(os.path.dirname(__file__)))
@@ -239,19 +239,18 @@ def _download(githubUserName, githubRepoName):
 				newTests.add(path.pathFromFolder("tests"))
 
 		for filePath in [fp for fp in existingTests - newTests if fp.isPythonFile()]:
-			printer.displayRemoved(filePath.asString())
+			printer.displayRemoved(str(filePath))
 
 		for filePath in [fp for fp in newTests - existingTests if fp.isPythonFile()]:
-			printer.displayAdded(filePath.asString())
+			printer.displayAdded(str(filePath))
 
 		for filePath in existingTests - newTests:
-			os.remove((destFolder.path + filePath).asString())
+			os.remove(str((destFolder.path + filePath)))
 
 		_extractTests(z, destFolder)
 
 	printer.displayCustom("Finished downloading: {}".format(githubLink))
 
-@caches.cache()
 def _downloadLocationsDatabase():
 	if not DBFOLDER.path.exists():
 		os.makedirs(DBFOLDER.pathAsString())
@@ -325,18 +324,18 @@ def _extractTest(zipfile, path, destFolder):
 
 	if path.isPythonFile():
 		_extractFile(zipfile, path, filePath)
-	elif subfolderPath and not os.path.exists(filePath.asString()):
-		os.makedirs(filePath.asString())
+	elif subfolderPath and not os.path.exists(str(filePath)):
+		os.makedirs(str(filePath))
 
 def _extractFile(zipfile, path, filePath):
-	zipPathString = path.asString().replace("\\", "/")
-	if os.path.isfile(filePath.asString()):
-		with zipfile.open(zipPathString) as new, open(filePath.asString(), "r") as existing:
+	zipPathString = str(path).replace("\\", "/")
+	if os.path.isfile(str(filePath)):
+		with zipfile.open(zipPathString) as new, open(str(filePath), "r") as existing:
 			# read file, decode, strip trailing whitespace, remove carrier return
 			newText = ''.join(new.read().decode('utf-8').strip().splitlines())
 			existingText = ''.join(existing.read().strip().splitlines())
 			if newText != existingText:
-				printer.displayUpdate(path.asString())
+				printer.displayUpdate(str(path))
 
-	with zipfile.open(zipPathString) as source, open(filePath.asString(), "wb+") as target:
+	with zipfile.open(zipPathString) as source, open(str(filePath), "wb+") as target:
 		shutil.copyfileobj(source, target)

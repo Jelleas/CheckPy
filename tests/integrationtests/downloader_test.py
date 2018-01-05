@@ -37,13 +37,13 @@ class BaseClean(unittest.TestCase):
 
 class TestDownload(BaseClean):
     def setUp(self):
-        super().setUp()
+        super(TestDownload, self).setUp()
         self.fileName = "some.py"
         with open(self.fileName, "w") as f:
             f.write("print(\"foo\")")
 
     def tearDown(self):
-        super().tearDown()
+        super(TestDownload, self).tearDown()
         os.remove(self.fileName)
 
     def test_spelledOutLink(self):
@@ -55,12 +55,12 @@ class TestDownload(BaseClean):
         downloader.download("jelleas/tests")
         testerResult = checkpy.test(self.fileName)
         self.assertTrue(testerResult.testResults[0].hasPassed)
-
+   
     def test_deadLink(self):
         with capturedOutput() as (out, err):
             downloader.download("jelleas/doesnotexist")
         self.assertTrue("DownloadError" in out.getvalue().strip())
-
+	
 class TestUpdate(BaseClean):
     def test_clean(self):
         downloader.update()
@@ -103,3 +103,4 @@ class TestClean(Base):
         with capturedOutput() as (out, err):
             downloader.list()
         self.assertEqual(out.getvalue().strip(), "")
+	
