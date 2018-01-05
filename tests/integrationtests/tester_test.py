@@ -25,14 +25,15 @@ def capturedOutput():
         sys.stdout, sys.stderr = old_out, old_err
     
 class Base(unittest.TestCase):
-    downloader.clean()
-    downloader.download("jelleas/tests")
-
     def setUp(self):
+        caches.clearAllCaches()
         self.fileName = "some.py"
         self.source = "print(\"foo\")"
         self.write(self.source)
-
+        if not tester.testExists(self.fileName):
+            downloader.clean()
+            downloader.download("jelleas/tests")
+        
     def tearDown(self):
         if os.path.isfile(self.fileName):
             os.remove(self.fileName)
@@ -93,7 +94,7 @@ class TestTest(Base):
         for testerResult in [tester.test(fileName), tester.test(fileName.split(".")[0])]:
             self.assertTrue(len(testerResult.testResults) == 1)
             self.assertTrue(testerResult.testResults[0].hasPassed)
-            self.assertTrue("Testing: some.py".lower() in testerResult.output[0].lower())
+            self.assertTrue("Testing: {}".format(fileName.split(".")[0]).lower() in testerResult.output[0].lower())
             self.assertTrue(":)" in testerResult.output[1])
             self.assertTrue("prints exactly: foo".lower() in testerResult.output[1].lower())
             self.assertFalse(os.path.isfile(self.fileName))
@@ -104,14 +105,16 @@ class TestTest(Base):
         os.remove(self.fileName)
         testerResult = tester.test(self.fileName)
         self.assertTrue("file not found".lower() in testerResult.output[0].lower())
-        self.assertTrue("some.py".lower() in testerResult.output[0].lower())
+        self.assertTrue(self.fileName.lower() in testerResult.output[0].lower())
 
     def test_testMissing(self):
-        downloader.clean()
-        testerResult = tester.test(self.fileName)
+        fileName = "foo.py"
+        with open(fileName, "w") as f:
+            pass
+        testerResult = tester.test(fileName)
         self.assertTrue("No test found for".lower() in testerResult.output[0].lower())
-        self.assertTrue("some.py".lower() in testerResult.output[0].lower())
-        downloader.download("jelleas/tests")
+        self.assertTrue(fileName.lower() in testerResult.output[0].lower())
+        os.remove(fileName)
 
 if __name__ == '__main__':
     unittest.main()

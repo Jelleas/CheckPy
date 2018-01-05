@@ -66,6 +66,11 @@ def testModule(module, debugMode = False):
 
 	return [test(testName, module = module, debugMode = debugMode) for testName in testNames]
 
+def testExists(testName, module = ""):
+	testFileName = testName.split(".")[0] + "Test.py"
+	testFilePath = _getTestDirPath(testFileName, module = module)
+	return bool(testFilePath)
+
 def _getTestNames(moduleName):
 	moduleName = _backslashToForwardslash(moduleName)
 	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):

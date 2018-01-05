@@ -24,11 +24,15 @@ def capturedOutput():
         sys.stdout, sys.stderr = old_out, old_err
 
 class Base(unittest.TestCase):
+    def setUp(self):
+        caches.clearAllCaches()
+
     def tearDown(self):
         caches.clearAllCaches()
 
 class BaseClean(unittest.TestCase):
     def setUp(self):
+        caches.clearAllCaches()
         downloader.clean()
 
     def tearDown(self):
@@ -50,11 +54,13 @@ class TestDownload(BaseClean):
     def test_spelledOutLink(self):
         downloader.download("https://github.com/jelleas/tests")
         testerResult = checkpy.test(self.fileName)
+        self.assertTrue(len(testerResult.testResults) == 1)
         self.assertTrue(testerResult.testResults[0].hasPassed)
 
     def test_incompleteLink(self):
         downloader.download("jelleas/tests")
         testerResult = checkpy.test(self.fileName)
+        self.assertTrue(len(testerResult.testResults) == 1)
         self.assertTrue(testerResult.testResults[0].hasPassed)
    
     def test_deadLink(self):
