@@ -44,7 +44,8 @@ class TestDownload(BaseClean):
 
     def tearDown(self):
         super(TestDownload, self).tearDown()
-        os.remove(self.fileName)
+        if os.path.isfile(self.fileName):
+            os.remove(self.fileName)
 
     def test_spelledOutLink(self):
         downloader.download("https://github.com/jelleas/tests")
@@ -103,4 +104,6 @@ class TestClean(Base):
         with capturedOutput() as (out, err):
             downloader.list()
         self.assertEqual(out.getvalue().strip(), "")
-	
+
+if __name__ == '__main__':
+    unittest.main()

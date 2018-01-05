@@ -182,5 +182,5 @@ Testing CheckPy
 
 ::
     
-    python2 -m unittest discover unittests "*_test.py"
-    python3 -m unittest discover unittests "*_test.py"
+    python2 run_tests.py 
+    python3 run_tests.py

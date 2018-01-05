@@ -112,3 +112,6 @@ class TestTest(Base):
         self.assertTrue("No test found for".lower() in testerResult.output[0].lower())
         self.assertTrue("some.py".lower() in testerResult.output[0].lower())
         downloader.download("jelleas/tests")
+
+if __name__ == '__main__':
+    unittest.main()
