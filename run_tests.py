@@ -18,7 +18,7 @@ def main():
 	parser.add_argument("-all", action="store_true", help="run all tests")
 	args = parser.parse_args()
 
-	runner = unittest.TextTestRunner(verbosity=1)
+	runner = unittest.TextTestRunner(verbosity=1, buffer=True)
 
 	if args.all:
 		runner.run(unittests())
