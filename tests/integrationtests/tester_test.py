@@ -25,8 +25,8 @@ def capturedOutput():
         sys.stdout, sys.stderr = old_out, old_err
     
 class Base(unittest.TestCase):
-    #downloader.clean()
-    #downloader.download("jelleas/tests")
+    downloader.clean()
+    downloader.download("jelleas/tests")
 
     def setUp(self):
         self.fileName = "some.py"
@@ -43,13 +43,13 @@ class Base(unittest.TestCase):
             f.write(source)
 
 class TestTest(Base):
-    def test_oneTest(self): 
-        testerResult = tester.test(self.fileName)
-        self.assertTrue(len(testerResult.testResults) == 1)
-        self.assertTrue(testerResult.testResults[0].hasPassed)
-        self.assertTrue("Testing: some.py".lower() in testerResult.output[0].lower())
-        self.assertTrue(":)" in testerResult.output[1])
-        self.assertTrue("prints exactly: foo".lower() in testerResult.output[1].lower())
+    def test_oneTest(self):
+        for testerResult in [tester.test(self.fileName), tester.test(self.fileName.split(".")[0])]:
+            self.assertTrue(len(testerResult.testResults) == 1)
+            self.assertTrue(testerResult.testResults[0].hasPassed)
+            self.assertTrue("Testing: some.py".lower() in testerResult.output[0].lower())
+            self.assertTrue(":)" in testerResult.output[1])
+            self.assertTrue("prints exactly: foo".lower() in testerResult.output[1].lower())
 
     def test_notebookOneTest(self):
         fileName = "some.ipynb"
@@ -89,13 +89,15 @@ class TestTest(Base):
  "nbformat_minor": 2
 }"""
             f.write(src)
-        
-        testerResult = tester.test(fileName)
-        self.assertTrue(len(testerResult.testResults) == 1)
-        self.assertTrue(testerResult.testResults[0].hasPassed)
-        self.assertTrue("Testing: some.py".lower() in testerResult.output[0].lower())
-        self.assertTrue(":)" in testerResult.output[1])
-        self.assertTrue("prints exactly: foo".lower() in testerResult.output[1].lower())
+
+        for testerResult in [tester.test(fileName), tester.test(fileName.split(".")[0])]:
+            self.assertTrue(len(testerResult.testResults) == 1)
+            self.assertTrue(testerResult.testResults[0].hasPassed)
+            self.assertTrue("Testing: some.py".lower() in testerResult.output[0].lower())
+            self.assertTrue(":)" in testerResult.output[1])
+            self.assertTrue("prints exactly: foo".lower() in testerResult.output[1].lower())
+            self.assertFalse(os.path.isfile(self.fileName))
+
         os.remove(fileName)
 
     def test_fileMising(self):
