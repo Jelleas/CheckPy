@@ -15,8 +15,9 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 def test(testName, module = "", debugMode = False):
 	path = _getPath(testName)
 	if not path:
-		printer.displayError("File not found: {}".format(testName))
-		return
+		tr = TesterResult()
+		tr.addOutput(printer.displayError("File not found: {}".format(testName)))
+		return tr
 
 	fileName = os.path.basename(path)
 	filePath = os.path.dirname(path)
@@ -27,16 +28,18 @@ def test(testName, module = "", debugMode = False):
 	testFileName = fileName.split(".")[0] + "Test.py"
 	testFilePath = _getTestDirPath(testFileName, module = module)
 	if testFilePath is None:
-		printer.displayError("No test found for {}".format(fileName))
-		return
+		tr = TesterResult()
+		tr.addOutput(printer.displayError("No test found for {}".format(fileName)))
+		return tr
 
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 
 	if path.endswith(".ipynb"):
 		if subprocess.call(['jupyter', 'nbconvert', '--to', 'script', path]) != 0:
-			printer.displayError("Failed to convert Jupyter notebook to .py")
-			return
+			tr = TesterResult()
+			tr.addOutput(printer.displayError("Failed to convert Jupyter notebook to .py"))
+			return tr
 
 		path = path.replace(".ipynb", ".py")
 
