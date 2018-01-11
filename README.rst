@@ -92,6 +92,9 @@ following:
 
 .. code-block:: python
 
+    import checkpy.test as t
+    import checkpy.assertlib as assertlib
+    import checkpy.lib as lib
     0| @t.failed(exact)
     1| @t.test(1)
     2| def contains(test):
