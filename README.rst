@@ -130,8 +130,8 @@ From top to bottom:
 Writing tests
 -------------
 
-Test methods are discovered in checkPy by filename. If one wants to test
-a file ``foo.py``, the corresponding test must be named ``fooTest.py``.
+Test methods are discovered in checkPy by filename. If you want to test
+a file called ``foo.py``, the corresponding test must be named ``fooTest.py``.
 checkPy assumes that all methods in the test file are tests, as such one
 should not use the ``from ... import ...`` statement when importing
 modules.
@@ -140,7 +140,9 @@ A test minimally consists of the following:
 
 .. code-block:: python
 
-    import check.test as t
+    import checkpy.test as t
+    import checkpy.assertlib as assertlib
+    import checkpy.lib as lib
     @t.test(0)
     def someTest(test):
       test.test = lambda : False
