@@ -95,7 +95,7 @@ following:
     0| @t.failed(exact)
     1| @t.test(1)
     2| def contains(test):
-    3|     test.test = lambda : assertlib.contains(lib.outputOf(_fileName), "100")
+    3|     test.test = lambda : assertlib.contains(lib.outputOf(test.fileName), "100")
     4|     test.description = lambda : "contains 100 in the output"
     5|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
 
@@ -112,8 +112,8 @@ From top to bottom:
    the previous line.
 -  On line 3 the ``test`` method is bound to a lambda which describes
    the test that is to be executed. In this case asserting that the
-   print output of ``_fileName`` contains the number ``100``.
-   ``_fileName`` is a magic variable that refers to the to be tested
+   print output of ``test.fileName`` contains the number ``100``.
+   ``test.fileName`` refers to the to be tested
    source file. Besides resulting in a boolean indicating passing or
    failing the test, the test method may also return a message. This
    message can be used in other methods to provide valuable information
@@ -181,6 +181,6 @@ Testing CheckPy
 ---------------
 
 ::
-    
-    python2 run_tests.py 
+
+    python2 run_tests.py
     python3 run_tests.py
