@@ -92,28 +92,28 @@ following:
 
 .. code-block:: python
 
-    import checkpy.test as t
-    import checkpy.assertlib as assertlib
-    import checkpy.lib as lib
-    0| @t.failed(exact)
-    1| @t.test(1)
-    2| def contains(test):
-    3|     test.test = lambda : assertlib.contains(lib.outputOf(test.fileName), "100")
-    4|     test.description = lambda : "contains 100 in the output"
-    5|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
+    0| import checkpy.test as t
+    1| import checkpy.assertlib as assertlib
+    2| import checkpy.lib as lib
+    3| @t.failed(exact)
+    4| @t.test(1)
+    5| def contains(test):
+    6|     test.test = lambda : assertlib.contains(lib.outputOf(test.fileName), "100")
+    7|     test.description = lambda : "contains 100 in the output"
+    8|     test.fail = lambda info : "the correct answer (100) cannot be found in the output"
 
 From top to bottom:
 
--  The decorator ``failed`` on line 0 defines a precondition. The test
+-  The decorator ``failed`` on line 3 defines a precondition. The test
    ``exact`` must have failed for the following tests to execute.
--  The decorator ``test`` on line 1 prescribes that the following method
+-  The decorator ``test`` on line 4 prescribes that the following method
    creates a test with order number ``1``. Tests are executed in order,
    lowest first.
--  The method definition on line 2 describes the name of the test
+-  The method definition on line 5 describes the name of the test
    (``contains``), and takes in an instance of ``Test`` found in
    ``test.py``. This instance is provided by the decorator ``test`` on
    the previous line.
--  On line 3 the ``test`` method is bound to a lambda which describes
+-  On line 6 the ``test`` method is bound to a lambda which describes
    the test that is to be executed. In this case asserting that the
    print output of ``test.fileName`` contains the number ``100``.
    ``test.fileName`` refers to the to be tested
@@ -121,9 +121,9 @@ From top to bottom:
    failing the test, the test method may also return a message. This
    message can be used in other methods to provide valuable information
    to the user. In this case however, no message is provided.
--  On line 4 the ``description`` method is bound to a lambda which when
+-  On line 7 the ``description`` method is bound to a lambda which when
    called produces a string message describing the intent of the test.
--  On line 5 the ``fail`` method is bound to a lambda. This method is
+-  On line 8 the ``fail`` method is bound to a lambda. This method is
    used to provide information that should be shown to the user in case
    the test fails. The method takes in a
    message (``info``) which comes from the second returned value of the
