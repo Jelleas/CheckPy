@@ -1,3 +1,6 @@
+import os
+from .downloader import download, update
+
 def testModule(moduleName):
 	"""
 	Test all files from module
@@ -33,5 +36,3 @@ def test(fileName):
 	except:
 		pass
 	return result
-
-from .downloader import download, update

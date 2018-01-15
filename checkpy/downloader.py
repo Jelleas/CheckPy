@@ -4,107 +4,10 @@ import os
 import shutil
 import tinydb
 import time
+import checkpy.entities.path as checkpyPath
 from checkpy import caches
 from checkpy import printer
 from checkpy.entities import exception
-
-class Folder(object):
-	def __init__(self, name, path):
-		self.name = name
-		self.path = path
-
-	def pathAsString(self):
-		return str(self.path)
-
-class File(object):
-	def __init__(self, name, path):
-		self.name = name
-		self.path = path
-
-	def pathAsString(self):
-		return str(self.path)
-
-class Path(object):
-	def __init__(self, path):
-		self._path = os.path.normpath(path)
-
-	@property
-	def fileName(self):
-		return os.path.basename(str(self))
-
-	@property
-	def folderName(self):
-		_, name = os.path.split(os.path.dirname(str(self)))
-		return name
-
-	def isPythonFile(self):
-		return self.fileName.endswith(".py")
-
-	def exists(self):
-		return os.path.exists(str(self))
-
-	def walk(self):
-		for path, subdirs, files in os.walk(str(self)):
-			yield Path(path), [Path(sd) for sd in subdirs], [Path(f) for f in files]
-
-	def pathFromFolder(self, folderName):
-		path = ""
-		seen = False
-		for item in self:
-			if seen:
-				path = os.path.join(path, item)
-			if item == folderName:
-				seen = True
-		return Path(path)
-
-	def __add__(self, other):
-		try:
-			# Python 3
-			if isinstance(other, bytes) or isinstance(other, str):
-				return Path(os.path.join(str(self), other))
-		except NameError:
-			# Python 2
-			if isinstance(other, str) or isinstance(other, unicode):
-				return Path(os.path.join(str(self), other))
-		return Path(os.path.join(str(self), str(other)))
-
-	def __sub__(self, other):
-		my_items = [item for item in self]
-		other_items = [item for item in other]
-		total = ""
-		for item in my_items[len(other_items):]:
-			total = os.path.join(total, item)
-		return Path(total)
-
-	def __iter__(self):
-		for item in str(self).split(os.path.sep):
-			yield item
-
-	def __hash__(self):
-		return hash(repr(self))
-
-	def __eq__(self, other):
-		return isinstance(other, type(self)) and repr(self) == repr(other)
-
-	def __contains__(self, item):
-		return item in [item for item in self]
-
-	def __nonzero__ (self):
-		return len(str(self)) != 0
-
-	def __str__(self):
-		return self._path
-
-	def __repr__(self):
-		return "/".join([item for item in self])
-
-
-HERE = Path(os.path.abspath(os.path.dirname(__file__)))
-HEREFOLDER = Folder(HERE.folderName, HERE)
-TESTSFOLDER = Folder("tests", HERE + "tests")
-DBFOLDER = Folder("storage", HERE + "storage")
-DBFILE = File("downloadLocations.json", DBFOLDER.path + "downloadLocations.json")
-
 
 def download(githubLink):
 	if githubLink.endswith("/"):
@@ -136,9 +39,9 @@ def list():
 		printer.displayCustom("{} from {}".format(repoName, username))
 
 def clean():
-	shutil.rmtree(TESTSFOLDER.pathAsString(), ignore_errors=True)
-	if (DBFILE.path.exists()):
-		os.remove(DBFILE.pathAsString())
+	shutil.rmtree(checkpyPath.TESTSFOLDER.pathAsString(), ignore_errors=True)
+	if (checkpyPath.DBFILE.path.exists()):
+		os.remove(checkpyPath.DBFILE.pathAsString())
 	printer.displayCustom("Removed all tests")
 	return
 
@@ -226,7 +129,7 @@ def _download(githubUserName, githubRepoName):
 		f = io.BytesIO(r.content)
 
 	with zf.ZipFile(f) as z:
-		destFolder = Folder(githubRepoName, TESTSFOLDER.path + githubRepoName)
+		destFolder = checkpyPath.Folder(githubRepoName, checkpyPath.TESTSFOLDER.path + githubRepoName)
 
 		existingTests = set()
 		for path, subdirs, files in destFolder.path.walk():
@@ -234,7 +137,7 @@ def _download(githubUserName, githubRepoName):
 				existingTests.add((path + f) - destFolder.path)
 
 		newTests = set()
-		for path in [Path(name) for name in z.namelist()]:
+		for path in [checkpyPath.Path(name) for name in z.namelist()]:
 			if path.isPythonFile():
 				newTests.add(path.pathFromFolder("tests"))
 
@@ -252,12 +155,12 @@ def _download(githubUserName, githubRepoName):
 	printer.displayCustom("Finished downloading: {}".format(githubLink))
 
 def _downloadLocationsDatabase():
-	if not DBFOLDER.path.exists():
-		os.makedirs(DBFOLDER.pathAsString())
-	if not os.path.isfile(DBFILE.pathAsString()):
-		with open(DBFILE.pathAsString(), 'w') as f:
+	if not checkpyPath.DBFOLDER.path.exists():
+		os.makedirs(checkpyPath.DBFOLDER.pathAsString())
+	if not os.path.isfile(checkpyPath.DBFILE.pathAsString()):
+		with open(checkpyPath.DBFILE.pathAsString(), 'w') as f:
 			pass
-	return tinydb.TinyDB(DBFILE.pathAsString())
+	return tinydb.TinyDB(checkpyPath.DBFILE.pathAsString())
 
 def _forEachUserAndRepo():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
@@ -312,7 +215,7 @@ def _extractTests(zipfile, destFolder):
 	if not destFolder.path.exists():
 		os.makedirs(destFolder.pathAsString())
 
-	for path in [Path(name) for name in zipfile.namelist()]:
+	for path in [checkpyPath.Path(name) for name in zipfile.namelist()]:
 		_extractTest(zipfile, path, destFolder)
 
 def _extractTest(zipfile, path, destFolder):

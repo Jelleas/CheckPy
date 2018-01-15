@@ -13,6 +13,7 @@ import checkpy.tester as tester
 import checkpy.downloader as downloader
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
+import checkpy.lib.discovery as discovery
 
 @contextmanager
 def capturedOutput():
@@ -23,17 +24,17 @@ def capturedOutput():
         yield sys.stdout, sys.stderr
     finally:
         sys.stdout, sys.stderr = old_out, old_err
-    
+
 class Base(unittest.TestCase):
     def setUp(self):
         caches.clearAllCaches()
         self.fileName = "some.py"
         self.source = "print(\"foo\")"
         self.write(self.source)
-        if not tester.testExists(self.fileName):
+        if not discovery.testExists(self.fileName):
             downloader.clean()
             downloader.download("jelleas/tests")
-        
+
     def tearDown(self):
         if os.path.isfile(self.fileName):
             os.remove(self.fileName)

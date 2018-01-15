@@ -1,6 +1,7 @@
 from checkpy import printer
 from checkpy import caches
 from checkpy.entities import exception
+from checkpy.lib import discovery
 import os
 import subprocess
 import sys
@@ -10,14 +11,13 @@ import multiprocessing
 import time
 import dill
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
 def test(testName, module = "", debugMode = False):
-	path = _getPath(testName)
+	path = discovery.getPath(testName)
 	if not path:
 		tr = TesterResult()
 		tr.addOutput(printer.displayError("File not found: {}".format(testName)))
 		return tr
+	path = str(path)
 
 	fileName = os.path.basename(path)
 	filePath = os.path.dirname(path)
@@ -26,11 +26,12 @@ def test(testName, module = "", debugMode = False):
 		sys.path.append(filePath)
 
 	testFileName = fileName.split(".")[0] + "Test.py"
-	testFilePath = _getTestDirPath(testFileName, module = module)
+	testFilePath = discovery.getTestFilePath(testFileName, module = module)
 	if testFilePath is None:
 		tr = TesterResult()
 		tr.addOutput(printer.displayError("No test found for {}".format(fileName)))
 		return tr
+	testFilePath = str(testFilePath)
 
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
@@ -58,53 +59,13 @@ def test(testName, module = "", debugMode = False):
 	return _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
 
 def testModule(module, debugMode = False):
-	testNames = _getTestNames(module)
+	testNames = discovery.getTestNames(module)
 
 	if not testNames:
 		printer.displayError("no tests found in module: {}".format(module))
 		return
 
 	return [test(testName, module = module, debugMode = debugMode) for testName in testNames]
-
-def testExists(testName, module = ""):
-	testFileName = testName.split(".")[0] + "Test.py"
-	testFilePath = _getTestDirPath(testFileName, module = module)
-	return bool(testFilePath)
-
-def _getTestNames(moduleName):
-	moduleName = _backslashToForwardslash(moduleName)
-	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
-		dirPath = _backslashToForwardslash(dirPath)
-		if moduleName in dirPath.split("/")[-1]:
-			return [fileName[:-7] for fileName in fileNames if fileName.endswith(".py") and not fileName.startswith("_")]
-
-def _getPath(testName):
-	filePath = os.path.dirname(testName)
-	if not filePath:
-		filePath = os.path.dirname(os.path.abspath(testName))
-
-	fileName = os.path.basename(testName)
-
-	if "." in fileName:
-		path = os.path.join(filePath, fileName)
-		return path if os.path.exists(path) else None
-
-	for extension in [".py", ".ipynb"]:
-		path = os.path.join(filePath, fileName + extension)
-		if os.path.exists(path):
-			return path
-
-	return None
-
-def _getTestDirPath(testFileName, module = ""):
-	module = _backslashToForwardslash(module)
-	testFileName = _backslashToForwardslash(testFileName)
-	for (dirPath, dirNames, fileNames) in os.walk(os.path.join(HERE, "tests")):
-		if module in _backslashToForwardslash(dirPath) and testFileName in fileNames:
-			return dirPath
-
-def _backslashToForwardslash(text):
-	return re.sub("\\\\", "/", text)
 
 def _runTests(moduleName, fileName, debugMode = False):
 	if sys.version_info[:2] >= (3,4):
@@ -188,9 +149,9 @@ class _Tester(object):
 		module._fileName = self.fileName
 
 		self._sendSignal(_Signal(isTiming = False))
-		
+
 		result = TesterResult()
-		result.addOutput(printer.displayTestName(os.path.basename(module._fileName)))
+		result.addOutput(printer.displayTestName(os.path.basename(self.fileName)))
 
 		if hasattr(module, "before"):
 			try:
