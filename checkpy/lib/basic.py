@@ -1,5 +1,4 @@
 import sys
-import os
 import re
 try:
 	# Python 2
@@ -12,14 +11,19 @@ import importlib
 import imp
 import tokenize
 import traceback
+import requests
+from checkpy.entities import path
 from checkpy.entities import exception
 from checkpy.entities import function
+from checkpy.lib import discovery
 from checkpy import caches
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
-def require(fileName, downloadLocation = None):
-	return False
+def require(fileName, source = None):
+	fileExists = discovery.fileExists(fileName)
+	if source and not fileExists:
+		download(source, fileName)
+		fileExists = True
+	return fileExists
 
 def source(fileName):
 	source = ""
@@ -156,6 +160,20 @@ def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
 			if hasattr(mod, functionName):
 				neutralizeFunction(getattr(mod, functionName))
+
+def download(source, destination = None):
+	try:
+		r = requests.get(source)
+	except requests.exceptions.ConnectionError as e:
+		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
+
+	if not r.ok:
+		raise exception.DownloadError(message = "Failed to download {} because: {}".format(source, r.reason))
+
+	if not destination:
+		destination = path.CWDPATH
+	with open(str(destination), "wb+") as target:
+		target.write(r.content)
 
 def removeWhiteSpace(s):
 	return re.sub(r"\s+", "", s, flags=re.UNICODE)

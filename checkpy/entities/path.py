@@ -90,6 +90,7 @@ class Path(object):
 	def __repr__(self):
 		return "/".join([item for item in self])
 
+CWDPATH = Path(os.getcwd())
 CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__)).split("checkpy")[0] + "checkpy")
 TESTSFOLDER = Folder("tests", CHECKPYPATH + "tests")
 DBFOLDER = Folder("storage", CHECKPYPATH + "storage")
