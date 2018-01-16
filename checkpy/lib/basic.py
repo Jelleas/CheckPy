@@ -15,13 +15,12 @@ import requests
 from checkpy.entities import path
 from checkpy.entities import exception
 from checkpy.entities import function
-from checkpy.lib import discovery
 from checkpy import caches
 
 def require(fileName, source = None):
-	fileExists = discovery.fileExists(fileName)
+	fileExists = path.Path(fileName).exists()
 	if source and not fileExists:
-		download(source, fileName)
+		download(source, destination = fileName)
 		fileExists = True
 	return fileExists
 

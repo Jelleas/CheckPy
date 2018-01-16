@@ -2,9 +2,6 @@ import os
 import re
 from checkpy.entities.path import Path, TESTSFOLDER
 
-def fileExists(fileName):
-	return Path(fileName).exists()
-
 def testExists(testName, module = ""):
 	testFileName = testName.split(".")[0] + "Test.py"
 	testFilePath = getTestFilePath(testFileName, module = module)

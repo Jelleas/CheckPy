@@ -1,7 +1,7 @@
 from checkpy import printer
 from checkpy import caches
 from checkpy.entities import exception
-from checkpy.lib import discovery
+from checkpy.tester import discovery
 import os
 import subprocess
 import sys

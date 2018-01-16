@@ -13,7 +13,7 @@ import checkpy.tester as tester
 import checkpy.downloader as downloader
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
-import checkpy.lib.discovery as discovery
+import checkpy.tester.discovery as discovery
 
 @contextmanager
 def capturedOutput():
