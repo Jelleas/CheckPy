@@ -21,6 +21,19 @@ class Base(unittest.TestCase):
             f.write(source)
 
 
+class TestRequire(Base):
+    def test_fileDoesNotExist(self):
+        self.assertFalse(lib.require("idonotexist.random"))
+
+    def test_fileExists(self):
+        self.assertTrue(lib.require(self.fileName))
+
+    def test_fileDownload(self):
+        fileName = "inowexist.random"
+        self.assertTrue(lib.require(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py"))
+        self.assertTrue(os.path.isfile(fileName))
+        os.remove(fileName)
+
 class TestSource(Base):
     def test_expectedOutput(self):
         source = lib.source(self.fileName)
@@ -261,6 +274,20 @@ class TestNeutralizeFunction(unittest.TestCase):
             return "foo"
         lib.neutralizeFunction(dummy)
         self.assertEqual(dummy(), None)
+
+
+class TestDownload(unittest.TestCase):
+    def test_fileDownload(self):
+        fileName = "someTest.py"
+        lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/{}".format(fileName))
+        self.assertTrue(os.path.isfile(fileName))
+        os.remove(fileName)
+
+    def test_fileDownloadRename(self):
+        fileName = "someRandomFileName.name"
+        lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
+        self.assertTrue(os.path.isfile(fileName))
+        os.remove(fileName)
 
 
 class TestRemoveWhiteSpace(unittest.TestCase):

@@ -20,7 +20,7 @@ from checkpy import caches
 def require(fileName, source = None):
 	fileExists = path.Path(fileName).exists()
 	if source and not fileExists:
-		download(source, destination = fileName)
+		download(fileName, source)
 		fileExists = True
 	return fileExists
 
@@ -160,7 +160,7 @@ def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
 			if hasattr(mod, functionName):
 				neutralizeFunction(getattr(mod, functionName))
 
-def download(source, destination = None):
+def download(fileName, source):
 	try:
 		r = requests.get(source)
 	except requests.exceptions.ConnectionError as e:
@@ -169,9 +169,7 @@ def download(source, destination = None):
 	if not r.ok:
 		raise exception.DownloadError(message = "Failed to download {} because: {}".format(source, r.reason))
 
-	if not destination:
-		destination = path.CWDPATH
-	with open(str(destination), "wb+") as target:
+	with open(str(fileName), "wb+") as target:
 		target.write(r.content)
 
 def removeWhiteSpace(s):
