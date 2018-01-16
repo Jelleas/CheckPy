@@ -90,6 +90,7 @@ class Path(object):
 	def __repr__(self):
 		return "/".join([item for item in self])
 
-TESTSFOLDER = Folder("tests", Path(os.path.join(os.path.abspath(os.path.dirname(__file__)), "tests")))
-DBFOLDER = Folder("storage", Path(os.path.join(os.path.abspath(os.path.dirname(__file__)), "storage")))
+CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__)).lower().split("checkpy")[0] + "checkpy")
+TESTSFOLDER = Folder("tests", CHECKPYPATH + "tests")
+DBFOLDER = Folder("storage", CHECKPYPATH + "storage")
 DBFILE = File("downloadLocations.json", DBFOLDER.path + "downloadLocations.json")
