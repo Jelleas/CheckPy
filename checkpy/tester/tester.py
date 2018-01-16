@@ -12,11 +12,12 @@ import time
 import dill
 
 def test(testName, module = "", debugMode = False):
+	result = TesterResult()
+
 	path = discovery.getPath(testName)
 	if not path:
-		tr = TesterResult()
-		tr.addOutput(printer.displayError("File not found: {}".format(testName)))
-		return tr
+		result.addOutput(printer.displayError("File not found: {}".format(testName)))
+		return result
 	path = str(path)
 
 	fileName = os.path.basename(path)
@@ -26,21 +27,24 @@ def test(testName, module = "", debugMode = False):
 		sys.path.append(filePath)
 
 	testFileName = fileName.split(".")[0] + "Test.py"
-	testFilePath = discovery.getTestFilePath(testFileName, module = module)
-	if testFilePath is None:
-		tr = TesterResult()
-		tr.addOutput(printer.displayError("No test found for {}".format(fileName)))
-		return tr
-	testFilePath = str(testFilePath)
+	testPaths = discovery.getTestPaths(testFileName, module = module)
+
+	if not testPaths:
+		result.addOutput(printer.displayError("No test found for {}".format(fileName)))
+		return result
+
+	if len(testPaths) > 1:
+		result.addOutput(printer.displayWarning("Found {} tests: {}, using: {}".format(len(testPaths), testPaths, testPaths[0])))
+	
+	testFilePath = str(testPaths[0])
 
 	if testFilePath not in sys.path:
 		sys.path.append(testFilePath)
 
 	if path.endswith(".ipynb"):
 		if subprocess.call(['jupyter', 'nbconvert', '--to', 'script', path]) != 0:
-			tr = TesterResult()
-			tr.addOutput(printer.displayError("Failed to convert Jupyter notebook to .py"))
-			return tr
+			result.addOutput(printer.displayError("Failed to convert Jupyter notebook to .py"))
+			return result
 
 		path = path.replace(".ipynb", ".py")
 
@@ -53,10 +57,12 @@ def test(testName, module = "", debugMode = False):
 		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
 
 		os.remove(path)
-
-		return testerResult
-
-	return _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
+	else:
+		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
+	
+	testerResult.output = result.output + testerResult.output
+	return testerResult
+		
 
 def testModule(module, debugMode = False):
 	testNames = discovery.getTestNames(module)

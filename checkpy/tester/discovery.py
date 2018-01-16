@@ -4,8 +4,8 @@ from checkpy.entities.path import Path, TESTSFOLDER
 
 def testExists(testName, module = ""):
 	testFileName = testName.split(".")[0] + "Test.py"
-	testFilePath = getTestFilePath(testFileName, module = module)
-	return bool(testFilePath)
+	testPaths = getTestPaths(testFileName, module = module)
+	return len(testPaths) > 0
 
 def getPath(path):
 	filePath = os.path.dirname(path)
@@ -30,10 +30,12 @@ def getTestNames(moduleName):
 		if Path(moduleName) in dirPath:
 			return [f.fileName[:-7] for f in files if f.fileName.endswith(".py") and not f.fileName.startswith("_")]
 
-def getTestFilePath(testFileName, module = ""):
+def getTestPaths(testFileName, module = ""):
+	testFilePaths = []
 	for (dirPath, dirNames, fileNames) in TESTSFOLDER.path.walk():
 		if Path(testFileName) in fileNames and (not module or Path(module) in dirPath):
-			return dirPath
+			testFilePaths.append(dirPath)
+	return testFilePaths
 
 def _backslashToForwardslash(text):
 	return re.sub("\\\\", "/", text)

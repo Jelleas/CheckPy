@@ -45,13 +45,18 @@ def displayRemoved(fileName):
 	return msg
 
 def displayAdded(fileName):
-	msg = "{}Added:   {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
+	msg = "{}Added: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
 	print(msg)
 	return msg
 
 def displayCustom(message):
 	print(message)
 	return message
+
+def displayWarning(message):
+	msg = "{}Warning: {}{}".format(_Colors.WARNING, message, _Colors.ENDC)
+	print(msg)
+	return msg
 
 def displayError(message):
 	msg = "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
