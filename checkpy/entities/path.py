@@ -1,4 +1,5 @@
 import os
+import shutil
 
 class Folder(object):
 	def __init__(self, name, path):
@@ -38,6 +39,9 @@ class Path(object):
 	def walk(self):
 		for path, subdirs, files in os.walk(str(self)):
 			yield Path(path), [Path(sd) for sd in subdirs], [Path(f) for f in files]
+
+	def copyTo(self, destination):
+		shutil.copyfile(str(self), str(destination))
 
 	def pathFromFolder(self, folderName):
 		path = ""
@@ -90,7 +94,11 @@ class Path(object):
 	def __repr__(self):
 		return "/".join([item for item in self])
 
-CWDPATH = Path(os.getcwd())
+def current():
+	return Path(os.getcwd())
+
+userFolder = Folder(os.path.basename(os.getcwd()), Path(os.getcwd()))
+
 CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__)).split("checkpy")[0] + "checkpy")
 TESTSFOLDER = Folder("tests", CHECKPYPATH + "tests")
 DBFOLDER = Folder("storage", CHECKPYPATH + "storage")

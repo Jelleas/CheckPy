@@ -18,11 +18,19 @@ from checkpy.entities import function
 from checkpy import caches
 
 def require(fileName, source = None):
-	fileExists = path.Path(fileName).exists()
-	if source and not fileExists:
+	if source:
 		download(fileName, source)
-		fileExists = True
-	return fileExists
+		return
+
+	filePath = path.userFolder.path + fileName
+
+	if not fileExists(str(filePath)):
+		raise exception.CheckpyError("Required file {} does not exist".format(fileName))
+
+	filePath.copyTo(path.current() + fileName)
+
+def fileExists(fileName):
+	return path.Path(fileName).exists()
 
 def source(fileName):
 	source = ""

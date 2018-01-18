@@ -1,7 +1,8 @@
 from checkpy import printer
 from checkpy import caches
-from checkpy.entities import exception
+from checkpy.entities import exception, path
 from checkpy.tester import discovery
+from checkpy.tester.sandbox import Sandbox
 import os
 import subprocess
 import sys
@@ -143,7 +144,8 @@ class _Tester(object):
 		self.debugMode = debugMode
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
-
+		self.reservedNames = ["before", "after", "sandbox"]
+		
 	def run(self):
 		if self.debugMode:
 			printer.DEBUG_MODE = True
@@ -154,6 +156,14 @@ class _Tester(object):
 		module = importlib.import_module(self.moduleName)
 		module._fileName = self.fileName
 
+		if hasattr(module, "sandbox"):
+			with Sandbox(path.Path(self.fileName)):
+				module.sandbox()
+				return self._runTestsFromModule(module)
+		
+		return self._runTestsFromModule(module)
+
+	def _runTestsFromModule(self, module):
 		self._sendSignal(_Signal(isTiming = False))
 
 		result = TesterResult()
@@ -166,8 +176,7 @@ class _Tester(object):
 				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
-		reservedNames = ["before", "after"]
-		testCreators = [method for method in module.__dict__.values() if callable(method) and method.__name__ not in reservedNames]
+		testCreators = [method for method in module.__dict__.values() if callable(method) and method.__name__ not in self.reservedNames]
 
 		result.nTests = len(testCreators)
 
