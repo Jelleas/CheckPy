@@ -1,5 +1,6 @@
 import unittest
 import os
+import shutil
 import checkpy.lib as lib
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
@@ -21,19 +22,33 @@ class Base(unittest.TestCase):
             f.write(source)
 
 
-class TestRequire(Base):
+class TestFileExists(Base):
     def test_fileDoesNotExist(self):
-        self.assertFalse(lib.require("idonotexist.random"))
+        self.assertFalse(lib.fileExists("idonotexist.random"))
 
     def test_fileExists(self):
-        self.assertTrue(lib.require(self.fileName))
+        self.assertTrue(lib.fileExists(self.fileName))
 
+class TestRequire(Base):
     def test_fileDownload(self):
         fileName = "inowexist.random"
-        self.assertTrue(lib.require(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py"))
+        lib.require(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
         self.assertTrue(os.path.isfile(fileName))
         os.remove(fileName)
 
+    def test_fileLocalCopy(self):
+        cwd = os.getcwd()
+        name = "testrequire"
+
+        os.mkdir(name)
+        os.chdir(os.path.join(cwd, name))
+        
+        lib.require(self.fileName)
+        self.assertTrue(os.path.isfile(self.fileName))
+        
+        os.chdir(cwd)
+        shutil.rmtree(name)
+        
 class TestSource(Base):
     def test_expectedOutput(self):
         source = lib.source(self.fileName)
