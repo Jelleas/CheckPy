@@ -65,6 +65,8 @@ class Path(object):
 		return Path(os.path.join(str(self), str(other)))
 
 	def __sub__(self, other):
+		if isinstance(other, str):
+			other = Path(other)
 		my_items = [item for item in self]
 		other_items = [item for item in other]
 		total = ""
@@ -99,7 +101,7 @@ def current():
 
 userFolder = Folder(os.path.basename(os.getcwd()), Path(os.getcwd()))
 
-CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__)).split("checkpy")[0] + "checkpy")
+CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__))[:-len("/entities")])
 TESTSFOLDER = Folder("tests", CHECKPYPATH + "tests")
 DBFOLDER = Folder("storage", CHECKPYPATH + "storage")
 DBFILE = File("downloadLocations.json", DBFOLDER.path + "downloadLocations.json")
