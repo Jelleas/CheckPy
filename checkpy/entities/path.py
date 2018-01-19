@@ -1,22 +1,6 @@
 import os
 import shutil
 
-class Folder(object):
-	def __init__(self, name, path):
-		self.name = name
-		self.path = path
-
-	def pathAsString(self):
-		return str(self.path)
-
-class File(object):
-	def __init__(self, name, path):
-		self.name = name
-		self.path = path
-
-	def pathAsString(self):
-		return str(self.path)
-
 class Path(object):
 	def __init__(self, path):
 		self._path = os.path.normpath(path)
@@ -29,6 +13,9 @@ class Path(object):
 	def folderName(self):
 		_, name = os.path.split(os.path.dirname(str(self)))
 		return name
+
+	def containingFolder(self):
+		return Path(os.path.dirname(str(self)))
 
 	def isPythonFile(self):
 		return self.fileName.endswith(".py")
@@ -99,9 +86,8 @@ class Path(object):
 def current():
 	return Path(os.getcwd())
 
-userFolder = Folder(os.path.basename(os.getcwd()), Path(os.getcwd()))
+userPath = Path(os.getcwd())
 
 CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__))[:-len("/entities")])
-TESTSFOLDER = Folder("tests", CHECKPYPATH + "tests")
-DBFOLDER = Folder("storage", CHECKPYPATH + "storage")
-DBFILE = File("downloadLocations.json", DBFOLDER.path + "downloadLocations.json")
+TESTSPATH = CHECKPYPATH + "tests"
+DBPATH = CHECKPYPATH + "storage" + "downloadLocations.json"

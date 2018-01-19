@@ -39,9 +39,9 @@ def list():
 		printer.displayCustom("{} from {}".format(repoName, username))
 
 def clean():
-	shutil.rmtree(checkpyPath.TESTSFOLDER.pathAsString(), ignore_errors=True)
-	if (checkpyPath.DBFILE.path.exists()):
-		os.remove(checkpyPath.DBFILE.pathAsString())
+	shutil.rmtree(str(checkpyPath.TESTSPATH), ignore_errors=True)
+	if checkpyPath.DBPATH.exists():
+		os.remove(str(checkpyPath.DBPATH))
 	printer.displayCustom("Removed all tests")
 	return
 
@@ -129,12 +129,12 @@ def _download(githubUserName, githubRepoName):
 		f = io.BytesIO(r.content)
 
 	with zf.ZipFile(f) as z:
-		destFolder = checkpyPath.Folder(githubRepoName, checkpyPath.TESTSFOLDER.path + githubRepoName)
+		destPath = checkpyPath.TESTSPATH + githubRepoName
 
 		existingTests = set()
-		for path, subdirs, files in destFolder.path.walk():
+		for path, subdirs, files in destPath.walk():
 			for f in files:
-				existingTests.add((path + f) - destFolder.path)
+				existingTests.add((path + f) - destPath)
 
 		newTests = set()
 		for path in [checkpyPath.Path(name) for name in z.namelist()]:
@@ -148,19 +148,19 @@ def _download(githubUserName, githubRepoName):
 			printer.displayAdded(str(filePath))
 
 		for filePath in existingTests - newTests:
-			os.remove(str((destFolder.path + filePath)))
+			os.remove(str(destPath + filePath))
 
-		_extractTests(z, destFolder)
+		_extractTests(z, destPath)
 
 	printer.displayCustom("Finished downloading: {}".format(githubLink))
 
 def _downloadLocationsDatabase():
-	if not checkpyPath.DBFOLDER.path.exists():
-		os.makedirs(checkpyPath.DBFOLDER.pathAsString())
-	if not os.path.isfile(checkpyPath.DBFILE.pathAsString()):
-		with open(checkpyPath.DBFILE.pathAsString(), 'w') as f:
+	if not checkpyPath.DBPATH.containingFolder().exists():
+		os.makedirs(str(checkpyPath.DBPATH.containingFolder()))
+	if not checkpyPath.DBPATH.exists():
+		with open(str(checkpyPath.DBPATH), 'w') as f:
 			pass
-	return tinydb.TinyDB(checkpyPath.DBFILE.pathAsString())
+	return tinydb.TinyDB(str(checkpyPath.DBPATH))
 
 def _forEachUserAndRepo():
 	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
@@ -211,19 +211,19 @@ def _releaseTag(username, repoName):
 	query = tinydb.Query()
 	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["tag"]
 
-def _extractTests(zipfile, destFolder):
-	if not destFolder.path.exists():
-		os.makedirs(destFolder.pathAsString())
+def _extractTests(zipfile, destPath):
+	if not destPath.exists():
+		os.makedirs(str(destPath))
 
 	for path in [checkpyPath.Path(name) for name in zipfile.namelist()]:
-		_extractTest(zipfile, path, destFolder)
+		_extractTest(zipfile, path, destPath)
 
-def _extractTest(zipfile, path, destFolder):
+def _extractTest(zipfile, path, destPath):
 	if "tests" not in path:
 		return
 
 	subfolderPath = path.pathFromFolder("tests")
-	filePath = destFolder.path + subfolderPath
+	filePath = destPath + subfolderPath
 
 	if path.isPythonFile():
 		_extractFile(zipfile, path, filePath)

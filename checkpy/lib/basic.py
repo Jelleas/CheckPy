@@ -22,7 +22,7 @@ def require(fileName, source = None):
 		download(fileName, source)
 		return
 
-	filePath = path.userFolder.path + fileName
+	filePath = path.userPath + fileName
 
 	if not fileExists(str(filePath)):
 		raise exception.CheckpyError("Required file {} does not exist".format(fileName))
