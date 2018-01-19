@@ -17,7 +17,8 @@ class Sandbox():
 	def __enter__(self):
 		self._oldCWD = os.getcwd()
 		os.chdir(str(self.path))
-		self._filePath.copyTo(self.path + self._filePath.fileName)
+		if self._filePath.exists():
+			self._filePath.copyTo(self.path + self._filePath.fileName)
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		os.chdir(str(self._oldCWD))
