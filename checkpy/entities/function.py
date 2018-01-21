@@ -1,5 +1,5 @@
 import contextlib
-from . import exception
+import checkpy.entities.exception as exception
 
 class Function(object):
 	def __init__(self, function):
@@ -14,15 +14,15 @@ class Function(object):
 				self._stdoutOutput = stdout.getvalue()
 				return outcome
 		except Exception as e:
-			argumentNames = self.arguments()
+			argumentNames = self.arguments
 			nArgs = len(args) + len(kwargs)
 
-			message = "while trying to execute {}()".format(self.name())
+			message = "while trying to execute {}()".format(self.name)
 			if nArgs > 0:
 				argsRepr = ", ".join("{}={}".format(argumentNames[i], args[i]) for i in range(len(args)))	
 				kwargsRepr = ", ".join("{}={}".format(kwargName, kwargs[kwargName]) for kwargName in argumentNames[len(args):nArgs])
 				representation = ", ".join(s for s in [argsRepr, kwargsRepr] if s)
-				message = "while trying to execute {}({})".format(self.name(), representation)
+				message = "while trying to execute {}({})".format(self.name, representation)
 			
 			raise exception.SourceException(exception = e, message = message)
 
