@@ -95,7 +95,7 @@ def moduleAndOutputOf(
 	output = ""
 	excep = None
 
-	with _stdoutIO() as stdout, _stdinIO() as stdin:
+	with captureStdout() as stdout, captureStdin() as stdin:
 		# fill stdin with args
 		if stdinArgs:
 			for arg in stdinArgs:
@@ -234,7 +234,7 @@ def removeComments(source):
 	return out
 
 @contextlib.contextmanager
-def _stdoutIO(stdout=None):
+def captureStdout(stdout=None):
 	old = sys.stdout
 	if stdout is None:
 		stdout = StringIO.StringIO()
@@ -243,7 +243,7 @@ def _stdoutIO(stdout=None):
 	sys.stdout = old
 
 @contextlib.contextmanager
-def _stdinIO(stdin=None):
+def captureStdin(stdin=None):
 	old_input = input
 	def new_input(prompt = None):
 		try:

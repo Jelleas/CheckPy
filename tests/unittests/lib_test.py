@@ -367,5 +367,43 @@ class TestGetLine(unittest.TestCase):
             lib.getLine(s, 2)
 
 
+class TestCaptureStdout(unittest.TestCase):
+    def test_blank(self):
+        with lib.captureStdout() as stdout:
+            self.assertTrue(len(stdout.getvalue()) == 0)
+
+    def test_noOutput(self):
+        with lib.captureStdout() as stdout:
+            print("foo")
+            self.assertEqual("foo\n", stdout.getvalue())
+
+    def test_noLeakage(self):
+        import sys
+        with lib.captureStdout() as stdout:
+            print("foo")
+        self.assertTrue(len(sys.stdout.getvalue()) == 0)
+
+class TestCaptureStdin(unittest.TestCase):
+    def test_noInput(self):
+        with lib.captureStdin() as stdin:
+            with self.assertRaises(exception.InputError):
+                input()
+
+    def test_oneInput(self):
+        with lib.captureStdin() as stdin:
+            stdin.write("foo\n")
+            stdin.seek(0)
+            self.assertEqual(input(), "foo")
+            with self.assertRaises(exception.InputError):
+                input()
+
+    def test_noLeakage(self):
+        with lib.captureStdin() as stdin, lib.captureStdout() as stdout:
+            stdin.write("foo\n")
+            stdin.seek(0)
+            self.assertEqual(input("hello!"), "foo")
+            self.assertTrue(len(stdout.read()) == 0)
+            
+            
 if __name__ == '__main__':
     unittest.main()
