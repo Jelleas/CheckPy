@@ -92,8 +92,35 @@ class TestFunctionPrintOutput(unittest.TestCase):
             print("baz")
         f = Function(foo)
         f()
-        self.assertEqual(f.printOutput, "bar\nbaz\n")      
+        self.assertEqual(f.printOutput, "bar\nbaz\n")
 
+    def test_indirectPrint(self):
+        def foo():
+            Function(bar)()
+        def bar():
+            print("baz")
+        foo = Function(foo)
+        foo()
+        self.assertEqual(foo.printOutput, "baz\n")
+
+    def test_indirectPrintWithOrder(self):
+        def foo():
+            print("foo")
+            Function(bar)()
+            print("baz")
+        def bar():
+            print("bar")
+        foo = Function(foo)
+        foo()
+        self.assertEqual(foo.printOutput, "foo\nbar\nbaz\n")
+
+    def test_multipleCalls(self):
+        def foo():
+            print("foo")
+        foo = Function(foo)
+        foo()
+        foo()
+        self.assertEqual(foo.printOutput, "foo\n")
 
 if __name__ == '__main__':
     unittest.main()

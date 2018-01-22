@@ -116,7 +116,7 @@ def moduleAndOutputOf(
 				setattr(mod, attr, value)
 
 			# execute code in mod
-			if sys.version_info > (3,0):
+			if sys.version_info >= (3,0):
 				exec(src, mod.__dict__)
 			else:
 				exec(src) in mod.__dict__
