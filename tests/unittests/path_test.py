@@ -119,6 +119,31 @@ class TestPathWalk(unittest.TestCase):
         self.assertTrue(len(fs) == 1)
         self.assertEqual(str(fs[0]), fileName)
 
+class TestPathCopyTo(unittest.TestCase):
+    def setUp(self):
+        self.fileName = "dummy.txt"
+        self.content = "foo"
+        with open(self.fileName, "w") as f:
+            f.write(self.content)
+        self.target = "dummy.py"
+
+    def tearDown(self):
+        os.remove(self.fileName)
+        if os.path.exists(self.target):
+            os.remove(self.target)
+
+    def test_noFile(self):
+        fileName = "idonotexist.py"
+        path = Path(fileName)
+        with self.assertRaises(FileNotFoundError):
+            path.copyTo(".")
+        self.assertFalse(os.path.exists(fileName))
+
+    def test_file(self):
+        path = Path(self.fileName)
+        path.copyTo(self.target)
+        self.assertTrue(os.path.exists(self.fileName))
+        self.assertTrue(os.path.exists(self.target))
 
 
 if __name__ == '__main__':
