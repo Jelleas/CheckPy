@@ -56,17 +56,21 @@ class TestPathIsPythonFile(unittest.TestCase):
         self.assertFalse(path.isPythonFile())
 
 class TestPathExists(unittest.TestCase):
+    def setUp(self):
+        self.fileName = "dummy.py"
+        with open(self.fileName, "w") as f:
+            pass
+
+    def tearDown(self):
+        os.remove(self.fileName)
+
     def test_doesNotExist(self):
         path = Path("foo/bar/baz.py")
         self.assertFalse(path.exists())
 
     def test_exists(self):
-        fileName = "dummy.py"
-        with open(fileName, "w") as f:
-            pass
         path = Path("dummy.py")
         self.assertTrue(path.isPythonFile())
-        os.remove(fileName)
 
 class TestPathWalk(unittest.TestCase):
     def setUp(self):
