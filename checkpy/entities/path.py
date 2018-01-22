@@ -1,5 +1,6 @@
 import os
 import shutil
+import checkpy.entities.exception as exception
 
 class Path(object):
 	def __init__(self, path):
@@ -38,6 +39,9 @@ class Path(object):
 				path = os.path.join(path, item)
 			if item == folderName:
 				seen = True
+
+		if not seen:
+			raise exception.PathError(message = "folder {} does not exist in {}".format(folderName, self))
 		return Path(path)
 
 	def __add__(self, other):

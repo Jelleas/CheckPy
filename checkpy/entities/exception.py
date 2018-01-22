@@ -35,3 +35,6 @@ class DownloadError(CheckpyError):
 
 class ExitError(CheckpyError):
 	pass
+
+class PathError(CheckpyError):
+	pass

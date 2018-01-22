@@ -145,6 +145,21 @@ class TestPathCopyTo(unittest.TestCase):
         self.assertTrue(os.path.exists(self.fileName))
         self.assertTrue(os.path.exists(self.target))
 
+class TestPathPathFromFolder(unittest.TestCase):
+    def test_empty(self):
+        path = Path("")
+        with self.assertRaises(exception.PathError):
+            path.pathFromFolder("idonotexist")
+
+    def test_folderNotInpath(self):
+        path = Path("/foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path.pathFromFolder("quux")
+
+    def test_folderInpath(self):
+        path = Path("/foo/bar/baz")
+        self.assertEqual(str(path.pathFromFolder("bar")), "baz")
+        self.assertEqual(str(path.pathFromFolder("foo")), "bar/baz")
 
 if __name__ == '__main__':
     unittest.main()
