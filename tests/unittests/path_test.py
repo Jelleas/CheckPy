@@ -161,5 +161,72 @@ class TestPathPathFromFolder(unittest.TestCase):
         self.assertEqual(str(path.pathFromFolder("bar")), "baz")
         self.assertEqual(str(path.pathFromFolder("foo")), "bar/baz")
 
+class TestPathAdd(unittest.TestCase):
+    def test_string(self):
+        path = Path("foo/bar")
+        self.assertEqual(str(path + "baz"), "foo/bar/baz")
+        self.assertEqual(str(path + "/baz"), "foo/bar/baz")
+
+        path = Path("foo/bar/")
+        self.assertEqual(str(path + "/baz"), "foo/bar/baz")
+        self.assertEqual(str(path + "baz"), "foo/bar/baz")
+
+    def test_path(self):
+        path = Path("foo/bar")
+        self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
+        self.assertEqual(str(path + Path("/baz")), "foo/bar/baz")
+
+        path = Path("foo/bar/")
+        self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
+        self.assertEqual(str(path + Path("/baz")), "foo/bar/baz")
+
+    def test_unsupportedType(self):
+        path = Path("foo/bar")
+        with self.assertRaises(exception.PathError):
+            path + 1
+
+class TestPathSub(unittest.TestCase):
+    def test_empty(self):
+        path = Path("")
+        self.assertEqual(str(path - ""), ".")
+        self.assertEqual(str(path - Path("")), ".")
+
+        path = Path("foo/bar/baz")
+        self.assertEqual(str(path - ""), "foo/bar/baz")
+        self.assertEqual(str(path - Path("")), "foo/bar/baz")
+
+        path = Path("./foo/bar/baz")
+        self.assertEqual(str(path - ""), "foo/bar/baz")
+        self.assertEqual(str(path - Path("")), "foo/bar/baz")
+
+        path = Path("/foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path - ""
+        with self.assertRaises(exception.PathError):
+            path - Path("")
+
+    def test_string(self):
+        path = Path("foo/bar/baz")
+        self.assertEqual(str(path - "foo/bar"), "baz")
+        with self.assertRaises(exception.PathError):
+            path - "/foo/bar"
+
+        path = Path("/foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path - "foo/bar"
+        self.assertEqual(str(path - "/foo/bar"), "baz")
+
+    def test_path(self):
+        path = Path("foo/bar/baz")
+        self.assertEqual(str(path - Path("foo/bar")), "baz")
+        with self.assertRaises(exception.PathError):
+            path - "/foo/bar"
+
+        path = Path("/foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path - Path("foo/bar")
+        self.assertEqual(str(path - Path("/foo/bar")), "baz")
+
+
 if __name__ == '__main__':
     unittest.main()

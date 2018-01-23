@@ -30,6 +30,17 @@ class TestFileExists(Base):
         self.assertTrue(lib.fileExists(self.fileName))
 
 class TestRequire(Base):
+    def setUp(self):
+        super(TestRequire, self).setUp()
+        self.cwd = os.getcwd()
+        self.dirname = "testrequire"
+        os.mkdir(self.dirname)
+
+    def tearDown(self):
+        super(TestRequire, self).tearDown()
+        os.chdir(self.cwd)
+        shutil.rmtree(self.dirname)
+
     def test_fileDownload(self):
         fileName = "inowexist.random"
         lib.require(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
@@ -37,18 +48,11 @@ class TestRequire(Base):
         os.remove(fileName)
 
     def test_fileLocalCopy(self):
-        cwd = os.getcwd()
-        name = "testrequire"
-
-        os.mkdir(name)
-        os.chdir(os.path.join(cwd, name))
-        
+        os.chdir(self.dirname)
         lib.require(self.fileName)
         self.assertTrue(os.path.isfile(self.fileName))
-        
-        os.chdir(cwd)
-        shutil.rmtree(name)
-        
+
+
 class TestSource(Base):
     def test_expectedOutput(self):
         source = lib.source(self.fileName)
@@ -403,7 +407,7 @@ class TestCaptureStdin(unittest.TestCase):
             stdin.seek(0)
             self.assertEqual(input("hello!"), "foo")
             self.assertTrue(len(stdout.read()) == 0)
-            
-            
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import checkpy.entities.exception as exception
 
@@ -45,28 +46,57 @@ class Path(object):
 		return Path(path)
 
 	def __add__(self, other):
-		try:
-			# Python 3
-			if isinstance(other, bytes) or isinstance(other, str):
-				return Path(os.path.join(str(self), other))
-		except NameError:
-			# Python 2
-			if isinstance(other, str) or isinstance(other, unicode):
-				return Path(os.path.join(str(self), other))
-		return Path(os.path.join(str(self), str(other)))
+		if sys.version_info >= (3,0):
+			supportedTypes = [str, bytes, Path]
+		else:
+			supportedTypes = [str, unicode, Path]
+
+		if not any(isinstance(other, t) for t in supportedTypes):
+			raise exception.PathError(message = "can't add {} to Path only {}".format(type(other), supportedTypes))
+
+		if not isinstance(other, Path):
+			other = Path(other)
+
+		result = str(self)
+		for item in other:
+			if item != os.path.sep:
+				result = os.path.join(result, item)
+
+		return Path(result)
 
 	def __sub__(self, other):
-		if isinstance(other, str):
+		if sys.version_info >= (3,0):
+			supportedTypes = [str, bytes, Path]
+		else:
+			supportedTypes = [str, unicode, Path]
+
+		if not any(isinstance(other, t) for t in supportedTypes):
+			raise exception.PathError(message = "can't subtract {} from Path only {}".format(type(other), supportedTypes))
+
+		if not isinstance(other, Path):
 			other = Path(other)
-		my_items = [item for item in self]
-		other_items = [item for item in other]
+
+		myItems = [item for item in self]
+		otherItems = [item for item in other]
+
+		for items in (myItems, otherItems):
+			if len(items) >= 1 and items[0] != os.path.sep and items[0] != ".":
+				items.insert(0, ".")
+		print(myItems, otherItems)
+		for i in range(min(len(myItems), len(otherItems))):
+			if myItems[i] != otherItems[i]:
+				raise exception.PathError(message = "tried subtracting, but root does not match: {} and {}".format(self, other))
+
 		total = ""
-		for item in my_items[len(other_items):]:
+		for item in myItems[len(otherItems):]:
 			total = os.path.join(total, item)
 		return Path(total)
 
 	def __iter__(self):
-		for item in str(self).split(os.path.sep):
+		items = str(self).split(os.path.sep)
+		if len(items) > 0 and items[0] == "":
+			items[0] = os.path.sep
+		for item in items:
 			yield item
 
 	def __hash__(self):
