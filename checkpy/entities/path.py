@@ -10,9 +10,11 @@ class Path(object):
 
 		items = str(path).split(os.path.sep)
 
-		# if path started with root, add root
-		if len(items) > 0 and items[0] == "":
-			items[0] = os.path.sep
+		if len(items) > 0:
+			# if path started with root, add root
+			if items[0] == "":
+				items[0] = os.path.sep
+
 		# remove any empty items (for instance because of "/")
 		self._items = [item for item in items if item]
 
@@ -108,7 +110,7 @@ class Path(object):
 		return isinstance(other, type(self)) and repr(self) == repr(other)
 
 	def __contains__(self, item):
-		return str(item) in [item for item in self]
+		return str(item) in list(self)
 
 	def __nonzero__ (self):
 		return len(str(self)) != 0

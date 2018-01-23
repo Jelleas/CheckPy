@@ -244,5 +244,31 @@ class TestPathIter(unittest.TestCase):
         path = Path("foo/bar/baz")
         self.assertEqual(list(path), ["foo", "bar", "baz"])
 
+class TestPathContains(unittest.TestCase):
+    def test_root(self):
+        path = Path("/")
+        self.assertTrue("/" in path)
+        self.assertFalse("." in path)
+
+    def test_current(self):
+        path = Path(".")
+        self.assertTrue("." in path)
+        self.assertFalse("/" in path)
+
+        path = Path("")
+        self.assertTrue("." in path)
+        self.assertFalse("/" in path)
+
+    def test_localPath(self):
+        path = Path("foo/bar/baz")
+        for d in ["foo", "bar", "baz"]:
+            self.assertTrue(d in path)
+
+    def test_absPath(self):
+        path = Path("/foo/bar/baz")
+        self.assertTrue("/" in path)
+        for d in ["foo", "bar", "baz"]:
+            self.assertTrue(d in path)
+
 if __name__ == '__main__':
     unittest.main()
