@@ -165,20 +165,24 @@ class TestPathAdd(unittest.TestCase):
     def test_string(self):
         path = Path("foo/bar")
         self.assertEqual(str(path + "baz"), "foo/bar/baz")
-        self.assertEqual(str(path + "/baz"), "foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path + "/baz"
 
         path = Path("foo/bar/")
-        self.assertEqual(str(path + "/baz"), "foo/bar/baz")
         self.assertEqual(str(path + "baz"), "foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path + "/baz"
 
     def test_path(self):
         path = Path("foo/bar")
         self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
-        self.assertEqual(str(path + Path("/baz")), "foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path + Path("/baz")
 
         path = Path("foo/bar/")
         self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
-        self.assertEqual(str(path + Path("/baz")), "foo/bar/baz")
+        with self.assertRaises(exception.PathError):
+            path + Path("/baz")
 
     def test_unsupportedType(self):
         path = Path("foo/bar")
@@ -227,6 +231,18 @@ class TestPathSub(unittest.TestCase):
             path - Path("foo/bar")
         self.assertEqual(str(path - Path("/foo/bar")), "baz")
 
+class TestPathIter(unittest.TestCase):
+    def test_empty(self):
+        path = Path("")
+        self.assertEqual(list(path), ["."])
+
+    def test_root(self):
+        path = Path("/")
+        self.assertEqual(list(path), [os.path.sep])
+
+    def test_path(self):
+        path = Path("foo/bar/baz")
+        self.assertEqual(list(path), ["foo", "bar", "baz"])
 
 if __name__ == '__main__':
     unittest.main()

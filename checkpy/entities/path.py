@@ -5,19 +5,27 @@ import checkpy.entities.exception as exception
 
 class Path(object):
 	def __init__(self, path):
-		self._path = os.path.normpath(path)
+		path = os.path.normpath(path)
+		self._drive = os.path.splitdrive(path)[0]
+
+		items = str(path).split(os.path.sep)
+
+		# if path started with root, add root
+		if len(items) > 0 and items[0] == "":
+			items[0] = os.path.sep
+		# remove any empty items (for instance because of "/")
+		self._items = [item for item in items if item]
 
 	@property
 	def fileName(self):
-		return os.path.basename(str(self))
+		return list(self)[-1]
 
 	@property
 	def folderName(self):
-		_, name = os.path.split(os.path.dirname(str(self)))
-		return name
+		return list(self)[-2]
 
 	def containingFolder(self):
-		return Path(os.path.dirname(str(self)))
+		return Path(self._join(self._drive, list(self)[:-1]))
 
 	def isPythonFile(self):
 		return self.fileName.endswith(".py")
@@ -35,15 +43,16 @@ class Path(object):
 	def pathFromFolder(self, folderName):
 		path = ""
 		seen = False
+		items = []
 		for item in self:
 			if seen:
-				path = os.path.join(path, item)
+				items.append(item)
 			if item == folderName:
 				seen = True
 
 		if not seen:
 			raise exception.PathError(message = "folder {} does not exist in {}".format(folderName, self))
-		return Path(path)
+		return Path(self._join(self._drive, items))
 
 	def __add__(self, other):
 		if sys.version_info >= (3,0):
@@ -57,12 +66,11 @@ class Path(object):
 		if not isinstance(other, Path):
 			other = Path(other)
 
-		result = str(self)
-		for item in other:
-			if item != os.path.sep:
-				result = os.path.join(result, item)
+		# if other path starts with root, throw error
+		if list(other)[0] == os.path.sep:
+			raise exception.PathError(message = "can't add {} to Path because it starts at root")
 
-		return Path(result)
+		return Path(self._join(self._drive, list(self) + list(other)))
 
 	def __sub__(self, other):
 		if sys.version_info >= (3,0):
@@ -76,8 +84,8 @@ class Path(object):
 		if not isinstance(other, Path):
 			other = Path(other)
 
-		myItems = [item for item in self]
-		otherItems = [item for item in other]
+		myItems = list(self)
+		otherItems = list(other)
 
 		for items in (myItems, otherItems):
 			if len(items) >= 1 and items[0] != os.path.sep and items[0] != ".":
@@ -85,18 +93,12 @@ class Path(object):
 
 		for i in range(min(len(myItems), len(otherItems))):
 			if myItems[i] != otherItems[i]:
-				raise exception.PathError(message = "tried subtracting, but root does not match: {} and {}".format(self, other))
+				raise exception.PathError(message = "tried subtracting, but subdirs do not match: {} and {}".format(self, other))
 
-		total = ""
-		for item in myItems[len(otherItems):]:
-			total = os.path.join(total, item)
-		return Path(total)
+		return Path(self._join(self._drive, myItems[len(otherItems):]))
 
 	def __iter__(self):
-		items = str(self).split(os.path.sep)
-		if len(items) > 0 and items[0] == "":
-			items[0] = os.path.sep
-		for item in items:
+		for item in self._items:
 			yield item
 
 	def __hash__(self):
@@ -112,10 +114,17 @@ class Path(object):
 		return len(str(self)) != 0
 
 	def __str__(self):
-		return self._path
+		return self._join(self._drive, list(self))
 
 	def __repr__(self):
 		return "/".join([item for item in self])
+
+	def _join(self, drive, items):
+		result = drive
+		for item in items:
+			result = os.path.join(result, item)
+		return result
+
 
 def current():
 	return Path(os.getcwd())
