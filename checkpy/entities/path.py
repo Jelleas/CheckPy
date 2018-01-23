@@ -82,7 +82,7 @@ class Path(object):
 		for items in (myItems, otherItems):
 			if len(items) >= 1 and items[0] != os.path.sep and items[0] != ".":
 				items.insert(0, ".")
-		print(myItems, otherItems)
+
 		for i in range(min(len(myItems), len(otherItems))):
 			if myItems[i] != otherItems[i]:
 				raise exception.PathError(message = "tried subtracting, but root does not match: {} and {}".format(self, other))
