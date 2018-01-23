@@ -270,5 +270,28 @@ class TestPathContains(unittest.TestCase):
         for d in ["foo", "bar", "baz"]:
             self.assertTrue(d in path)
 
+class TestPathLen(unittest.TestCase):
+    def test_root(self):
+        path = Path("/")
+        self.assertEqual(len(path), 1)
+
+    def test_current(self):
+        path = Path(".")
+        self.assertEqual(len(path), 1)
+
+    def test_localPath(self):
+        path = Path("foo/bar/baz")
+        self.assertEqual(len(path), 3)
+        path = Path("foo/bar/baz/")
+        self.assertEqual(len(path), 3)
+
+    def test_absPath(self):
+        path = Path("/foo/bar/baz")
+        self.assertEqual(len(path), 4)
+
+        path = Path("/foo/bar/baz/")
+        self.assertEqual(len(path), 4)
+
+
 if __name__ == '__main__':
     unittest.main()

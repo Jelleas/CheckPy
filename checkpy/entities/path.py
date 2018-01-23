@@ -112,8 +112,8 @@ class Path(object):
 	def __contains__(self, item):
 		return str(item) in list(self)
 
-	def __nonzero__ (self):
-		return len(str(self)) != 0
+	def __len__(self):
+		return len(self._items)
 
 	def __str__(self):
 		return self._join(self._drive, list(self))
