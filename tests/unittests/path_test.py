@@ -288,10 +288,29 @@ class TestPathLen(unittest.TestCase):
     def test_absPath(self):
         path = Path("/foo/bar/baz")
         self.assertEqual(len(path), 4)
-
         path = Path("/foo/bar/baz/")
         self.assertEqual(len(path), 4)
 
+class TestPathStr(unittest.TestCase):
+    def test_root(self):
+        path = Path("/")
+        self.assertEqual(str(path), os.path.normpath("/"))
+
+    def test_current(self):
+        path = Path(".")
+        self.assertEqual(str(path), os.path.normpath("."))
+
+    def test_localPath(self):
+        path = Path("foo/bar/baz")
+        self.assertEqual(str(path), os.path.normpath("foo/bar/baz"))
+        path = Path("foo/bar/baz/")
+        self.assertEqual(str(path), os.path.normpath("foo/bar/baz/"))
+
+    def test_absPath(self):
+        path = Path("/foo/bar/baz")
+        self.assertEqual(str(path), os.path.normpath("/foo/bar/baz"))
+        path = Path("/foo/bar/baz/")
+        self.assertEqual(str(path), os.path.normpath("/foo/bar/baz/"))
 
 if __name__ == '__main__':
     unittest.main()
