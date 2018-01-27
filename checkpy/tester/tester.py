@@ -36,7 +36,7 @@ def test(testName, module = "", debugMode = False):
 
 	if len(testPaths) > 1:
 		result.addOutput(printer.displayWarning("Found {} tests: {}, using: {}".format(len(testPaths), testPaths, testPaths[0])))
-	
+
 	testFilePath = str(testPaths[0])
 
 	if testFilePath not in sys.path:
@@ -60,10 +60,10 @@ def test(testName, module = "", debugMode = False):
 		os.remove(path)
 	else:
 		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
-	
+
 	testerResult.output = result.output + testerResult.output
 	return testerResult
-		
+
 
 def testModule(module, debugMode = False):
 	testNames = discovery.getTestNames(module)
@@ -145,10 +145,10 @@ class _Tester(object):
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
 		self.reservedNames = ["before", "after", "sandbox"]
-		
+
 	def run(self):
 		if self.debugMode:
-			printer.DEBUG_MODE = True
+			printer.printer.DEBUG_MODE = True
 
 		# overwrite argv so that it seems the file was run directly
 		sys.argv = [self.fileName]
@@ -160,7 +160,7 @@ class _Tester(object):
 			with Sandbox(path.Path(self.fileName)):
 				module.sandbox()
 				return self._runTestsFromModule(module)
-		
+
 		return self._runTestsFromModule(module)
 
 	def _runTestsFromModule(self, module):
