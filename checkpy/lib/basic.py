@@ -244,17 +244,22 @@ def captureStdout(stdout=None):
 
 @contextlib.contextmanager
 def captureStdin(stdin=None):
-	old_input = input
-	def new_input(prompt = None):
-		try:
-			return old_input()
-		except EOFError as e:
-			e = exception.InputError(
-				message = "You requested too much user input",
-				stacktrace = traceback.format_exc())
-			raise e
+	def newInput(oldInput):
+		def input(prompt = None):
+			try:
+				return oldInput()
+			except EOFError as e:
+				e = exception.InputError(
+					message = "You requested too much user input",
+					stacktrace = traceback.format_exc())
+				raise e
+		return input
 
-	__builtins__["input"] = new_input
+	oldInput = input
+	__builtins__["input"] = newInput(oldInput)
+	if sys.version_info < (3,0):
+		oldRawInput = raw_input
+		__builtins__["raw_input"] = newInput(oldRawInput)
 
 	old = sys.stdin
 	if stdin is None:
@@ -263,5 +268,7 @@ def captureStdin(stdin=None):
 
 	yield stdin
 
-	__builtins__["input"] = old_input
 	sys.stdin = old
+	__builtins__["input"] = oldInput
+	if sys.version_info < (3,0):
+		__builtins__["raw_input"] = oldRawInput

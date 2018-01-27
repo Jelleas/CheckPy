@@ -65,7 +65,7 @@ class Function(object):
 
 class _Stream(io.StringIO):
 	def __init__(self, *args, **kwargs):
-		super(_Stream, self).__init__(*args, **kwargs)
+		io.StringIO.__init__(self, *args, **kwargs)
 		self._listeners = []
 
 	def register(self, listener):
@@ -76,12 +76,12 @@ class _Stream(io.StringIO):
 
 	def write(self, text):
 		"""Overwrites StringIO.write to update all listeners"""
-		super(_Stream, self).write(text)
+		io.StringIO.write(self, text)
 		self._onUpdate(text)
 
 	def writelines(self, sequence):
 		"""Overwrites StringIO.writelines to update all listeners"""
-		super(_Stream, self).writelines(sequence)
+		io.StringIO.writelines(self, sequence)
 		for item in sequence:
 			self._onUpdate(item)
 

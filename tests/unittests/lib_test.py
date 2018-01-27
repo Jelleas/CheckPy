@@ -1,6 +1,7 @@
 import unittest
 import os
 import shutil
+import sys
 import checkpy.lib as lib
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
@@ -48,6 +49,8 @@ class TestRequire(Base):
         os.remove(fileName)
 
     def test_fileLocalCopy(self):
+        import checkpy.entities.path as path
+        print(path.userPath)
         os.chdir(self.dirname)
         lib.require(self.fileName)
         self.assertTrue(os.path.isfile(self.fileName))
@@ -388,24 +391,27 @@ class TestCaptureStdout(unittest.TestCase):
         self.assertTrue(len(sys.stdout.getvalue()) == 0)
 
 class TestCaptureStdin(unittest.TestCase):
+    def setUp(self):
+        self.getInput = lambda : input if sys.version_info >= (3,0) else raw_input
+
     def test_noInput(self):
         with lib.captureStdin() as stdin:
             with self.assertRaises(exception.InputError):
-                input()
+                self.getInput()()
 
     def test_oneInput(self):
         with lib.captureStdin() as stdin:
             stdin.write("foo\n")
             stdin.seek(0)
-            self.assertEqual(input(), "foo")
+            self.assertEqual(self.getInput()(), "foo")
             with self.assertRaises(exception.InputError):
-                input()
+                self.getInput()()
 
     def test_noLeakage(self):
         with lib.captureStdin() as stdin, lib.captureStdout() as stdout:
             stdin.write("foo\n")
             stdin.seek(0)
-            self.assertEqual(input("hello!"), "foo")
+            self.assertEqual(self.getInput()("hello!"), "foo")
             self.assertTrue(len(stdout.read()) == 0)
 
 

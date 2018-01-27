@@ -6,7 +6,7 @@ import checkpy.entities.exception as exception
 class Path(object):
 	def __init__(self, path):
 		path = os.path.normpath(path)
-		self._drive = os.path.splitdrive(path)[0]
+		self._drive, path = os.path.splitdrive(path)
 
 		items = str(path).split(os.path.sep)
 

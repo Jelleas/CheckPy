@@ -33,11 +33,11 @@ class TestPathContainingFolder(unittest.TestCase):
 
     def test_file(self):
         path = Path("/foo/bar/baz.txt")
-        self.assertEqual(str(path.containingFolder()), "/foo/bar")
+        self.assertEqual(str(path.containingFolder()), os.path.normpath("/foo/bar"))
 
     def test_folder(self):
         path = Path("/foo/bar/baz/")
-        self.assertEqual(str(path.containingFolder()), "/foo/bar")
+        self.assertEqual(str(path.containingFolder()), os.path.normpath("/foo/bar"))
 
 class TestPathIsPythonFile(unittest.TestCase):
     def test_noPythonFile(self):
@@ -135,7 +135,7 @@ class TestPathCopyTo(unittest.TestCase):
     def test_noFile(self):
         fileName = "idonotexist.py"
         path = Path(fileName)
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(IOError):
             path.copyTo(".")
         self.assertFalse(os.path.exists(fileName))
 
@@ -159,28 +159,28 @@ class TestPathPathFromFolder(unittest.TestCase):
     def test_folderInpath(self):
         path = Path("/foo/bar/baz")
         self.assertEqual(str(path.pathFromFolder("bar")), "baz")
-        self.assertEqual(str(path.pathFromFolder("foo")), "bar/baz")
+        self.assertEqual(str(path.pathFromFolder("foo")), os.path.normpath("bar/baz"))
 
 class TestPathAdd(unittest.TestCase):
     def test_string(self):
         path = Path("foo/bar")
-        self.assertEqual(str(path + "baz"), "foo/bar/baz")
+        self.assertEqual(str(path + "baz"), os.path.normpath("foo/bar/baz"))
         with self.assertRaises(exception.PathError):
             path + "/baz"
 
         path = Path("foo/bar/")
-        self.assertEqual(str(path + "baz"), "foo/bar/baz")
+        self.assertEqual(str(path + "baz"), os.path.normpath("foo/bar/baz"))
         with self.assertRaises(exception.PathError):
             path + "/baz"
 
     def test_path(self):
         path = Path("foo/bar")
-        self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
+        self.assertEqual(str(path + Path("baz")), os.path.normpath("foo/bar/baz"))
         with self.assertRaises(exception.PathError):
             path + Path("/baz")
 
         path = Path("foo/bar/")
-        self.assertEqual(str(path + Path("baz")), "foo/bar/baz")
+        self.assertEqual(str(path + Path("baz")), os.path.normpath("foo/bar/baz"))
         with self.assertRaises(exception.PathError):
             path + Path("/baz")
 
@@ -196,12 +196,12 @@ class TestPathSub(unittest.TestCase):
         self.assertEqual(str(path - Path("")), ".")
 
         path = Path("foo/bar/baz")
-        self.assertEqual(str(path - ""), "foo/bar/baz")
-        self.assertEqual(str(path - Path("")), "foo/bar/baz")
+        self.assertEqual(str(path - ""), os.path.normpath("foo/bar/baz"))
+        self.assertEqual(str(path - Path("")), os.path.normpath("foo/bar/baz"))
 
         path = Path("./foo/bar/baz")
-        self.assertEqual(str(path - ""), "foo/bar/baz")
-        self.assertEqual(str(path - Path("")), "foo/bar/baz")
+        self.assertEqual(str(path - ""), os.path.normpath("foo/bar/baz"))
+        self.assertEqual(str(path - Path("")), os.path.normpath("foo/bar/baz"))
 
         path = Path("/foo/bar/baz")
         with self.assertRaises(exception.PathError):
@@ -247,7 +247,7 @@ class TestPathIter(unittest.TestCase):
 class TestPathContains(unittest.TestCase):
     def test_root(self):
         path = Path("/")
-        self.assertTrue("/" in path)
+        self.assertTrue(os.path.normpath("/") in path)
         self.assertFalse("." in path)
 
     def test_current(self):
@@ -266,7 +266,7 @@ class TestPathContains(unittest.TestCase):
 
     def test_absPath(self):
         path = Path("/foo/bar/baz")
-        self.assertTrue("/" in path)
+        self.assertTrue(os.path.normpath("/") in path)
         for d in ["foo", "bar", "baz"]:
             self.assertTrue(d in path)
 
