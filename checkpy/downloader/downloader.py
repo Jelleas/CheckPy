@@ -53,7 +53,7 @@ def clean():
 	for path in database.forEachGithubPath():
 		shutil.rmtree(str(path), ignore_errors=True)
 	database.clean()
-	printer.displayCustom("Removed all downloaded tests")
+	printer.displayCustom("Removed all tests")
 	return
 
 def updateSilently():
