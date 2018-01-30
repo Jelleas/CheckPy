@@ -1,6 +1,7 @@
 import os
 import re
-from checkpy.entities.path import Path, TESTSPATH
+import checkpy.database as database
+from checkpy.entities.path import Path
 
 def testExists(testName, module = ""):
 	testFileName = testName.split(".")[0] + "Test.py"
@@ -26,15 +27,17 @@ def getPath(path):
 	return None
 
 def getTestNames(moduleName):
-	for (dirPath, subdirs, files) in TESTSPATH.walk():
-		if Path(moduleName) in dirPath:
-			return [f.fileName[:-7] for f in files if f.fileName.endswith(".py") and not f.fileName.startswith("_")]
+	for testsPath in database.forEachTestsPath():
+		for (dirPath, subdirs, files) in testsPath.walk():
+			if Path(moduleName) in dirPath:
+				return [f.fileName[:-7] for f in files if f.fileName.endswith(".py") and not f.fileName.startswith("_")]
 
 def getTestPaths(testFileName, module = ""):
 	testFilePaths = []
-	for (dirPath, dirNames, fileNames) in TESTSPATH.walk():
-		if Path(testFileName) in fileNames and (not module or Path(module) in dirPath):
-			testFilePaths.append(dirPath)
+	for testsPath in database.forEachTestsPath():
+		for (dirPath, dirNames, fileNames) in testsPath.walk():
+			if Path(testFileName) in fileNames and (not module or Path(module) in dirPath):
+				testFilePaths.append(dirPath)
 	return testFilePaths
 
 def _backslashToForwardslash(text):

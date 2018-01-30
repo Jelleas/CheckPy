@@ -2,9 +2,9 @@ import requests
 import zipfile as zf
 import os
 import shutil
-import tinydb
 import time
-import checkpy.entities.path as checkpyPath
+from checkpy.entities.path import Path
+from checkpy import database
 from checkpy import caches
 from checkpy import printer
 from checkpy.entities import exception
@@ -26,8 +26,17 @@ def download(githubLink):
 	except exception.DownloadError as e:
 		printer.displayError(str(e))
 
+def register(localLink):
+	path = Path(localLink)
+
+	if not path.exists():
+		printer.displayError("{} does not exist")
+		return
+
+	database.addToLocalTable(path)
+
 def update():
-	for username, repoName in _forEachUserAndRepo():
+	for username, repoName in database.forEachUserAndRepo():
 		try:
 			_syncRelease(username, repoName)
 			_download(username, repoName)
@@ -35,23 +44,25 @@ def update():
 			printer.displayError(str(e))
 
 def list():
-	for username, repoName in _forEachUserAndRepo():
-		printer.displayCustom("{} from {}".format(repoName, username))
+	for username, repoName in database.forEachUserAndRepo():
+		printer.displayCustom("Github: {} from {}".format(repoName, username))
+	for path in database.forEachLocalPath():
+		printer.displayCustom("Local:  {}".format(path))
 
 def clean():
-	shutil.rmtree(str(checkpyPath.TESTSPATH), ignore_errors=True)
-	if checkpyPath.DBPATH.exists():
-		os.remove(str(checkpyPath.DBPATH))
-	printer.displayCustom("Removed all tests")
+	for path in database.forEachGithubPath():
+		shutil.rmtree(str(path), ignore_errors=True)
+	database.clean()
+	printer.displayCustom("Removed all downloaded tests")
 	return
 
 def updateSilently():
-	for username, repoName in _forEachUserAndRepo():
+	for username, repoName in database.forEachUserAndRepo():
 		# only attempt update if 300 sec have passed
-		if time.time() - _timestamp(username, repoName) < 300:
+		if time.time() - database.timestampGithub(username, repoName) < 300:
 			continue
 
-		_setTimestamp(username, repoName)
+		database.setTimestampGithub(username, repoName)
 		try:
 			if _newReleaseAvailable(username, repoName):
 				_download(username, repoName)
@@ -60,13 +71,13 @@ def updateSilently():
 
 def _newReleaseAvailable(githubUserName, githubRepoName):
 	# unknown/new download
-	if not _isKnownDownloadLocation(githubUserName, githubRepoName):
+	if not database.isKnownGithub(githubUserName, githubRepoName):
 		return True
 	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
 	# new release id found
-	if releaseJson["id"] != _releaseId(githubUserName, githubRepoName):
-		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+	if releaseJson["id"] != database.releaseId(githubUserName, githubRepoName):
+		database.updateGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 		return True
 
 	# no new release found
@@ -75,10 +86,10 @@ def _newReleaseAvailable(githubUserName, githubRepoName):
 def _syncRelease(githubUserName, githubRepoName):
 	releaseJson = _getReleaseJson(githubUserName, githubRepoName)
 
-	if _isKnownDownloadLocation(githubUserName, githubRepoName):
-		_updateDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+	if database.isKnownGithub(githubUserName, githubRepoName):
+		database.updateGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 	else:
-		_addToDownloadLocations(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+		database.addToGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
 
 # this performs one api call, beware of rate limit!!!
 # returns a dictionary representing the json returned by github
@@ -109,7 +120,7 @@ def _getReleaseJson(githubUserName, githubRepoName):
 # use _syncRelease() to force an update in downloadLocations.json
 def _download(githubUserName, githubRepoName):
 	githubLink = "https://github.com/{}/{}".format(githubUserName, githubRepoName)
-	zipLink = githubLink + "/archive/{}.zip".format(_releaseTag(githubUserName, githubRepoName))
+	zipLink = githubLink + "/archive/{}.zip".format(database.releaseTag(githubUserName, githubRepoName))
 
 	try:
 		r = requests.get(zipLink)
@@ -129,7 +140,7 @@ def _download(githubUserName, githubRepoName):
 		f = io.BytesIO(r.content)
 
 	with zf.ZipFile(f) as z:
-		destPath = checkpyPath.TESTSPATH + githubRepoName
+		destPath = database.githubPath(githubUserName, githubRepoName)
 
 		existingTests = set()
 		for path, subdirs, files in destPath.walk():
@@ -137,7 +148,7 @@ def _download(githubUserName, githubRepoName):
 				existingTests.add((path + f) - destPath)
 
 		newTests = set()
-		for path in [checkpyPath.Path(name) for name in z.namelist()]:
+		for path in [Path(name) for name in z.namelist()]:
 			if path.isPythonFile():
 				newTests.add(path.pathFromFolder("tests"))
 
@@ -154,68 +165,11 @@ def _download(githubUserName, githubRepoName):
 
 	printer.displayCustom("Finished downloading: {}".format(githubLink))
 
-def _downloadLocationsDatabase():
-	if not checkpyPath.DBPATH.containingFolder().exists():
-		os.makedirs(str(checkpyPath.DBPATH.containingFolder()))
-	if not checkpyPath.DBPATH.exists():
-		with open(str(checkpyPath.DBPATH), 'w') as f:
-			pass
-	return tinydb.TinyDB(str(checkpyPath.DBPATH))
-
-def _forEachUserAndRepo():
-	for username, repoName in ((entry["user"], entry["repo"]) for entry in _downloadLocationsDatabase().all()):
-		yield username, repoName
-
-def _isKnownDownloadLocation(username, repoName):
-	query = tinydb.Query()
-	return _downloadLocationsDatabase().contains((query.user == username) & (query.repo == repoName))
-
-def _addToDownloadLocations(username, repoName, releaseId, releaseTag):
-	if not _isKnownDownloadLocation(username, repoName):
-		_downloadLocationsDatabase().insert(\
-			{
-				"user" 			: username,
-				"repo" 			: repoName,
-				"release" 		: releaseId,
-				"tag" 			: releaseTag,
-				"timestamp" 	: time.time()
-			})
-
-def _updateDownloadLocations(username, repoName, releaseId, releaseTag):
-	query = tinydb.Query()
-	_downloadLocationsDatabase().update(\
-		{
-			"user" 			: username,
-			"repo" 			: repoName,
-			"release" 		: releaseId,
-			"tag" 			: releaseTag,
-			"timestamp" 	: time.time()
-		}, query.user == username and query.repo == repoName)
-
-def _timestamp(username, repoName):
-	query = tinydb.Query()
-	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["timestamp"]
-
-def _setTimestamp(username, repoName):
-	query = tinydb.Query()
-	_downloadLocationsDatabase().update(\
-		{
-			"timestamp" : time.time()
-		}, query.user == username and query.repo == repoName)
-
-def _releaseId(username, repoName):
-	query = tinydb.Query()
-	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["release"]
-
-def _releaseTag(username, repoName):
-	query = tinydb.Query()
-	return _downloadLocationsDatabase().search(query.user == username and query.repo == repoName)[0]["tag"]
-
 def _extractTests(zipfile, destPath):
 	if not destPath.exists():
 		os.makedirs(str(destPath))
 
-	for path in [checkpyPath.Path(name) for name in zipfile.namelist()]:
+	for path in [Path(name) for name in zipfile.namelist()]:
 		_extractTest(zipfile, path, destPath)
 
 def _extractTest(zipfile, path, destPath):

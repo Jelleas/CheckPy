@@ -134,5 +134,3 @@ def current():
 userPath = Path(os.getcwd())
 
 CHECKPYPATH = Path(os.path.abspath(os.path.dirname(__file__))[:-len("/entities")])
-TESTSPATH = CHECKPYPATH + "tests"
-DBPATH = CHECKPYPATH + "storage" + "downloadLocations.json"
