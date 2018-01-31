@@ -144,7 +144,6 @@ class _Tester(object):
 		self.debugMode = debugMode
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
-		self.reservedNames = ["before", "after", "sandbox"]
 
 	def run(self):
 		if self.debugMode:

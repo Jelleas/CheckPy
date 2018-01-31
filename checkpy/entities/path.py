@@ -37,7 +37,7 @@ class Path(object):
 
 	def walk(self):
 		for path, subdirs, files in os.walk(str(self)):
-			yield Path(path), [Path(sd) for sd in subdirs], [Path(f) for f in files]
+			yield Path(path), subdirs, files
 
 	def copyTo(self, destination):
 		shutil.copyfile(str(self), str(destination))
