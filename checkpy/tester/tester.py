@@ -115,6 +115,8 @@ def _runTests(moduleName, fileName, debugMode = False):
 	if not resultQueue.empty():
 		return resultQueue.get()
 
+	raise exception.CheckpyError(message = "An error occured while testing. The testing process exited unexpectedly.")
+
 class TesterResult(object):
 	def __init__(self):
 		self.nTests = 0
