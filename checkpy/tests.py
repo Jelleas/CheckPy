@@ -89,6 +89,7 @@ class TestResult(object):
 
 def test(priority):
 	def testDecorator(testCreator):
+		testCreator.isTestCreator = True
 		@caches.cache(testCreator)
 		@wraps(testCreator)
 		def testWrapper(fileName):

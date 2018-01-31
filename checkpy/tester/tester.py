@@ -176,8 +176,7 @@ class _Tester(object):
 				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
-		testCreators = [method for method in module.__dict__.values() if callable(method) and method.__name__ not in self.reservedNames]
-
+		testCreators = [method for method in module.__dict__.values() if getattr(method, "isTestCreator", False)]
 		result.nTests = len(testCreators)
 
 		testResults = self._runTests(testCreators)
