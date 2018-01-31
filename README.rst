@@ -6,6 +6,8 @@ used by students whom are taking courses in the `Minor
 Programming <http://www.mprog.nl/>`__ at the
 `UvA <http://www.uva.nl/>`__.
 
+`CheckPy docs <http://checkpy.readthedocs.io/>`__
+
 Installation
 ------------
 
