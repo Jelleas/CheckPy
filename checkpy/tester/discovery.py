@@ -30,7 +30,7 @@ def getTestNames(moduleName):
 	for testsPath in database.forEachTestsPath():
 		for (dirPath, subdirs, files) in testsPath.walk():
 			if Path(moduleName) in dirPath:
-				return [f[:-7] for f in files if f.lower().endswith("test.py")]
+				return [f[:-len("test.py")] for f in files if f.lower().endswith("test.py")]
 
 def getTestPaths(testFileName, module = ""):
 	testFilePaths = []

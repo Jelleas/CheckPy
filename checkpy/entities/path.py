@@ -32,6 +32,9 @@ class Path(object):
 	def isPythonFile(self):
 		return self.fileName.endswith(".py")
 
+	def absolutePath(self):
+		return Path(os.path.abspath(str(self)))
+
 	def exists(self):
 		return os.path.exists(str(self))
 

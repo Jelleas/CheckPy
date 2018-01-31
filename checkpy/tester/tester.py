@@ -82,7 +82,7 @@ def _runTests(moduleName, fileName, debugMode = False):
 
 	signalQueue = ctx.Queue()
 	resultQueue = ctx.Queue()
-	tester = _Tester(moduleName, fileName, debugMode, signalQueue, resultQueue)
+	tester = _Tester(moduleName, path.Path(fileName).absolutePath(), debugMode, signalQueue, resultQueue)
 	p = ctx.Process(target=tester.run, name="Tester")
 	p.start()
 
@@ -138,9 +138,9 @@ class _Signal(object):
 		self.timeout = timeout
 
 class _Tester(object):
-	def __init__(self, moduleName, fileName, debugMode, signalQueue, resultQueue):
+	def __init__(self, moduleName, filePath, debugMode, signalQueue, resultQueue):
 		self.moduleName = moduleName
-		self.fileName = fileName
+		self.filePath = filePath
 		self.debugMode = debugMode
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
@@ -150,13 +150,13 @@ class _Tester(object):
 			printer.printer.DEBUG_MODE = True
 
 		# overwrite argv so that it seems the file was run directly
-		sys.argv = [self.fileName]
+		sys.argv = [self.filePath.fileName]
 
 		module = importlib.import_module(self.moduleName)
-		module._fileName = self.fileName
+		module._fileName = self.filePath.fileName
 
 		if hasattr(module, "sandbox"):
-			with Sandbox(path.Path(self.fileName)):
+			with Sandbox(self.filePath.absolutePath()):
 				module.sandbox()
 				return self._runTestsFromModule(module)
 
@@ -166,7 +166,7 @@ class _Tester(object):
 		self._sendSignal(_Signal(isTiming = False))
 
 		result = TesterResult()
-		result.addOutput(printer.displayTestName(os.path.basename(self.fileName)))
+		result.addOutput(printer.displayTestName(self.filePath.fileName))
 
 		if hasattr(module, "before"):
 			try:
@@ -200,7 +200,7 @@ class _Tester(object):
 		cachedResults = {}
 
 		# run tests in noncolliding execution order
-		for test in self._getTestsInExecutionOrder([tc(self.fileName) for tc in testCreators]):
+		for test in self._getTestsInExecutionOrder([tc(self.filePath.fileName) for tc in testCreators]):
 			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout()))
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
@@ -217,6 +217,6 @@ class _Tester(object):
 	def _getTestsInExecutionOrder(self, tests):
 		testsInExecutionOrder = []
 		for i, test in enumerate(tests):
-			dependencies = self._getTestsInExecutionOrder([tc(self.fileName) for tc in test.dependencies()]) + [test]
+			dependencies = self._getTestsInExecutionOrder([tc(self.filePath.fileName) for tc in test.dependencies()]) + [test]
 			testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
 		return testsInExecutionOrder
