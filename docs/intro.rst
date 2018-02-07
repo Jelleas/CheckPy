@@ -64,15 +64,31 @@ directory that contains ``hello.py`` and call CheckPy as follows:
     checkpy hello
 
 
-How to write tests in CheckPy
------------------------------
+Writing simple tests in CheckPy
+--------------------------------
 
 Tests in CheckPy are instances of ``checkpy.tests.Test``. These ``Test`` instances have several
 abstract methods that you can implement or rather, overwrite by binding a new method.
 These methods are executed when CheckPy runs a test. For instance you have the
 ``description`` method which is called to produce a description for the test, the ``timeout``
 method which is called to determine the maximum alotted time for this test, and
-ofcourse the ``test`` method which is called to actually perform the test.
+ofcourse the ``test`` method which is called to actually perform the test. This
+``Test`` instance is automatically provided to you when you decorate a function with
+the ``checkpy.tests.test`` decorator. In our hello-world example this looked something like:
+
+.. code-block:: python
+
+    @t.test(0)
+    def exactlyHelloWorld(test):
+
+Here the ``t.test`` decorator (``t`` is short for ``checkpy.tests``) decorates
+the function ``exactlyHelloWorld``. This causes CheckPy to treat ``exactlyHelloWorld``
+as a `test creator` function. That when called produces an instance of ``Test``.
+The ``t.test`` decorator accepts an argument that is used to determine the order
+in which the result of the test is shown to the screen (lowest first). The decorator
+then passes an instance of ``Test`` to the decorated function (``exactlyHelloWorld``).
+It is up to ``exactlyHelloWorld`` to overwrite some or all abstract methods of that one
+instance of ``Test`` that it receives.
 
 Lets start with the necessities. CheckPy requires you to overwrite two methods from every
 ``Test`` instance. These methods are ``test`` and ``description``. The ``description`` method
@@ -85,7 +101,7 @@ hello-world example we used this ``description`` method:
 
 Depending on whether the test fails or passes, the user sees this string in red or green
 respectively. The other method we have to overwrite, the ``test`` method, should return
-True of False depending on whether the tests passes or fails. You are free to implement
+``True`` or ``False`` depending on whether the tests passes or fails. You are free to implement
 this method in any which way you want. CheckPy just offers some useful tools to make
 your testing life easier. Again, looking back at our hello-world example, we used this
 ``test`` method:
@@ -99,7 +115,7 @@ your testing life easier. Again, looking back at our hello-world example, we use
     test.test = testMethod
 
 So what's going on here? Python doesn't support multi statement lambda functions. This means that
-if you want to use multiple statements, you have to resort back to named functions, i.e.
+if you want to use multiple statements, you have to resort to named functions, i.e.
 ``testMethod()``, and then bind this named function to the respective method of the ``Test``
 instance. You can put the above test method in a single statement lambda function, but
 readability will suffer from it. Especially once we move on to some more complex test methods.
@@ -115,3 +131,38 @@ The line ``return asserts.exact(output.strip(), "Hello, world!")`` is equivalent
 ``return output.strip() == "Hello, world!"``. The ``checkpy.assertlib`` module, that is renamed
 to ``asserts`` here, simply offers a collection of functions to perform assertions. These
 functions do nothing more than return ``True`` or ``False``.
+
+That's all there is to it. You simply write a function and decorate it with the `test` decorator.
+Overwrite a couple of methods of ``Test``, and you're good to go.
+
+Testing functions
+-----------------
+
+Let's make life a little more exciting. CheckPy can do a lot more besides simply running a Python file
+and looking at print output. Specifically CheckPy lets you import said Python file
+as a module and do all sort of things with it and to it. Lets focus on Functions for now.
+
+For an assignment on (biological) virus simulations, we asked students to do the following:
+
+Write a function ``generateVirus(length)``.
+This function should accept one argument ``length``, that is an integer representing the length of the virus.
+The function should return a virus, that is a string of random nucleotides (``'A'``, ``'T'``, ``'G'`` or ``'C'``).
+
+This is just a small part of a bigger assignment that ultimately moves towards a simulation
+of viruses in a patient. We can use CheckPy to test several aspects of this assignment.
+For instance to test whether only the nucleotides ATGC occurred we wrote the following:
+
+.. code-block:: python
+
+    @t.test(0)
+    def onlyATGC(test):
+    	def testMethod():
+    		generateVirus = lib.getFunction("generateVirus", test.fileName)
+    		pairs = "".join(generateVirus(10) for _ in range(1000))
+    		return asserts.containsOnly(pairs, "AGTC")
+
+    	test.test = testMethod
+    	test.description = lambda : "generateVirus() produces viruses consisting only of A, T, G and C"
+
+
+This test ...
