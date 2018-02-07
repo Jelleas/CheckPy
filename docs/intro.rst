@@ -99,7 +99,7 @@ your testing life easier. Again, looking back at our hello-world example, we use
     test.test = testMethod
 
 So what's going on here? Python doesn't support multi statement lambda functions. This means that
-if you want to use multiple statements we have to resort back to named functions, i.e.
+if you want to use multiple statements, you have to resort back to named functions, i.e.
 ``testMethod()``, and then bind this named function to the respective method of the ``Test``
 instance. You can put the above test method in a single statement lambda function, but
 readability will suffer from it. Especially once we move on to some more complex test methods.
