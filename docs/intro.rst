@@ -69,7 +69,7 @@ How to write tests in CheckPy
 
 Tests in CheckPy are instances of ``checkpy.tests.Test``. These ``Test`` instances have several
 abstract methods that you can implement or rather, overwrite by binding a new method.
-These methods is what CheckPy executes when running a test. For instance you have the
+These methods are executed when CheckPy runs a test. For instance you have the
 ``description`` method which is called to produce a description for the test, the ``timeout``
 method which is called to determine the maximum alotted time for this test, and
 ofcourse the ``test`` method which is called to actually perform the test.
