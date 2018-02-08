@@ -162,7 +162,7 @@ For instance to test whether only the nucleotides ATGC occurred we wrote the fol
     		return asserts.containsOnly(pairs, "AGTC")
 
     	test.test = testMethod
-    	test.description = lambda : "generateVirus() produces viruses consisting only of A, T, G and C"
+    	test.description = lambda : "generateVirus produces viruses consisting only of A, T, G and C"
 
 To test whether the function actually exists and accepted just one argument, we wrote the following:
 
@@ -227,8 +227,8 @@ For this assignment we wrote the following test:
         )
         return asserts.contains(output, "12")
 
-    test.test = testMethod
-    test.description = lambda : "1 minute equals 12 bottles."
+      test.test = testMethod
+      test.description = lambda : "1 minute equals 12 bottles."
 
 The above test runs the student's file, pushes the number 1 in stdin and sets the
 attribute ``__name__`` to ``"__main__"``. It does not ignore any exceptions,
