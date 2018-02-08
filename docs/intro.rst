@@ -176,3 +176,61 @@ To test whether the function actually exists and accepted just one argument, we 
 
       test.test = testMethod
       test.description = lambda : "generateVirus is defined and accepts just one argument"
+
+
+Testing programs with arguments
+-------------------------------
+
+Taking a closer look at the ``checkpy.lib`` module we find three functions that
+allow you to interact with dynamic components and results from the program we are
+testing. All these functions (``outputOf``, ``getFunction`` and ``getModule``) take
+in the same optional arguments that let you change the dynamic environment in which
+the code is tested. Zooming in on ``outputOf``:
+
+.. code-block:: Python
+
+    def outputOf(
+    		fileName,
+    		src = None,
+    		argv = None,
+    		stdinArgs = None,
+    		ignoreExceptions = (),
+    		overwriteAttributes = ()
+    	):
+      """
+      fileName is the file name you want the stdout output of
+      src can be used to ignore the source code of fileName, and instead use this string
+      argv is a collection of elements that are used to overwrite sys.argv
+      stdinArgs is a collection of arguments that are passed to stdin
+      ignoreExceptions is a collection of exceptions that should be ignored during execution
+      overwriteAttributes is a collection of tuples (attribute, value) that are overwritten
+          before trying to import the file
+      """
+
+Lets see what we can do with this.
+For an assignment we asked students to write a program that prints out how many
+liters of water were used while showering. The program should prompt the user
+for the number of minutes they shower, and then print out many liters of water
+were used. We told them 1 minute of showering equaled 12 liters used.
+
+For this assignment we wrote the following test:
+
+.. code-block:: Python
+
+    @t.test(10)
+    def oneLiter(test):
+      def testMethod():
+        output = lib.outputOf(
+            test.fileName,
+            stdinArgs = [1],
+            overwriteAttributes = [("__name__", "__main__")]
+        )
+        return asserts.contains(output, "12")
+
+    test.test = testMethod
+    test.description = lambda : "1 minute equals 12 bottles."
+
+The above test runs the student's file, pushes the number 1 in stdin and sets the
+attribute ``__name__`` to ``"__main__"``. It does not ignore any exceptions,
+that means that CheckPy will fail the test if an exception is raised and kindly
+tell the user what exception was raised. Argv is set to the default (just the program name).
