@@ -154,7 +154,7 @@ For instance to test whether only the nucleotides ATGC occurred we wrote the fol
 
 .. code-block:: python
 
-    @t.test(0)
+    @t.test(10)
     def onlyATGC(test):
     	def testMethod():
     		generateVirus = lib.getFunction("generateVirus", test.fileName)
@@ -164,5 +164,15 @@ For instance to test whether only the nucleotides ATGC occurred we wrote the fol
     	test.test = testMethod
     	test.description = lambda : "generateVirus() produces viruses consisting only of A, T, G and C"
 
+To test whether the function actually exists and accepted just one argument, we wrote the following:
 
-This test ...
+.. code-block:: python
+
+    @t.test(0)
+    def isDefined(test):
+      def testMethod():
+        generateVirus = lib.getFunction("generateVirus", test.fileName)
+        return len(generateVirus.arguments) == 1
+
+      test.test = testMethod
+      test.description = lambda : "generateVirus is defined and accepts just one argument"
