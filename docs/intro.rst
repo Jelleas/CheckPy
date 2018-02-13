@@ -234,3 +234,56 @@ The above test runs the student's file, pushes the number 1 in stdin and sets th
 attribute ``__name__`` to ``"__main__"``. It does not ignore any exceptions,
 that means that CheckPy will fail the test if an exception is raised and kindly
 tell the user what exception was raised. Argv is set to the default (just the program name).
+
+Customizing output
+------------------
+
+An instance of ``Test`` has a couple of methods that you can use to show the user
+exactly what you want the user to see. We have already seen the ``.description()``
+method that you can overwrite with a function that should produce the description
+of the test. This description then turns green or red, with a happy or sad smiley
+depending on whether the test fails or passes.
+Besides the ``.description()`` method you also find the ``.success(info)`` and
+``.fail(info)`` methods. These methods take in an argument called ``info`` and
+should produce a message for the user to read when the test succeeds or fails
+respectively. This message is printed directly under the description.
+Take the following test:
+
+.. code-block:: Python
+
+    @t.test(0)
+    def failExample1(test):
+      def testMethod():
+        output = lib.outputOf(test.fileName)
+        line = lib.getLine(output, 0)
+        return asserts.numberOnLine(42, line)
+
+      test.test = testMethod
+      test.description = lambda : "demonstrating the use of .fail()!"
+      test.fail = lambda info : "could not find 42 in the first line of the output"
+
+The above test looks for the number 42 on the first line of the output. If the test
+fails it will print that it could not find 42 in the output. Okay, this is a little
+boring, CheckPy just prints a static description if the test fails. So let's spice
+things up. Take the following test:
+
+.. code-block:: Python
+
+    @t.test(0)
+    def failExample2(test):
+      def testMethod():
+        output = lib.outputOf(test.fileName)
+        line = lib.getLine(output, 0)
+        return asserts.numberOnLine(42, line), lib.getNumbersFromString(line)
+
+      test.test = testMethod
+      test.description = lambda : "demonstrating the use of .fail()!"
+      test.fail = lambda info : "could not find 42 on the first line of output, only these numbers: {}".format(info)
+
+This test also looks for 42 on the first line of the output. If this test fails
+however it will also print what numbers it did find on that one line of output.
+Here's what's happening. The ``.test()`` method can return a second value besides
+simply a boolean indicating whether the passed. This value is passed to the
+``.fail(info)`` and ``.success(info)`` methods. So you can use this second return
+value to customize what ``.fail(info)`` and ``.success(info)`` do. Here the
+implementation of ``.fail(info)`` simply prints out whatever ``info`` it receives.
