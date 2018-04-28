@@ -1,7 +1,7 @@
 import os
 from .downloader import download, update
 
-def testModule(moduleName):
+def testModule(moduleName, debugMode = False, silentMode = False):
 	"""
 	Test all files from module
 	"""
@@ -10,7 +10,7 @@ def testModule(moduleName):
 	from . import tester
 	from . import downloader
 	downloader.updateSilently()
-	results = tester.testModule(moduleName)
+	results = tester.testModule(moduleName, debugMode = debugMode, silentMode = silentMode)
 	try:
 		if __IPYTHON__:
 			import matplotlib.pyplot
@@ -19,7 +19,7 @@ def testModule(moduleName):
 		pass
 	return results
 
-def test(fileName):
+def test(fileName, debugMode = False, silentMode = False):
 	"""
 	Run tests for a single file
 	"""
@@ -28,7 +28,7 @@ def test(fileName):
 	from . import tester
 	from . import downloader
 	downloader.updateSilently()
-	result = tester.test(fileName)
+	result = tester.test(fileName, debugMode = debugMode, silentMode = silentMode)
 	try:
 		if __IPYTHON__:
 			import matplotlib.pyplot

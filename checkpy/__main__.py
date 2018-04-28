@@ -24,6 +24,7 @@ def main():
 	parser.add_argument("-list", action="store_true", help="list all download locations and exit")
 	parser.add_argument("-clean", action="store_true", help="remove all tests from the tests folder and exit")
 	parser.add_argument("--dev", action="store_true", help="get extra information to support the development of tests")
+	parser.add_argument("--silent", action="store_true", help="do not print test results to stdout")
 	parser.add_argument("file", action="store", nargs="?", help="name of file to be tested")
 	args = parser.parse_args()
 
@@ -55,14 +56,14 @@ def main():
 		downloader.updateSilently()
 
 		if args.module:
-			tester.test(args.file, module = args.module, debugMode = args.dev)
+			tester.test(args.file, module = args.module, debugMode = args.dev, silentMode = args.silent)
 		else:
-			tester.test(args.file, debugMode = args.dev)
+			tester.test(args.file, debugMode = args.dev, silentMode = args.silent)
 		return
 
 	if args.module:
 		downloader.updateSilently()
-		tester.testModule(args.module, debugMode = args.dev)
+		tester.testModule(args.module, debugMode = args.dev, silentMode = args.silent)
 		return
 
 	parser.print_help()

@@ -4,6 +4,7 @@ import colorama
 colorama.init()
 
 DEBUG_MODE = False
+SILENT_MODE = False
 
 class _Colors:
 	PASS = '\033[92m'
@@ -26,41 +27,49 @@ def display(testResult):
 	if DEBUG_MODE and testResult.exception:
 		msg += "\n {}".format(testResult.exception.stacktrace())
 
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayTestName(testName):
 	msg = "{}Testing: {}{}".format(_Colors.NAME, testName, _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayUpdate(fileName):
 	msg = "{}Updated: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayRemoved(fileName):
 	msg = "{}Removed: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayAdded(fileName):
 	msg = "{}Added: {}{}".format(_Colors.WARNING, os.path.basename(fileName), _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayCustom(message):
-	print(message)
+	if not SILENT_MODE:
+		print(message)
 	return message
 
 def displayWarning(message):
 	msg = "{}Warning: {}{}".format(_Colors.WARNING, message, _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def displayError(message):
 	msg = "{}{} {}{}".format(_Colors.WARNING, _Smileys.CONFUSED, message, _Colors.ENDC)
-	print(msg)
+	if not SILENT_MODE:
+		print(msg)
 	return msg
 
 def _selectColorAndSmiley(testResult):

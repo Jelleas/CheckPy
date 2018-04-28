@@ -12,7 +12,9 @@ import multiprocessing
 import time
 import dill
 
-def test(testName, module = "", debugMode = False):
+def test(testName, module = "", debugMode = False, silentMode = False):
+	printer.printer.SILENT_MODE = silentMode
+
 	result = TesterResult()
 
 	path = discovery.getPath(testName)
@@ -55,26 +57,26 @@ def test(testName, module = "", debugMode = False):
 		with open(path, "w") as f:
 			f.write("".join([l for l in lines if "get_ipython" not in l]))
 
-		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
+	testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode, silentMode = silentMode)
 
+	if path.endswith(".ipynb"):
 		os.remove(path)
-	else:
-		testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode)
-
+	
 	testerResult.output = result.output + testerResult.output
 	return testerResult
 
 
-def testModule(module, debugMode = False):
+def testModule(module, debugMode = False, silentMode = False):
+	printer.printer.SILENT_MODE = self.silentMode
 	testNames = discovery.getTestNames(module)
 
 	if not testNames:
 		printer.displayError("no tests found in module: {}".format(module))
 		return
 
-	return [test(testName, module = module, debugMode = debugMode) for testName in testNames]
+	return [test(testName, module = module, debugMode = debugMode, silentMode = silentMode) for testName in testNames]
 
-def _runTests(moduleName, fileName, debugMode = False):
+def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 	if sys.version_info[:2] >= (3,4):
 		ctx = multiprocessing.get_context("spawn")
 	else:
@@ -82,7 +84,7 @@ def _runTests(moduleName, fileName, debugMode = False):
 
 	signalQueue = ctx.Queue()
 	resultQueue = ctx.Queue()
-	tester = _Tester(moduleName, path.Path(fileName).absolutePath(), debugMode, signalQueue, resultQueue)
+	tester = _Tester(moduleName, path.Path(fileName).absolutePath(), debugMode, silentMode, signalQueue, resultQueue)
 	p = ctx.Process(target=tester.run, name="Tester")
 	p.start()
 
@@ -140,16 +142,17 @@ class _Signal(object):
 		self.timeout = timeout
 
 class _Tester(object):
-	def __init__(self, moduleName, filePath, debugMode, signalQueue, resultQueue):
+	def __init__(self, moduleName, filePath, debugMode, silentMode, signalQueue, resultQueue):
 		self.moduleName = moduleName
 		self.filePath = filePath
 		self.debugMode = debugMode
+		self.silentMode = silentMode
 		self.signalQueue = signalQueue
 		self.resultQueue = resultQueue
 
 	def run(self):
-		if self.debugMode:
-			printer.printer.DEBUG_MODE = True
+		printer.printer.DEBUG_MODE = self.debugMode
+		printer.printer.SILENT_MODE = self.silentMode
 
 		# overwrite argv so that it seems the file was run directly
 		sys.argv = [self.filePath.fileName]
