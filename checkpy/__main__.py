@@ -73,8 +73,10 @@ def main():
 		downloader.updateSilently()
 		results = tester.testModule(args.module, debugMode = args.dev, silentMode = args.silent)
 
-		if args.json:
-			print(results)
+		if args.json and results:
+			print(json.dumps([r.asDict() for r in results], indent=4))
+		elif args.json and not results:
+			print([])
 		return
 
 	parser.print_help()

@@ -15,7 +15,7 @@ import dill
 def test(testName, module = "", debugMode = False, silentMode = False):
 	printer.printer.SILENT_MODE = silentMode
 
-	result = TesterResult()
+	result = TesterResult(testName)
 
 	path = discovery.getPath(testName)
 	if not path:
@@ -67,7 +67,7 @@ def test(testName, module = "", debugMode = False, silentMode = False):
 
 
 def testModule(module, debugMode = False, silentMode = False):
-	printer.printer.SILENT_MODE = self.silentMode
+	printer.printer.SILENT_MODE = silentMode
 	testNames = discovery.getTestNames(module)
 
 	if not testNames:
@@ -101,7 +101,7 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 				start = time.time()
 
 		if isTiming and time.time() - start > timeout:
-			result = TesterResult()
+			result = TesterResult(path.Path(fileName).fileName)
 			result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
 			p.terminate()
 			p.join()
@@ -120,7 +120,8 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 	raise exception.CheckpyError(message = "An error occured while testing. The testing process exited unexpectedly.")
 
 class TesterResult(object):
-	def __init__(self):
+	def __init__(self, name):
+		self.name = name
 		self.nTests = 0
 		self.nPassedTests = 0
 		self.nFailedTests = 0
@@ -135,7 +136,8 @@ class TesterResult(object):
 		self.testResults.append(testResult)
 
 	def asDict(self):
-		return {"nTests":self.nTests,
+		return {"name":self.name,
+				"nTests":self.nTests,
 			    "nPassed":self.nPassedTests,
 				"nFailed":self.nFailedTests,
 				"nRun":self.nRunTests,
@@ -178,7 +180,7 @@ class _Tester(object):
 	def _runTestsFromModule(self, module):
 		self._sendSignal(_Signal(isTiming = False))
 
-		result = TesterResult()
+		result = TesterResult(self.filePath.fileName)
 		result.addOutput(printer.displayTestName(self.filePath.fileName))
 
 		if hasattr(module, "before"):
