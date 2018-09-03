@@ -61,7 +61,7 @@ def test(testName, module = "", debugMode = False, silentMode = False):
 
 	if path.endswith(".ipynb"):
 		os.remove(path)
-	
+
 	testerResult.output = result.output + testerResult.output
 	return testerResult
 
@@ -133,6 +133,14 @@ class TesterResult(object):
 
 	def addResult(self, testResult):
 		self.testResults.append(testResult)
+
+	def asDict(self):
+		return {"nTests":self.nTests,
+			    "nPassed":self.nPassedTests,
+				"nFailed":self.nFailedTests,
+				"nRun":self.nRunTests,
+				"output":self.output,
+				"results":[tr.asDict() for tr in self.testResults]}
 
 class _Signal(object):
 	def __init__(self, isTiming = False, resetTimer = False, description = None, timeout = None):

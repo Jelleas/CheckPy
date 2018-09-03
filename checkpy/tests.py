@@ -87,6 +87,12 @@ class TestResult(object):
 	def exception(self):
 		return self._exception
 
+	def asDict(self):
+		return {"passed":self.hasPassed,
+				"description":str(self.description),
+				"message":str(self.message),
+				"exception":str(self.exception)}
+
 def test(priority):
 	def testDecorator(testCreator):
 		testCreator.isTestCreator = True

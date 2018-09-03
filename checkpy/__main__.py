@@ -5,6 +5,7 @@ from checkpy import downloader
 from checkpy import tester
 import shutil
 import time
+import json
 import pkg_resources
 
 def main():
@@ -25,6 +26,7 @@ def main():
 	parser.add_argument("-clean", action="store_true", help="remove all tests from the tests folder and exit")
 	parser.add_argument("--dev", action="store_true", help="get extra information to support the development of tests")
 	parser.add_argument("--silent", action="store_true", help="do not print test results to stdout")
+	parser.add_argument("--json", action="store_true", help="return output as json, implies silent")
 	parser.add_argument("file", action="store", nargs="?", help="name of file to be tested")
 	args = parser.parse_args()
 
@@ -52,18 +54,27 @@ def main():
 		downloader.clean()
 		return
 
+	if args.json:
+		args.silent = True
+
 	if args.file:
 		downloader.updateSilently()
 
 		if args.module:
-			tester.test(args.file, module = args.module, debugMode = args.dev, silentMode = args.silent)
+			result = tester.test(args.file, module = args.module, debugMode = args.dev, silentMode = args.silent)
 		else:
-			tester.test(args.file, debugMode = args.dev, silentMode = args.silent)
+			result = tester.test(args.file, debugMode = args.dev, silentMode = args.silent)
+
+		if args.json:
+			print(json.dumps(result.asDict(), indent=4))
 		return
 
 	if args.module:
 		downloader.updateSilently()
-		tester.testModule(args.module, debugMode = args.dev, silentMode = args.silent)
+		results = tester.testModule(args.module, debugMode = args.dev, silentMode = args.silent)
+
+		if args.json:
+			print(results)
 		return
 
 	parser.print_help()
