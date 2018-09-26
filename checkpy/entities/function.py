@@ -1,5 +1,6 @@
 import sys
 import contextlib
+import inspect
 import checkpy.entities.exception as exception
 if sys.version_info >= (3,0):
 	import io
@@ -38,7 +39,7 @@ class Function(object):
 	@property
 	def arguments(self):
 		"""gives the argument names of the function"""
-		return list(self._function.__code__.co_varnames)
+		return inspect.getfullargspec(self._function)[0]
 
 	@property
 	def printOutput(self):
