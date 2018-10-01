@@ -66,7 +66,7 @@ class Test(object):
 
 class TestResult(object):
 	def __init__(self, hasPassed, description, message, exception = None):
-		self._hasPassed = hasPassed
+		self._hasPassed = bool(hasPassed)
 		self._description = description
 		self._message = message
 		self._exception = exception
