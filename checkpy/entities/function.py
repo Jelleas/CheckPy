@@ -13,12 +13,14 @@ class Function(object):
 		self._printOutput = ""
 
 	def __call__(self, *args, **kwargs):
+		old = sys.stdout
 		try:
 			with self._captureStdout() as listener:
 				outcome = self._function(*args, **kwargs)
-				self._printOutput = listener.content
+				self._printOutput = ""#listener.content
 				return outcome
 		except Exception as e:
+			sys.stdout = old
 			argumentNames = self.arguments
 			nArgs = len(args) + len(kwargs)
 
@@ -59,10 +61,13 @@ class Function(object):
 		outStreamListener.start()
 		sys.stdout = outStreamListener.stream
 
-		yield outStreamListener
-
-		sys.stdout = old
-		outStreamListener.stop()
+		try:
+			yield outStreamListener
+		except:
+			raise
+		finally:
+			sys.stdout = old
+			outStreamListener.stop()
 
 class _Stream(io.StringIO):
 	def __init__(self, *args, **kwargs):

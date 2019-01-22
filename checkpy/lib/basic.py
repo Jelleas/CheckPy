@@ -59,6 +59,16 @@ def sourceOfDefinitions(fileName):
 				insideDefinition = False
 	return newSource
 
+def documentFunction(func, documentation):
+	"""Creates a function that shows documentation when its printed / shows up in an error."""
+	class PrintableFunction:
+		def __call__(self, *args, **kwargs):
+			return func(*args, **kwargs)
+
+		def __repr__(self):
+			return documentation
+
+	return PrintableFunction()
 
 def getFunction(functionName, *args, **kwargs):
 	return getattr(module(*args, **kwargs), functionName)
@@ -239,8 +249,12 @@ def captureStdout(stdout=None):
 	if stdout is None:
 		stdout = StringIO.StringIO()
 	sys.stdout = stdout
-	yield stdout
-	sys.stdout = old
+	try:
+		yield stdout
+	except:
+		raise
+	finally:
+		sys.stdout = old
 
 @contextlib.contextmanager
 def captureStdin(stdin=None):
@@ -266,9 +280,12 @@ def captureStdin(stdin=None):
 		stdin = StringIO.StringIO()
 	sys.stdin = stdin
 
-	yield stdin
-
-	sys.stdin = old
-	__builtins__["input"] = oldInput
-	if sys.version_info < (3,0):
-		__builtins__["raw_input"] = oldRawInput
+	try:
+		yield stdin
+	except:
+		raise
+	finally:
+		sys.stdin = old
+		__builtins__["input"] = oldInput
+		if sys.version_info < (3,0):
+			__builtins__["raw_input"] = oldRawInput
