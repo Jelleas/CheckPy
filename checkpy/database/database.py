@@ -18,7 +18,7 @@ def localTable():
 	return database().table("local")
 
 def clean():
-	database().purge_tables()
+	database().drop_tables()
 
 def forEachTestsPath():
 	for path in forEachGithubPath():
