@@ -1,5 +1,4 @@
 from checkpy import printer
-from checkpy import caches
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
 from checkpy.tester.sandbox import Sandbox
@@ -7,10 +6,8 @@ import os
 import subprocess
 import sys
 import importlib
-import re
 import multiprocessing
 import time
-import dill
 
 def test(testName, module = "", debugMode = False, silentMode = False):
 	printer.printer.SILENT_MODE = silentMode

@@ -3,8 +3,6 @@ import os
 import argparse
 from checkpy import downloader
 from checkpy import tester
-import shutil
-import time
 import json
 import pkg_resources
 
@@ -27,7 +25,7 @@ def main():
 	parser.add_argument("--dev", action="store_true", help="get extra information to support the development of tests")
 	parser.add_argument("--silent", action="store_true", help="do not print test results to stdout")
 	parser.add_argument("--json", action="store_true", help="return output as json, implies silent")
-	parser.add_argument("file", action="store", nargs="?", help="name of file to be tested")
+	parser.add_argument("files", action="store", nargs="*", help="names of files to be tested")
 	args = parser.parse_args()
 
 	rootPath = os.sep.join(os.path.abspath(os.path.dirname(__file__)).split(os.sep)[:-1])
@@ -57,16 +55,19 @@ def main():
 	if args.json:
 		args.silent = True
 
-	if args.file:
+	if args.files:
 		downloader.updateSilently()
 
-		if args.module:
-			result = tester.test(args.file, module = args.module, debugMode = args.dev, silentMode = args.silent)
-		else:
-			result = tester.test(args.file, debugMode = args.dev, silentMode = args.silent)
+		results = []
+		for f in args.files:
+			if args.module:
+				result = tester.test(f, module = args.module, debugMode = args.dev, silentMode = args.silent)
+			else:
+				result = tester.test(f, debugMode = args.dev, silentMode = args.silent)
+			results.append(result)
 
 		if args.json:
-			print(json.dumps(result.asDict(), indent=4))
+			print(json.dumps([r.asDict() for r in results], indent=4))
 		return
 
 	if args.module:
