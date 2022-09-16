@@ -9,6 +9,14 @@ from checkpy import caches
 from checkpy import printer
 from checkpy.entities import exception
 
+user = None
+personal_access_token = None
+
+def set_gh_auth(username, pat):
+	global user, personal_access_token
+	user = username
+	personal_access_token = pat
+
 def download(githubLink):
 	if githubLink.endswith("/"):
 		githubLink = githubLink[:-1]
@@ -97,8 +105,14 @@ def _syncRelease(githubUserName, githubRepoName):
 def _getReleaseJson(githubUserName, githubRepoName):
 	apiReleaseLink = "https://api.github.com/repos/{}/{}/releases/latest".format(githubUserName, githubRepoName)
 
+	global user
+	global personal_access_token
 	try:
-		r = requests.get(apiReleaseLink)
+		if user and personal_access_token:
+			print(user, personal_access_token)
+			r = requests.get(apiReleaseLink, auth=(user, personal_access_token))
+		else:
+			r = requests.get(apiReleaseLink)
 	except requests.exceptions.ConnectionError as e:
 		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
 

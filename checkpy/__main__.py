@@ -1,8 +1,10 @@
+from posixpath import split
 import sys
 import os
 import argparse
 from checkpy import downloader
 from checkpy import tester
+from checkpy import printer
 import json
 import pkg_resources
 
@@ -25,12 +27,22 @@ def main():
 	parser.add_argument("--dev", action="store_true", help="get extra information to support the development of tests")
 	parser.add_argument("--silent", action="store_true", help="do not print test results to stdout")
 	parser.add_argument("--json", action="store_true", help="return output as json, implies silent")
+	parser.add_argument("--gh-auth", action="store", help="username:personal_access_token for authentication with GitHub. Only used to increase the GitHub api's rate limit.")
 	parser.add_argument("files", action="store", nargs="*", help="names of files to be tested")
 	args = parser.parse_args()
 
 	rootPath = os.sep.join(os.path.abspath(os.path.dirname(__file__)).split(os.sep)[:-1])
 	if rootPath not in sys.path:
 		sys.path.append(rootPath)
+
+	if args.gh_auth:
+		split_auth = args.gh_auth.split(":")
+
+		if len(split_auth) != 2:
+			printer.displayError("Invalid --gh-auth option. {} is not of the form username:personal_access_token. Note the :".format(args.gh_auth))
+			return
+		
+		downloader.set_gh_auth(*split_auth)
 
 	if args.githubLink:
 		downloader.download(args.githubLink)
