@@ -56,17 +56,20 @@ class Function(object):
 		returns a _StreamListener on said stream
 		"""
 		outStreamListener = _StreamListener(_outStream)
-		old = sys.stdout
+		old_stdout = sys.stdout
+		old_stderr = sys.stdout
 
 		outStreamListener.start()
 		sys.stdout = outStreamListener.stream
+		sys.stderr = sys.stdout
 
 		try:
 			yield outStreamListener
 		except:
 			raise
 		finally:
-			sys.stdout = old
+			sys.stdout = old_stdout
+			sys.stderr = old_stderr
 			outStreamListener.stop()
 
 class _Stream(io.StringIO):

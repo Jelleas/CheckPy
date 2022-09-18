@@ -245,16 +245,23 @@ def removeComments(source):
 
 @contextlib.contextmanager
 def captureStdout(stdout=None):
-	old = sys.stdout
+	old_stdout = sys.stdout
+	old_stderr = sys.stderr
+
 	if stdout is None:
 		stdout = StringIO.StringIO()
+		stderr = stdout
+
 	sys.stdout = stdout
+	sys.stderr = stdout
+
 	try:
 		yield stdout
 	except:
 		raise
 	finally:
-		sys.stdout = old
+		sys.stdout = old_stdout
+		sys.stderr = old_stderr
 
 @contextlib.contextmanager
 def captureStdin(stdin=None):
