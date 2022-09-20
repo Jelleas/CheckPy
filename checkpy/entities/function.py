@@ -1,3 +1,4 @@
+import os
 import sys
 import contextlib
 import inspect
@@ -17,7 +18,7 @@ class Function(object):
 		try:
 			with self._captureStdout() as listener:
 				outcome = self._function(*args, **kwargs)
-				self._printOutput = ""#listener.content
+				self._printOutput = listener.content
 				return outcome
 		except Exception as e:
 			sys.stdout = old
@@ -57,19 +58,19 @@ class Function(object):
 		"""
 		outStreamListener = _StreamListener(_outStream)
 		old_stdout = sys.stdout
-		old_stderr = sys.stdout
-
-		outStreamListener.start()
-		sys.stdout = outStreamListener.stream
-		sys.stderr = sys.stdout
+		old_stderr = sys.stderr
 
 		try:
+			outStreamListener.start()
+			sys.stdout = outStreamListener.stream
+			sys.stderr = open(os.devnull)
 			yield outStreamListener
 		except:
 			raise
 		finally:
-			sys.stdout = old_stdout
+			sys.stderr.close()
 			sys.stderr = old_stderr
+			sys.stdout = old_stdout
 			outStreamListener.stop()
 
 class _Stream(io.StringIO):

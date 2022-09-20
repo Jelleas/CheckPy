@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 try:
 	# Python 2
 	import StringIO
@@ -250,16 +251,15 @@ def captureStdout(stdout=None):
 
 	if stdout is None:
 		stdout = StringIO.StringIO()
-		stderr = stdout
-
-	sys.stdout = stdout
-	sys.stderr = stdout
 
 	try:
+		sys.stdout = stdout
+		sys.stderr = open(os.devnull)
 		yield stdout
 	except:
 		raise
 	finally:
+		sys.stderr.close()
 		sys.stdout = old_stdout
 		sys.stderr = old_stderr
 
