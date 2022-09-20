@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 try:
 	# Python 2
 	import StringIO
@@ -245,16 +246,22 @@ def removeComments(source):
 
 @contextlib.contextmanager
 def captureStdout(stdout=None):
-	old = sys.stdout
+	old_stdout = sys.stdout
+	old_stderr = sys.stderr
+
 	if stdout is None:
 		stdout = StringIO.StringIO()
-	sys.stdout = stdout
+
 	try:
+		sys.stdout = stdout
+		sys.stderr = open(os.devnull)
 		yield stdout
 	except:
 		raise
 	finally:
-		sys.stdout = old
+		sys.stderr.close()
+		sys.stdout = old_stdout
+		sys.stderr = old_stderr
 
 @contextlib.contextmanager
 def captureStdin(stdin=None):
