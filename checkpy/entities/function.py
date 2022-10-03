@@ -1,8 +1,11 @@
 import os
 import sys
+import re
+
 import contextlib
 import inspect
 import checkpy.entities.exception as exception
+
 if sys.version_info >= (3,0):
 	import io
 else:
@@ -21,6 +24,10 @@ class Function(object):
 				self._printOutput = listener.content
 				return outcome
 		except Exception as e:
+			if isinstance(e,TypeError):
+				no_arguments = re.search(r"takes (\d+) positional arguments but (\d+) were given", e.__str__())
+				if no_arguments:
+					raise exception.SourceException(exception = None, message = f"your function should take {no_arguments.group(1)} arguments but does not")
 			sys.stdout = old
 			argumentNames = self.arguments
 			nArgs = len(args) + len(kwargs)
