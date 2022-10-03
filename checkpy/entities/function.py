@@ -27,7 +27,7 @@ class Function(object):
 			if isinstance(e,TypeError):
 				no_arguments = re.search(r"takes (\d+) positional arguments but (\d+) were given", e.__str__())
 				if no_arguments:
-					raise exception.SourceException(exception = None, message = f"your function should take {no_arguments.group(1)} arguments but does not")
+					raise exception.SourceException(exception = None, message = f"the function should take {no_arguments.group(1)} arguments but does not")
 			sys.stdout = old
 			argumentNames = self.arguments
 			nArgs = len(args) + len(kwargs)
