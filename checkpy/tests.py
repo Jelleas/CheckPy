@@ -94,6 +94,11 @@ class TestResult(object):
 				"exception":str(self.exception)}
 
 def test(priority):
+	def ensureCallable(test, attribute):
+		value = getattr(test, attribute)
+		if not callable(value):
+			setattr(test, attribute, lambda *args, **kwargs: value)
+
 	def testDecorator(testCreator):
 		testCreator.isTestCreator = True
 		@caches.cache(testCreator)
@@ -101,6 +106,10 @@ def test(priority):
 		def testWrapper(fileName):
 			t = Test(fileName, priority)
 			testCreator(t)
+			
+			for attr in ["description", "success", "fail", "exception", "dependencies", "timeout"]:
+				ensureCallable(t, attr)
+
 			return t
 		return testWrapper
 	return testDecorator

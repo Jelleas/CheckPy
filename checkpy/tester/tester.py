@@ -213,7 +213,7 @@ class _Tester(object):
 
 		# run tests in noncolliding execution order
 		for test in self._getTestsInExecutionOrder([tc(self.filePath.fileName) for tc in testCreators]):
-			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout()))
+			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = "test.description()", timeout = test.timeout()))
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
 
