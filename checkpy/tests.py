@@ -3,7 +3,7 @@ from functools import wraps
 from checkpy import caches
 from checkpy.entities import exception
 
-class Test(object):
+class Test:
 	def __init__(self, fileName, priority):
 		self._fileName = fileName
 		self._priority = priority
@@ -94,6 +94,19 @@ class TestResult(object):
 				"exception":str(self.exception)}
 
 def test(priority):
+	def ensureDescription(test, testCreator):
+		# If test description is set, nothing to do
+		if test.description != Test.description:
+			return
+
+		# Otherwise, check if the test has a docstring and use that
+		if testCreator.__doc__ is None:
+			raise exception.TestError(f"{testCreator.__name__} has no description")
+
+		# Use the docstring as description
+		test.description = testCreator.__doc__
+
+
 	def ensureCallable(test, attribute):
 		value = getattr(test, attribute)
 		if not callable(value):
@@ -106,6 +119,8 @@ def test(priority):
 		def testWrapper(fileName):
 			t = Test(fileName, priority)
 			testCreator(t)
+
+			ensureDescription(t, testCreator)
 			
 			for attr in ["description", "success", "fail", "exception", "dependencies", "timeout"]:
 				ensureCallable(t, attr)
