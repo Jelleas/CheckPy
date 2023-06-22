@@ -113,8 +113,8 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 
 	if not resultQueue.empty():
 		return resultQueue.get()
-
-	raise exception.CheckpyError(message = "An error occured while testing. The testing process exited unexpectedly.")
+	
+	raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
 
 class TesterResult(object):
 	def __init__(self, name):
@@ -212,11 +212,17 @@ class _Tester(object):
 		cachedResults = {}
 
 		# run tests in noncolliding execution order
-		for test in self._getTestsInExecutionOrder([tc(self.filePath.fileName) for tc in testCreators]):
-			self._sendSignal(_Signal(isTiming = True, resetTimer = True, description = test.description(), timeout = test.timeout()))
+		for tc in self._getTestCreatorsInExecutionOrder(testCreators):
+			test = tc(self.filePath.fileName)
+			self._sendSignal(_Signal(
+				isTiming=True, 
+				resetTimer=True, 
+				description=test.description, 
+				timeout=test.timeout()
+			))
 			cachedResults[test] = test.run()
 			self._sendSignal(_Signal(isTiming = False))
-
+		
 		# return test results in specified order
 		return [cachedResults[test] for test in sorted(cachedResults.keys()) if cachedResults[test] != None]
 
@@ -226,9 +232,9 @@ class _Tester(object):
 	def _sendSignal(self, signal):
 		self.signalQueue.put(signal)
 
-	def _getTestsInExecutionOrder(self, tests):
-		testsInExecutionOrder = []
-		for i, test in enumerate(tests):
-			dependencies = self._getTestsInExecutionOrder([tc(self.filePath.fileName) for tc in test.dependencies()]) + [test]
-			testsInExecutionOrder.extend([t for t in dependencies if t not in testsInExecutionOrder])
-		return testsInExecutionOrder
+	def _getTestCreatorsInExecutionOrder(self, testCreators):
+		sortedTCs = []
+		for tc in testCreators:
+			dependencies = self._getTestCreatorsInExecutionOrder(tc.dependencies) + [tc]
+			sortedTCs.extend([t for t in dependencies if t not in sortedTCs])
+		return sortedTCs

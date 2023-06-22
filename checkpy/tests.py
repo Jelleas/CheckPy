@@ -4,9 +4,19 @@ from checkpy import caches
 from checkpy.entities import exception
 
 class Test:
-	def __init__(self, fileName, priority):
+	def __init__(self, 
+			fileName,
+			priority, 
+			onDescriptionChange=lambda self: None, 
+			onTimeoutChange=lambda self: None
+		):
 		self._fileName = fileName
 		self._priority = priority
+
+		self._onDescriptionChange = onDescriptionChange
+		self._onTimeoutChange = onTimeoutChange
+
+		self._description = ""
 
 	def __lt__(self, other):
 		return self._priority < other._priority
@@ -25,22 +35,18 @@ class Test:
 			else:
 				hasPassed, info = result, ""
 		except exception.CheckpyError as e:
-			return TestResult(False, self.description(), self.exception(e), exception = e)
+			return TestResult(False, self.description, self.exception(e), exception = e)
 		except Exception as e:
 			e = exception.TestError(
 				exception = e,
 				message = "while testing",
 				stacktrace = traceback.format_exc())
-			return TestResult(False, self.description(), self.exception(e), exception = e)
+			return TestResult(False, self.description, self.exception(e), exception = e)
 
-		return TestResult(hasPassed, self.description(), self.success(info) if hasPassed else self.fail(info))
+		return TestResult(hasPassed, self.description, self.success(info) if hasPassed else self.fail(info))
 
 	@staticmethod
 	def test():
-		raise NotImplementedError()
-
-	@staticmethod
-	def description():
 		raise NotImplementedError()
 
 	@staticmethod
@@ -58,6 +64,19 @@ class Test:
 	@staticmethod
 	def dependencies():
 		return set()
+	
+	@property
+	def description(self):
+		return self._description
+	
+	@description.setter
+	def description(self, new_description):
+		if callable(new_description):
+			self._description = new_description()
+		else:
+			self._description = new_description
+
+		self._onDescriptionChange(self)
 
 	@staticmethod
 	def timeout():
@@ -93,45 +112,51 @@ class TestResult(object):
 				"message":str(self.message),
 				"exception":str(self.exception)}
 
-def test(priority):
-	def ensureDescription(test, testCreator):
-		# If test description is set, nothing to do
-		if test.description != Test.description:
-			return
 
-		# Otherwise, check if the test has a docstring and use that
-		if testCreator.__doc__ is None:
-			raise exception.TestError(f"{testCreator.__name__} has no description")
-
-		# Use the docstring as description
-		test.description = testCreator.__doc__
-
+def test(priority=None, timeout=None):
+	def useDocStringDescription(test, testFunction):
+		if testFunction.__doc__ != None:
+			test.description = testFunction.__doc__
 
 	def ensureCallable(test, attribute):
 		value = getattr(test, attribute)
 		if not callable(value):
 			setattr(test, attribute, lambda *args, **kwargs: value)
 
-	def testDecorator(testCreator):
-		testCreator.isTestCreator = True
-		@caches.cache(testCreator)
-		@wraps(testCreator)
-		def testWrapper(fileName):
-			t = Test(fileName, priority)
-			testCreator(t)
+	def testDecorator(testFunction):
+		testFunction.isTestCreator = True
+		testFunction.priority = priority
+		testFunction.dependencies = set()
 
-			ensureDescription(t, testCreator)
+		@caches.cache(testFunction)
+		@wraps(testFunction)
+		def testCreator(fileName):
+			t = Test(fileName, priority)
 			
-			for attr in ["description", "success", "fail", "exception", "dependencies", "timeout"]:
-				ensureCallable(t, attr)
+			if timeout != None:
+				t.timeout = lambda: timeout
+
+			useDocStringDescription(t, testFunction)
+			run = t.run
+
+			def runMethod():
+				testFunction(t)
+				for attr in ["success", "fail", "exception"]:
+					ensureCallable(t, attr)
+				return run()
+
+			t.run = runMethod
 
 			return t
-		return testWrapper
+		return testCreator
+	
 	return testDecorator
 
 
 def failed(*precondTestCreators):
 	def failedDecorator(testCreator):
+		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
+
 		@wraps(testCreator)
 		def testWrapper(fileName):
 			test = testCreator(fileName)
@@ -149,6 +174,8 @@ def failed(*precondTestCreators):
 
 def passed(*precondTestCreators):
 	def passedDecorator(testCreator):
+		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
+
 		@wraps(testCreator)
 		def testWrapper(fileName):
 			test = testCreator(fileName)
