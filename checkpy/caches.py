@@ -3,12 +3,13 @@ from functools import wraps
 
 _caches = []
 
-
 class _Cache(dict):
 	"""A dict() subclass that appends a self-reference to _caches"""
 	def __init__(self, *args, **kwargs):
 		super(_Cache, self).__init__(*args, **kwargs)
 		_caches.append(self)
+
+_testCache = _Cache()
 
 
 def cache(*keys):
@@ -37,7 +38,6 @@ def cache(*keys):
 				key = str(keys)
 			else:
 				key = str(args) + str(kwargs) + str(sys.argv)
-
 			if key not in localCache:
 				localCache[key] = func(*args, **kwargs)
 			return localCache[key]
@@ -46,6 +46,22 @@ def cache(*keys):
 	return cacheWrapper
 
 
+def cacheTestFunction(testFunction):
+	@wraps(testFunction)
+	def cachedTestFunction(*args, **kwargs):
+		key = testFunction.__name__
+		if key not in _testCache:
+			_testCache[key] = testFunction(*args, **kwargs)
+		return _testCache[key]
+	return cachedTestFunction
+
+
+def getCachedTest(testFunction):
+	key = testFunction.__name__
+	return _testCache[key]
+
+
 def clearAllCaches():
 	for cache in _caches:
 		cache.clear()
+	_testCache.clear()

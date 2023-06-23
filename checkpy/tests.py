@@ -128,26 +128,24 @@ def test(priority=None, timeout=None):
 		testFunction.priority = priority
 		testFunction.dependencies = set()
 
-		@caches.cache(testFunction)
+		@caches.cacheTestFunction
 		@wraps(testFunction)
-		def testCreator(fileName):
-			t = Test(fileName, priority)
-			
+		def testCreator(test):
 			if timeout != None:
-				t.timeout = lambda: timeout
+				test.timeout = lambda: timeout
 
-			useDocStringDescription(t, testFunction)
-			run = t.run
+			useDocStringDescription(test, testFunction)
+			run = test.run
 
 			def runMethod():
-				testFunction(t)
+				testFunction(test)
 				for attr in ["success", "fail", "exception"]:
-					ensureCallable(t, attr)
+					ensureCallable(test, attr)
 				return run()
 
-			t.run = runMethod
+			test.run = runMethod
 
-			return t
+			return test
 		return testCreator
 	
 	return testDecorator
@@ -158,13 +156,13 @@ def failed(*precondTestCreators):
 		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
 
 		@wraps(testCreator)
-		def testWrapper(fileName):
-			test = testCreator(fileName)
+		def testWrapper(test):
+			test = testCreator(test)
 			dependencies = test.dependencies
-			test.dependencies = lambda : dependencies() | set(precondTestCreators)
+			test.dependencies = lambda: dependencies() | set(precondTestCreators)
 			run = test.run
 			def runMethod():
-				testResults = [t(fileName).run() for t in precondTestCreators]
+				testResults = [caches.getCachedTest(t).run() for t in precondTestCreators]
 				return run() if not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults) else None
 			test.run = runMethod
 			return test
@@ -177,13 +175,13 @@ def passed(*precondTestCreators):
 		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
 
 		@wraps(testCreator)
-		def testWrapper(fileName):
-			test = testCreator(fileName)
+		def testWrapper(test):
+			test = testCreator(test)
 			dependencies = test.dependencies
-			test.dependencies = lambda : dependencies() | set(precondTestCreators)
+			test.dependencies = lambda: dependencies() | set(precondTestCreators)
 			run = test.run
 			def runMethod():
-				testResults = [t(fileName).run() for t in precondTestCreators]
+				testResults = [caches.getCachedTest(t).run() for t in precondTestCreators]
 				return run() if not any(t is None for t in testResults) and all(t.hasPassed for t in testResults) else None
 			test.run = runMethod
 			return test

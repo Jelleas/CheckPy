@@ -2,6 +2,8 @@ from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
 from checkpy.tester.sandbox import Sandbox
+from checkpy.tests import Test
+
 import os
 import subprocess
 import sys
@@ -212,8 +214,16 @@ class _Tester(object):
 		cachedResults = {}
 
 		# run tests in noncolliding execution order
-		for tc in self._getTestCreatorsInExecutionOrder(testCreators):
-			test = tc(self.filePath.fileName)
+		for testCreator in self._getTestCreatorsInExecutionOrder(testCreators):
+			test = Test(
+				self.filePath.fileName,
+				testCreator.priority,
+				onDescriptionChange=lambda self: None,
+				onTimeoutChange=lambda self: None
+			)
+			
+			testCreator(test)
+
 			self._sendSignal(_Signal(
 				isTiming=True, 
 				resetTimer=True, 
