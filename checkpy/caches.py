@@ -56,6 +56,7 @@ def cacheTestResult(testFunction):
 		return runFunctionWrapper
 	return wrapper
 
+
 def getCachedTestResult(testFunction):
 	return _testCache[testFunction.__name__]
 

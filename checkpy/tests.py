@@ -114,10 +114,12 @@ class TestResult(object):
 
 
 class TestFunction:
+	_previousPriority = -1
+
 	def __init__(self, function, priority=None):
 		self._function = function
 		self.isTestFunction = True
-		self.priority = getattr(self._function, "priority", priority)
+		self.priority = self._getPriority(priority)
 		self.dependencies = getattr(self._function, "dependencies", set())
 		self.__name__ = function.__name__
 
@@ -143,6 +145,19 @@ class TestFunction:
 		if not callable(value):
 			setattr(test, attribute, lambda *args, **kwargs: value)
 
+	def _getPriority(self, priority):
+		if priority:
+			TestFunction._previousPriority = priority
+			return priority
+		
+		inheritedPriority = getattr(self._function, "priority", None)
+		if inheritedPriority:
+			TestFunction._previousPriority = inheritedPriority
+			return inheritedPriority
+		
+		TestFunction._previousPriority += 1
+		return TestFunction._previousPriority
+
 
 class FailedTestFunction(TestFunction):
 	def __init__(self, function, preconditions, priority=None):
@@ -155,37 +170,37 @@ class FailedTestFunction(TestFunction):
 			if getattr(self._function, "isTestFunction", False):
 				run = self._function(test)
 			else:
-				run = test.run
+				run = TestFunction.__call__(self, test)
 			testResults = [caches.getCachedTestResult(t) for t in self.preconditions]
-			if self._shouldRun(testResults):
+			if self.shouldRun(testResults):
 				return run()
 			return None
 		return runMethod
 	
 	@staticmethod
-	def _shouldRun(testResults):
+	def shouldRun(testResults):
 		return not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults)
 
 
 class PassedTestFunction(FailedTestFunction):
 	@staticmethod
-	def _shouldRun(testResults):
+	def shouldRun(testResults):
 		return not any(t is None for t in testResults) and all(t.hasPassed for t in testResults)
 
 
 def test(priority=None, timeout=None):
 	def testDecorator(testFunction):
-		return TestFunction(testFunction, priority)
+		return TestFunction(testFunction, priority=priority)
 	return testDecorator
 
 
-def failed(*precondTestCreators):
+def failed(*preconditions, priority=None, timeout=None):
 	def failedDecorator(testFunction):
-		return FailedTestFunction(testFunction, preconditions=precondTestCreators)
+		return FailedTestFunction(testFunction, preconditions, priority=priority)
 	return failedDecorator
 
 
-def passed(*precondTestCreators):
+def passed(*preconditions, priority=None, timeout=None):
 	def passedDecorator(testFunction):
-		return PassedTestFunction(testFunction, preconditions=precondTestCreators)
+		return PassedTestFunction(testFunction, preconditions, priority=priority)
 	return passedDecorator
