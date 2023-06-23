@@ -189,7 +189,7 @@ class _Tester(object):
 				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
-		testCreators = [method for method in module.__dict__.values() if getattr(method, "isTestCreator", False)]
+		testCreators = [method for method in module.__dict__.values() if getattr(method, "isTestFunction", False)]
 		result.nTests = len(testCreators)
 
 		testResults = self._runTests(testCreators)
@@ -222,7 +222,7 @@ class _Tester(object):
 				onTimeoutChange=lambda self: None
 			)
 			
-			testCreator(test)
+			run = testCreator(test)
 
 			self._sendSignal(_Signal(
 				isTiming=True, 
@@ -230,7 +230,7 @@ class _Tester(object):
 				description=test.description, 
 				timeout=test.timeout()
 			))
-			cachedResults[test] = test.run()
+			cachedResults[test] = run()
 			self._sendSignal(_Signal(isTiming = False))
 		
 		# return test results in specified order

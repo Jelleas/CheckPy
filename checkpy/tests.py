@@ -113,77 +113,79 @@ class TestResult(object):
 				"exception":str(self.exception)}
 
 
-def test(priority=None, timeout=None):
-	def useDocStringDescription(test, testFunction):
-		if testFunction.__doc__ != None:
-			test.description = testFunction.__doc__
+class TestFunction:
+	def __init__(self, function, priority=None):
+		self._function = function
+		self.isTestFunction = True
+		self.priority = getattr(self._function, "priority", priority)
+		self.dependencies = getattr(self._function, "dependencies", set())
+		self.__name__ = function.__name__
 
-	def ensureCallable(test, attribute):
+	def __call__(self, test):
+		self._useDocStringDescription(test)
+
+		@caches.cacheTestResult(self)
+		def runMethod():
+			self._function(test)
+			for attr in ["success", "fail", "exception"]:
+				TestFunction._ensureCallable(test, attr)
+			return test.run()
+		
+		return runMethod
+
+	def _useDocStringDescription(self, test):
+		if self._function.__doc__ != None:
+			test.description = self._function.__doc__
+
+	@staticmethod
+	def _ensureCallable(test, attribute):
 		value = getattr(test, attribute)
 		if not callable(value):
 			setattr(test, attribute, lambda *args, **kwargs: value)
 
-	def testDecorator(testFunction):
-		testFunction.isTestCreator = True
-		testFunction.priority = priority
-		testFunction.dependencies = set()
 
-		@caches.cacheTestFunction
-		@wraps(testFunction)
-		def testCreator(test):
-			if timeout != None:
-				test.timeout = lambda: timeout
+class FailedTestFunction(TestFunction):
+	def __init__(self, function, preconditions, priority=None):
+		super().__init__(function=function, priority=priority)
+		self.preconditions = preconditions
 
-			useDocStringDescription(test, testFunction)
-			run = test.run
-
-			def runMethod():
-				testFunction(test)
-				for attr in ["success", "fail", "exception"]:
-					ensureCallable(test, attr)
+	def __call__(self, test):
+		@caches.cacheTestResult(self)
+		def runMethod():
+			if getattr(self._function, "isTestFunction", False):
+				run = self._function(test)
+			else:
+				run = test.run
+			testResults = [caches.getCachedTestResult(t) for t in self.preconditions]
+			if self._shouldRun(testResults):
 				return run()
-
-			test.run = runMethod
-
-			return test
-		return testCreator
+			return None
+		return runMethod
 	
+	@staticmethod
+	def _shouldRun(testResults):
+		return not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults)
+
+
+class PassedTestFunction(FailedTestFunction):
+	@staticmethod
+	def _shouldRun(testResults):
+		return not any(t is None for t in testResults) and all(t.hasPassed for t in testResults)
+
+
+def test(priority=None, timeout=None):
+	def testDecorator(testFunction):
+		return TestFunction(testFunction, priority)
 	return testDecorator
 
 
 def failed(*precondTestCreators):
-	def failedDecorator(testCreator):
-		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
-
-		@wraps(testCreator)
-		def testWrapper(test):
-			test = testCreator(test)
-			dependencies = test.dependencies
-			test.dependencies = lambda: dependencies() | set(precondTestCreators)
-			run = test.run
-			def runMethod():
-				testResults = [caches.getCachedTest(t).run() for t in precondTestCreators]
-				return run() if not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults) else None
-			test.run = runMethod
-			return test
-		return testWrapper
+	def failedDecorator(testFunction):
+		return FailedTestFunction(testFunction, preconditions=precondTestCreators)
 	return failedDecorator
 
 
 def passed(*precondTestCreators):
-	def passedDecorator(testCreator):
-		testCreator.dependencies = testCreator.dependencies | set(precondTestCreators)
-
-		@wraps(testCreator)
-		def testWrapper(test):
-			test = testCreator(test)
-			dependencies = test.dependencies
-			test.dependencies = lambda: dependencies() | set(precondTestCreators)
-			run = test.run
-			def runMethod():
-				testResults = [caches.getCachedTest(t).run() for t in precondTestCreators]
-				return run() if not any(t is None for t in testResults) and all(t.hasPassed for t in testResults) else None
-			test.run = runMethod
-			return test
-		return testWrapper
+	def passedDecorator(testFunction):
+		return PassedTestFunction(testFunction, preconditions=precondTestCreators)
 	return passedDecorator

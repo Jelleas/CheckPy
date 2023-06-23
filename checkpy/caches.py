@@ -46,19 +46,18 @@ def cache(*keys):
 	return cacheWrapper
 
 
-def cacheTestFunction(testFunction):
-	@wraps(testFunction)
-	def cachedTestFunction(*args, **kwargs):
-		key = testFunction.__name__
-		if key not in _testCache:
-			_testCache[key] = testFunction(*args, **kwargs)
-		return _testCache[key]
-	return cachedTestFunction
+def cacheTestResult(testFunction):
+	def wrapper(runFunction):
+		@wraps(runFunction)
+		def runFunctionWrapper(*args, **kwargs):
+			result = runFunction(*args, **kwargs)
+			_testCache[testFunction.__name__] = result
+			return result
+		return runFunctionWrapper
+	return wrapper
 
-
-def getCachedTest(testFunction):
-	key = testFunction.__name__
-	return _testCache[key]
+def getCachedTestResult(testFunction):
+	return _testCache[testFunction.__name__]
 
 
 def clearAllCaches():
