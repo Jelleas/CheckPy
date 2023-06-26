@@ -166,9 +166,12 @@ class TestFunction:
 		@caches.cacheTestResult(self)
 		def runMethod():
 			if inspect.getfullargspec(self._function).args:
-				self._function(test)
+				result = self._function(test)
 			else:
-				self._function()
+				result = self._function()
+
+			if result != None:
+				test.test = lambda: result
 
 			for attr in ["success", "fail", "exception"]:
 				TestFunction._ensureCallable(test, attr)
