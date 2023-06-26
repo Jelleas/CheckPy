@@ -234,6 +234,7 @@ class _Tester(object):
 			test = Test(
 				self.filePath.fileName,
 				testCreator.priority,
+				timeout=testCreator.timeout,
 				onDescriptionChange=handleDescriptionChange,
 				onTimeoutChange=handleTimeoutChange
 			)

@@ -1,12 +1,37 @@
 import traceback
-from functools import wraps
+
 from checkpy import caches
 from checkpy.entities import exception
 
+
+__all__ = ["test", "failed", "passed"]
+
+
+def test(priority=None, timeout=None):
+	def testDecorator(testFunction):
+		return TestFunction(testFunction, priority=priority, timeout=timeout)
+	return testDecorator
+
+
+def failed(*preconditions, priority=None, timeout=None):
+	def failedDecorator(testFunction):
+		return FailedTestFunction(testFunction, preconditions, priority=priority, timeout=timeout)
+	return failedDecorator
+
+
+def passed(*preconditions, priority=None, timeout=None):
+	def passedDecorator(testFunction):
+		return PassedTestFunction(testFunction, preconditions, priority=priority, timeout=timeout)
+	return passedDecorator
+
+
 class Test:
+	DEFAULT_TIMEOUT = 10
+
 	def __init__(self, 
 			fileName,
-			priority, 
+			priority,
+			timeout=None,
 			onDescriptionChange=lambda self: None, 
 			onTimeoutChange=lambda self: None
 		):
@@ -16,8 +41,8 @@ class Test:
 		self._onDescriptionChange = onDescriptionChange
 		self._onTimeoutChange = onTimeoutChange
 
-		self._description = "placeholder test description"
-		self._timeout = 10
+		self._description = "placeholder test description"		
+		self._timeout = Test.DEFAULT_TIMEOUT if timeout is None else timeout
 
 	def __lt__(self, other):
 		return self._priority < other._priority
@@ -94,7 +119,7 @@ class Test:
 	
 
 class TestResult(object):
-	def __init__(self, hasPassed, description, message, exception = None):
+	def __init__(self, hasPassed, description, message, exception=None):
 		self._hasPassed = bool(hasPassed)
 		self._description = description
 		self._message = message
@@ -126,11 +151,12 @@ class TestResult(object):
 class TestFunction:
 	_previousPriority = -1
 
-	def __init__(self, function, priority=None):
+	def __init__(self, function, priority=None, timeout=None):
 		self._function = function
 		self.isTestFunction = True
 		self.priority = self._getPriority(priority)
 		self.dependencies = getattr(self._function, "dependencies", set())
+		self.timeout = self._getTimeout(timeout)
 		self.__name__ = function.__name__
 
 	def __call__(self, test):
@@ -156,7 +182,7 @@ class TestFunction:
 			setattr(test, attribute, lambda *args, **kwargs: value)
 
 	def _getPriority(self, priority):
-		if priority:
+		if priority != None:
 			TestFunction._previousPriority = priority
 			return priority
 		
@@ -167,11 +193,21 @@ class TestFunction:
 		
 		TestFunction._previousPriority += 1
 		return TestFunction._previousPriority
+	
+	def _getTimeout(self, timeout):
+		if timeout != None:
+			return timeout
+		
+		inheritedTimeout = getattr(self._function, "timeout", None)
+		if inheritedTimeout:
+			return inheritedTimeout
+		
+		return Test.DEFAULT_TIMEOUT
 
 
 class FailedTestFunction(TestFunction):
-	def __init__(self, function, preconditions, priority=None):
-		super().__init__(function=function, priority=priority)
+	def __init__(self, function, preconditions, priority=None, timeout=None):
+		super().__init__(function=function, priority=priority, timeout=timeout)
 		self.preconditions = preconditions
 
 	def __call__(self, test):
@@ -196,21 +232,3 @@ class PassedTestFunction(FailedTestFunction):
 	@staticmethod
 	def shouldRun(testResults):
 		return not any(t is None for t in testResults) and all(t.hasPassed for t in testResults)
-
-
-def test(priority=None, timeout=None):
-	def testDecorator(testFunction):
-		return TestFunction(testFunction, priority=priority)
-	return testDecorator
-
-
-def failed(*preconditions, priority=None, timeout=None):
-	def failedDecorator(testFunction):
-		return FailedTestFunction(testFunction, preconditions, priority=priority)
-	return failedDecorator
-
-
-def passed(*preconditions, priority=None, timeout=None):
-	def passedDecorator(testFunction):
-		return PassedTestFunction(testFunction, preconditions, priority=priority)
-	return passedDecorator
