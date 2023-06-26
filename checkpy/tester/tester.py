@@ -94,7 +94,8 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 		while not signalQueue.empty():
 			signal = signalQueue.get()
 			
-			description = signal.description
+			if signal.description != None:
+				description = signal.description
 			if signal.isTiming != None:
 				isTiming = signal.isTiming
 			if signal.timeout != None:
