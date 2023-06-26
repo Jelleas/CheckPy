@@ -1,12 +1,19 @@
+import checkpy
 from checkpy import caches
 import redbaron
 
-def source(fileName):
+def source(fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	with open(fileName) as f:
 		return f.read()
 
 @caches.cache()
-def fullSyntaxTree(fileName):
+def fullSyntaxTree(fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	return fstFromSource(source(fileName))
 
 @caches.cache()
@@ -14,13 +21,19 @@ def fstFromSource(source):
 	return redbaron.RedBaron(source)
 
 @caches.cache()
-def functionCode(functionName, fileName):
+def functionCode(functionName, fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	definitions = [d for d in fullSyntaxTree(fileName).find_all("def") if d.name == functionName]
 	if definitions:
 		return definitions[0]
 	return None
 
-def functionLOC(functionName, fileName):
+def functionLOC(functionName, fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	code = functionCode(functionName, fileName)
 	ignoreNodes = []
 	ignoreNodeTypes = [redbaron.EndlNode, redbaron.StringNode]

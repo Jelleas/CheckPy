@@ -1,3 +1,4 @@
+import checkpy
 from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
@@ -5,6 +6,7 @@ from checkpy.tester.sandbox import Sandbox
 from checkpy.tests import Test
 
 import os
+import pathlib
 import subprocess
 import sys
 import importlib
@@ -228,6 +230,8 @@ class _Tester(object):
 				resetTimer=True,
 				timeout=test.timeout
 			))
+
+		checkpy.file = pathlib.Path(self.filePath.fileName)
 
 		# run tests in noncolliding execution order
 		for testCreator in self._getTestCreatorsInExecutionOrder(testCreators):

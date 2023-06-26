@@ -13,12 +13,16 @@ import imp
 import tokenize
 import traceback
 import requests
-from checkpy.entities import path
-from checkpy.entities import exception
-from checkpy.entities import function
+
+import checkpy
+from checkpy.entities import path, exception, function
 from checkpy import caches
 
-def require(fileName, source = None):
+
+def require(fileName=None, source=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	if source:
 		download(fileName, source)
 		return
@@ -30,16 +34,24 @@ def require(fileName, source = None):
 
 	filePath.copyTo(path.current() + fileName)
 
-def fileExists(fileName):
+def fileExists(fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
 	return path.Path(fileName).exists()
 
-def source(fileName):
+def source(fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	source = ""
 	with open(fileName) as f:
 		source = f.read()
 	return source
 
-def sourceOfDefinitions(fileName):
+def sourceOfDefinitions(fileName=None):
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	newSource = ""
 
 	with open(fileName) as f:
@@ -84,12 +96,12 @@ def module(*args, **kwargs):
 
 @caches.cache()
 def moduleAndOutputOf(
-		fileName,
-		src = None,
-		argv = None,
-		stdinArgs = None,
-		ignoreExceptions = (),
-		overwriteAttributes = ()
+		fileName=None,
+		src=None,
+		argv=None,
+		stdinArgs=None,
+		ignoreExceptions=(),
+		overwriteAttributes=()
 	):
 	"""
 	This function handles most of checkpy's under the hood functionality
@@ -99,6 +111,9 @@ def moduleAndOutputOf(
 	ignoredExceptions: a collection of Exceptions that will silently pass
 	overwriteAttributes: a list of tuples [(attribute, value), ...]
 	"""
+	if fileName is None:
+		fileName = checkpy.file.name
+
 	if src == None:
 		src = source(fileName)
 

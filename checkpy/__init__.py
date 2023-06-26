@@ -1,5 +1,8 @@
 import os
+import pathlib
 from .downloader import download, update
+
+file: pathlib.Path = None
 
 def testModule(moduleName, debugMode = False, silentMode = False):
 	"""
