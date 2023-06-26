@@ -1,3 +1,4 @@
+import inspect
 import traceback
 
 from checkpy import caches
@@ -164,7 +165,11 @@ class TestFunction:
 
 		@caches.cacheTestResult(self)
 		def runMethod():
-			self._function(test)
+			if inspect.getfullargspec(self._function).args:
+				self._function(test)
+			else:
+				self._function()
+
 			for attr in ["success", "fail", "exception"]:
 				TestFunction._ensureCallable(test, attr)
 			return test.run()
@@ -217,6 +222,7 @@ class FailedTestFunction(TestFunction):
 				run = self._function(test)
 			else:
 				run = TestFunction.__call__(self, test)
+			
 			testResults = [caches.getCachedTestResult(t) for t in self.preconditions]
 			if self.shouldRun(testResults):
 				return run()
