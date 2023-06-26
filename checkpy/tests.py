@@ -16,7 +16,8 @@ class Test:
 		self._onDescriptionChange = onDescriptionChange
 		self._onTimeoutChange = onTimeoutChange
 
-		self._description = ""
+		self._description = "placeholder test description"
+		self._timeout = 10
 
 	def __lt__(self, other):
 		return self._priority < other._priority
@@ -78,10 +79,19 @@ class Test:
 
 		self._onDescriptionChange(self)
 
-	@staticmethod
-	def timeout():
-		return 10
-
+	@property
+	def timeout(self):
+		return self._timeout
+	
+	@timeout.setter
+	def timeout(self, new_timeout):
+		if callable(new_timeout):
+			self._timeout = new_timeout()
+		else:
+			self._timeout = new_timeout
+		
+		self._onTimeoutChange(self)
+	
 
 class TestResult(object):
 	def __init__(self, hasPassed, description, message, exception = None):

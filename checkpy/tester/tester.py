@@ -93,9 +93,12 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 	while p.is_alive():
 		while not signalQueue.empty():
 			signal = signalQueue.get()
-			isTiming = signal.isTiming
+			
 			description = signal.description
-			timeout = signal.timeout
+			if signal.isTiming != None:
+				isTiming = signal.isTiming
+			if signal.timeout != None:
+				timeout = signal.timeout
 			if signal.resetTimer:
 				start = time.time()
 
@@ -144,7 +147,7 @@ class TesterResult(object):
 				"results":[tr.asDict() for tr in self.testResults]}
 
 class _Signal(object):
-	def __init__(self, isTiming = False, resetTimer = False, description = None, timeout = None):
+	def __init__(self, isTiming=None, resetTimer=None, description=None, timeout=None):
 		self.isTiming = isTiming
 		self.resetTimer = resetTimer
 		self.description = description
@@ -213,13 +216,25 @@ class _Tester(object):
 	def _runTests(self, testCreators):
 		cachedResults = {}
 
+		def handleDescriptionChange(test):
+			self._sendSignal(_Signal(
+				description=test.description
+			))
+
+		def handleTimeoutChange(test):
+			self._sendSignal(_Signal(
+				isTiming=True,
+				resetTimer=True,
+				timeout=test.timeout
+			))
+
 		# run tests in noncolliding execution order
 		for testCreator in self._getTestCreatorsInExecutionOrder(testCreators):
 			test = Test(
 				self.filePath.fileName,
 				testCreator.priority,
-				onDescriptionChange=lambda self: None,
-				onTimeoutChange=lambda self: None
+				onDescriptionChange=handleDescriptionChange,
+				onTimeoutChange=handleTimeoutChange
 			)
 			
 			run = testCreator(test)
@@ -228,7 +243,7 @@ class _Tester(object):
 				isTiming=True, 
 				resetTimer=True, 
 				description=test.description, 
-				timeout=test.timeout()
+				timeout=test.timeout
 			))
 			cachedResults[test] = run()
 			self._sendSignal(_Signal(isTiming = False))
