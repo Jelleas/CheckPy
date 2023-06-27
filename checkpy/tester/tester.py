@@ -2,7 +2,7 @@ import checkpy
 from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
-from checkpy.tester.sandbox import Sandbox
+from checkpy.tester.sandbox import sandbox
 from checkpy.tests import Test
 
 import os
@@ -175,11 +175,6 @@ class _Tester(object):
 		module = importlib.import_module(self.moduleName)
 		module._fileName = self.filePath.fileName
 
-		if hasattr(module, "sandbox"):
-			with Sandbox(self.filePath.absolutePath()):
-				module.sandbox()
-				return self._runTestsFromModule(module)
-
 		return self._runTestsFromModule(module)
 
 	def _runTestsFromModule(self, module):
@@ -251,8 +246,11 @@ class _Tester(object):
 				description=test.description, 
 				timeout=test.timeout
 			))
-			cachedResults[test] = run()
-			self._sendSignal(_Signal(isTiming = False))
+
+			with sandbox():
+				cachedResults[test] = run()
+			
+			self._sendSignal(_Signal(isTiming=False))
 		
 		# return test results in specified order
 		return [cachedResults[test] for test in sorted(cachedResults.keys()) if cachedResults[test] != None]

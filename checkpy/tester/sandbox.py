@@ -1,25 +1,38 @@
+import contextlib
+import glob
 import os
 import shutil
-import uuid
-import checkpy.entities.path as path
+import tempfile
+from pathlib import Path
+from typing import Iterable, Union
 
-class Sandbox():
-	def __init__(self, filePath):
-		self.id = "sandbox_" + str(uuid.uuid4())
-		self.path = path.Path(os.path.abspath(os.path.dirname(__file__))) + self.id
-		self._filePath = filePath
-		os.makedirs(str(self.path))
 
-	def _clear(self):
-		if self.path.exists():
-			shutil.rmtree(str(self.path))
+@contextlib.contextmanager
+def sandbox(files:Iterable[Union[str, Path]]=None, name:Union[str, Path]=""):
+	with tempfile.TemporaryDirectory() as dir:
+		dir = Path(Path(dir) / name)
+		dir.mkdir(exist_ok=True)
 
-	def __enter__(self):
-		self._oldCWD = os.getcwd()
-		os.chdir(str(self.path))
-		if self._filePath.exists():
-			self._filePath.copyTo(self.path + self._filePath.fileName)
+		# If no files specified, take all files from cwd
+		if files is None:
+			cwd = Path.cwd()
+			paths = glob.glob(str(cwd / "**"), recursive=True)
+			files = [Path(p).relative_to(cwd) for p in paths if os.path.isfile(p)]
 
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		os.chdir(str(self._oldCWD))
-		self._clear()
+		for f in files:
+			dest = (dir / f).absolute()
+			dest.parent.mkdir(parents=True, exist_ok=True)
+			shutil.copy(f, dest)
+		
+		with cd(dir):
+			yield dir
+
+
+@contextlib.contextmanager
+def cd(dest:Union[str, Path]):
+	origin = Path.cwd()
+	try:
+		os.chdir(dest)
+		yield dest
+	finally:
+		os.chdir(origin)
