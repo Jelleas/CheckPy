@@ -19,10 +19,7 @@ from checkpy.entities import path, exception, function
 from checkpy import caches
 
 
-def require(fileName=None, source=None):
-	if fileName is None:
-		fileName = checkpy.file.name
-
+def require(fileName, source=None):
 	if source:
 		download(fileName, source)
 		return
@@ -34,9 +31,7 @@ def require(fileName=None, source=None):
 
 	filePath.copyTo(path.current() + fileName)
 
-def fileExists(fileName=None):
-	if fileName is None:
-		fileName = checkpy.file.name
+def fileExists(fileName):
 	return path.Path(fileName).exists()
 
 def source(fileName=None):
