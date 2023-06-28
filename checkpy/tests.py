@@ -3,6 +3,7 @@ import traceback
 
 from checkpy import caches
 from checkpy.entities import exception
+from checkpy.tester.sandbox import conditionalSandbox
 
 
 __all__ = ["test", "failed", "passed"]
@@ -165,17 +166,18 @@ class TestFunction:
 
 		@caches.cacheTestResult(self)
 		def runMethod():
-			if inspect.getfullargspec(self._function).args:
-				result = self._function(test)
-			else:
-				result = self._function()
+			with conditionalSandbox():
+				if inspect.getfullargspec(self._function).args:
+					result = self._function(test)
+				else:
+					result = self._function()
 
-			if result != None:
-				test.test = lambda: result
+				if result != None:
+					test.test = lambda: result
 
-			for attr in ["success", "fail", "exception"]:
-				TestFunction._ensureCallable(test, attr)
-			return test.run()
+				for attr in ["success", "fail", "exception"]:
+					TestFunction._ensureCallable(test, attr)
+				return test.run()
 		
 		return runMethod
 

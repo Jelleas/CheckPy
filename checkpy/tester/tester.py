@@ -249,7 +249,7 @@ class _Tester(object):
 
 			with sandbox():
 				cachedResults[test] = run()
-			
+
 			self._sendSignal(_Signal(isTiming=False))
 		
 		# return test results in specified order

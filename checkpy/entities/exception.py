@@ -38,3 +38,10 @@ class ExitError(CheckpyError):
 
 class PathError(CheckpyError):
 	pass
+
+class TooManyFilesError(CheckpyError):
+	pass
+
+class MissingRequiredFiles(CheckpyError):
+	def __init__(self, missingFiles):
+		super().__init__(message=f"Missing the following required files: {', '.join(missingFiles)}")
