@@ -128,19 +128,26 @@ def conditionalSandbox(name: Union[str, Path]=""):
 	tempDir = None
 	dir = None
 
+	oldIncluded: Set[str] = set()
+	oldExcluded: Set[str] = set()
+
 	def sync(config):
-		for f in config.excludedFiles:
+		nonlocal oldIncluded, oldExcluded
+		for f in config.excludedFiles - oldExcluded:
 			dest = (dir / f).absolute()
 			try:
 				os.remove(dest)
 			except FileNotFoundError:
 				pass
 
-		for f in config.includedFiles:
+		for f in config.includedFiles - oldExcluded:
 			dest = (dir / f).absolute()
 			dest.parent.mkdir(parents=True, exist_ok=True)
 			origin = (config.root / f).absolute()
 			shutil.copy(origin, dest)
+
+		oldIncluded = set(config.includedFiles)
+		oldExcluded = set(config.excludedFiles)
 
 	def onUpdate(config):
 		if config.missingRequiredFiles:
