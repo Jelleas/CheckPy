@@ -3,7 +3,7 @@ import traceback
 
 from checkpy import caches
 from checkpy.entities import exception
-from checkpy.tester.sandbox import conditionalSandbox
+from checkpy.lib.sandbox import conditionalSandbox
 
 
 __all__ = ["test", "failed", "passed"]

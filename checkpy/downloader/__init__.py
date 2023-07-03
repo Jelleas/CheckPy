@@ -1,1 +1,1 @@
-from checkpy.downloader.downloader import *
+from .downloader import *

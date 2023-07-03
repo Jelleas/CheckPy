@@ -39,6 +39,3 @@ def getTestPaths(testFileName, module = ""):
 			if testFileName in fileNames and (not module or module in dirPath):
 				testFilePaths.append(dirPath)
 	return testFilePaths
-
-def _backslashToForwardslash(text):
-	return re.sub("\\\\", "/", text)

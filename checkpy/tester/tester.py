@@ -2,7 +2,7 @@ import checkpy
 from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
-from checkpy.tester.sandbox import sandbox
+from checkpy.lib.sandbox import sandbox
 from checkpy.tests import Test
 
 import os
