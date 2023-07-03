@@ -131,7 +131,7 @@ def conditionalSandbox(name: Union[str, Path]=""):
 	oldIncluded: Set[str] = set()
 	oldExcluded: Set[str] = set()
 
-	def sync(config):
+	def sync(config: Config):
 		nonlocal oldIncluded, oldExcluded
 		for f in config.excludedFiles - oldExcluded:
 			dest = (dir / f).absolute()
@@ -149,7 +149,7 @@ def conditionalSandbox(name: Union[str, Path]=""):
 		oldIncluded = set(config.includedFiles)
 		oldExcluded = set(config.excludedFiles)
 
-	def onUpdate(config):
+	def onUpdate(config: Config):
 		if config.missingRequiredFiles:
 			raise MissingRequiredFiles(config.missingRequiredFiles)
 

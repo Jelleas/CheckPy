@@ -169,6 +169,8 @@ class _Tester(object):
 		printer.printer.DEBUG_MODE = self.debugMode
 		printer.printer.SILENT_MODE = self.silentMode
 
+		checkpy.file = pathlib.Path(self.filePath.fileName)
+
 		# overwrite argv so that it seems the file was run directly
 		sys.argv = [self.filePath.fileName]
 
@@ -225,8 +227,6 @@ class _Tester(object):
 				resetTimer=True,
 				timeout=test.timeout
 			))
-
-		checkpy.file = pathlib.Path(self.filePath.fileName)
 
 		# run tests in noncolliding execution order
 		for testCreator in self._getTestCreatorsInExecutionOrder(testCreators):
