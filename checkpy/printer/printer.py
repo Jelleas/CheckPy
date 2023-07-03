@@ -17,6 +17,7 @@ class _Smileys:
 	HAPPY = ":)"
 	SAD = ":("
 	CONFUSED = ":S"
+	NEUTRAL = ":|"
 
 def display(testResult):
 	color, smiley = _selectColorAndSmiley(testResult)
@@ -77,4 +78,6 @@ def _selectColorAndSmiley(testResult):
 		return _Colors.PASS, _Smileys.HAPPY
 	if type(testResult.message) is exception.SourceException:
 		return _Colors.WARNING, _Smileys.CONFUSED
+	if testResult.hasPassed is None:
+		return _Colors.WARNING, _Smileys.NEUTRAL
 	return _Colors.FAIL, _Smileys.SAD

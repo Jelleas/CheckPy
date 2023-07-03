@@ -138,7 +138,7 @@ class Test:
 
 class TestResult(object):
 	def __init__(self, hasPassed: Union[bool, None], description: str, message: str, exception: Exception=None):
-		self._hasPassed = bool(hasPassed)
+		self._hasPassed = hasPassed
 		self._description = description
 		self._message = message
 		self._exception = exception
