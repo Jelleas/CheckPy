@@ -1,5 +1,6 @@
 from checkpy.entities import exception
 import os
+import traceback
 import colorama
 colorama.init()
 
@@ -26,8 +27,7 @@ def display(testResult):
 		msg += "\n  - {}".format(testResult.message)
 
 	if DEBUG_MODE and testResult.exception:
-		msg += "\n {}".format(testResult.exception.stacktrace())
-
+		msg += "\n{}".format("".join(traceback.format_tb(testResult.exception.__traceback__)))
 	if not SILENT_MODE:
 		print(msg)
 	return msg

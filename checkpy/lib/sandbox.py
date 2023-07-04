@@ -196,7 +196,7 @@ def cd(dest: Union[str, Path]):
 
 
 def _glob(pattern: Union[str, Path], root: Union[str, Path]=None, skip_dirs: bool=False, limit: int=DEFAULT_FILE_LIMIT) -> Set[str]:
-	with cd(root) if root else contextlib.nullcontext:
+	with cd(root) if root else contextlib.nullcontext():
 		pattern = str(pattern)
 
 		# Implicit recursive iff no / in pattern and starts with *

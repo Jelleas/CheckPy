@@ -68,27 +68,7 @@ class Test:
 	@property
 	def fileName(self) -> str:
 		return self._fileName
-
-	@caches.cache()
-	def run(self) -> Union["TestResult", None]:
-		try:
-			result = self.test()
-
-			if type(result) == tuple:
-				hasPassed, info = result
-			else:
-				hasPassed, info = result, ""
-		except exception.CheckpyError as e:
-			return TestResult(False, self.description, self.exception(e), exception = e)
-		except Exception as e:
-			e = exception.TestError(
-				exception = e,
-				message = "while testing",
-				stacktrace = traceback.format_exc())
-			return TestResult(False, self.description, self.exception(e), exception=e)
-
-		return TestResult(hasPassed, self.description, self.success(info) if hasPassed else self.fail(info))
-
+	
 	@staticmethod
 	def test() -> Union[bool, Tuple[bool, str]]:
 		raise NotImplementedError()
@@ -134,7 +114,7 @@ class Test:
 			self._timeout = new_timeout
 		
 		self._onTimeoutChange(self)
-	
+
 
 class TestResult(object):
 	def __init__(self, hasPassed: Union[bool, None], description: str, message: str, exception: Exception=None):
@@ -190,19 +170,42 @@ class TestFunction:
 		@caches.cacheTestResult(self)
 		def runMethod():
 			with conditionalSandbox():
-				if getattr(self._function, "isTestFunction", False):
-					result = self._function(test)()
-				elif inspect.getfullargspec(self._function).args:
-					result = self._function(test)
-				else:
-					result = self._function()
+				try:
+					if getattr(self._function, "isTestFunction", False):
+						result = self._function(test)()
+					elif inspect.getfullargspec(self._function).args:
+						result = self._function(test)
+					else:
+						result = self._function()
 
-				if result != None:
-					test.test = lambda: result
+					for attr in ["success", "fail", "exception"]:
+						TestFunction._ensureCallable(test, attr)
 
-				for attr in ["success", "fail", "exception"]:
-					TestFunction._ensureCallable(test, attr)
-				return test.run()
+					if result is None:
+						if test.test != Test.test:
+							result = test.test()
+						else:
+							result = True
+
+					if type(result) == tuple:
+						hasPassed, info = result
+					else:
+						hasPassed, info = result, ""
+				except AssertionError as e:
+					last = traceback.extract_tb(e.__traceback__)[-1]
+					# print(last, dir(last), last.line, last.lineno)
+
+					return TestResult(False, test.description, test.exception(e), exception=e)
+				except exception.CheckpyError as e:
+					return TestResult(False, test.description, test.exception(e), exception=e)
+				except Exception as e:
+					e = exception.TestError(
+						exception = e,
+						message = "while testing",
+						stacktrace = traceback.format_exc())
+					return TestResult(False, test.description, test.exception(e), exception=e)
+
+				return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info))
 		
 		return runMethod
 

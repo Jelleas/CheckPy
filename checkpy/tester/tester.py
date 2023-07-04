@@ -156,47 +156,8 @@ class _Signal(object):
 		self.description = description
 		self.timeout = timeout
 
-
-import contextlib
+import dessert
 import sys
-import _pytest.assertion
-from _pytest.config import get_config
-import _pytest.assertion.util
-
-
-@contextlib.contextmanager
-def rewriteAssertionsContext():
-	
-
-	config = get_config()
-	# config._parser.addini("python_files", ["helloTest.py"], "args")
-	# config.inicfg = {"python_files": ["helloTest.py"]}
-	config._inicache["python_files"] = ["*Test.py"]
-	#config._inicache["enable_assertion_pass_hook"] = True
-	#config.option.verbose = 4
-	config.parse([])
-	_pytest.assertion.install_importhook(config)
-	#print('=====!', config.getini("enable_assertion_pass_hook"))
-	_pytest.assertion.register_assert_rewrite("helloTest.py")
-
-	
-	def func(op, left, right):
-		print("====", type(left), op, type(right))
-		return "foo!"
-
-	# def func2(op, left, right):
-	# 	print("============", type(left), op, type(right))
-	# _pytest.assertion.util._assertion_pass = func2
-
-	try:	
-		# next(a)
-		_pytest.assertion.util._reprcompare = func
-		# 
-		yield
-	finally:
-		_pytest.assertion.util._reprcompare = None
-		# sys.meta_path.remove(hook)
-		pass
 
 
 class _Tester(object):
@@ -217,7 +178,16 @@ class _Tester(object):
 		# overwrite argv so that it seems the file was run directly
 		sys.argv = [self.filePath.fileName]
 
-		with rewriteAssertionsContext():
+		# have pytest (dessert) rewrite the asserts in the AST
+		with dessert.rewrite_assertions_context():
+
+			# callback that gets called when an assert fails
+			def func(op, left, right):
+				if op == "==":
+					return f"expected \"{right}\" but found \"{left}\""
+			
+			# TODO: should be a cleaner way to inject "pytest_assertrepr_compare"
+			dessert.util._reprcompare = func
 
 			module = importlib.import_module(self.moduleName)
 			module._fileName = self.filePath.fileName
