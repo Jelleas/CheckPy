@@ -1,5 +1,3 @@
-import traceback
-
 class CheckpyError(Exception):
 	def __init__(self, exception = None, message = "", output = "", stacktrace = ""):
 		self._exception = exception

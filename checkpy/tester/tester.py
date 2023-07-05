@@ -3,7 +3,10 @@ from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
 from checkpy.lib.sandbox import sandbox
+from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test
+
+import dessert
 
 import os
 import pathlib
@@ -156,9 +159,6 @@ class _Signal(object):
 		self.description = description
 		self.timeout = timeout
 
-import dessert
-import sys
-
 
 class _Tester(object):
 	def __init__(self, moduleName, filePath, debugMode, silentMode, signalQueue, resultQueue):
@@ -181,13 +181,8 @@ class _Tester(object):
 		# have pytest (dessert) rewrite the asserts in the AST
 		with dessert.rewrite_assertions_context():
 
-			# callback that gets called when an assert fails
-			def func(op, left, right):
-				if op == "==":
-					return f"expected \"{right}\" but found \"{left}\""
-			
 			# TODO: should be a cleaner way to inject "pytest_assertrepr_compare"
-			dessert.util._reprcompare = func
+			dessert.util._reprcompare = explainCompare
 
 			module = importlib.import_module(self.moduleName)
 			module._fileName = self.filePath.fileName

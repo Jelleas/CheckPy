@@ -27,7 +27,12 @@ def display(testResult):
 		msg += "\n  - {}".format(testResult.message)
 
 	if DEBUG_MODE and testResult.exception:
-		msg += "\n{}".format("".join(traceback.format_tb(testResult.exception.__traceback__)))
+		exc = testResult.exception
+		if hasattr(exc, "stacktrace"):
+			stack = str(exc.stacktrace())
+		else:
+			stack = "".join(traceback.format_tb(testResult.exception.__traceback__))
+		msg += "\n" + stack
 	if not SILENT_MODE:
 		print(msg)
 	return msg
