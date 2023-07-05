@@ -6,6 +6,7 @@ from typing import Dict, List, Set, Tuple, Union, Callable, Iterable, Optional
 from checkpy import caches
 from checkpy.entities import exception
 from checkpy.lib.sandbox import conditionalSandbox
+from checkpy.lib.explanation import simplifyAssertionMessage
 
 
 __all__ = ["test", "failed", "passed"]
@@ -195,7 +196,9 @@ class TestFunction:
 					last = traceback.extract_tb(e.__traceback__)[-1]
 					# print(last, dir(last), last.line, last.lineno)
 
-					return TestResult(False, test.description, test.exception(e), exception=e)
+					msg = simplifyAssertionMessage(str(e))
+
+					return TestResult(False, test.description, test.exception(msg), exception=e)
 				except exception.CheckpyError as e:
 					return TestResult(False, test.description, test.exception(e), exception=e)
 				except Exception as e:
