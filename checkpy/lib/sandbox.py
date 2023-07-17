@@ -9,10 +9,23 @@ from typing import Iterable, List, Set, Union
 from checkpy.entities.exception import TooManyFilesError, MissingRequiredFiles
 
 
-__all__ = ["exclude", "include", "only", "require", "sandbox"]
+__all__ = ["exclude", "include", "only", "require"]
 
 
 DEFAULT_FILE_LIMIT = 10000
+
+
+def exclude(*patterns: Iterable[Union[str, Path]]):
+	config.exclude(*patterns)
+
+def include(*patterns: Iterable[Union[str, Path]]):
+	config.include(*patterns)
+
+def only(*patterns: Iterable[Union[str, Path]]):
+	config.only(*patterns)
+
+def require(*filePaths: Iterable[Union[str, Path]]):
+	config.require(*filePaths)
 
 
 class Config:
@@ -86,18 +99,6 @@ class Config:
 
 
 config = Config()
-
-def exclude(*patterns: Iterable[Union[str, Path]]):
-	config.exclude(*patterns)
-
-def include(*patterns: Iterable[Union[str, Path]]):
-	config.include(*patterns)
-
-def only(*patterns: Iterable[Union[str, Path]]):
-	config.only(*patterns)
-
-def require(*filePaths: Iterable[Union[str, Path]]):
-	config.require(*filePaths)
 
 
 @contextlib.contextmanager

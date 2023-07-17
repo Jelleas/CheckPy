@@ -2,7 +2,7 @@ import checkpy
 from checkpy import printer
 from checkpy.entities import exception, path
 from checkpy.tester import discovery
-from checkpy.lib.sandbox import sandbox
+from checkpy.lib.sandbox import conditionalSandbox
 from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test
 
@@ -184,10 +184,11 @@ class _Tester(object):
 			# TODO: should be a cleaner way to inject "pytest_assertrepr_compare"
 			dessert.util._reprcompare = explainCompare
 
-			module = importlib.import_module(self.moduleName)
-			module._fileName = self.filePath.fileName
+			with conditionalSandbox():
+				module = importlib.import_module(self.moduleName)
+				module._fileName = self.filePath.fileName
 
-			return self._runTestsFromModule(module)
+				return self._runTestsFromModule(module)
 
 	def _runTestsFromModule(self, module):
 		self._sendSignal(_Signal(isTiming = False))
@@ -257,8 +258,7 @@ class _Tester(object):
 				timeout=test.timeout
 			))
 
-			with sandbox():
-				cachedResults[test] = run()
+			cachedResults[test] = run()
 
 			self._sendSignal(_Signal(isTiming=False))
 		
