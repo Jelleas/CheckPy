@@ -1,14 +1,8 @@
 import sys
 import re
 import os
-try:
-	# Python 2
-	import StringIO
-except:
-	# Python 3
-	import io as StringIO
+import io as StringIO
 import contextlib
-import importlib
 import imp
 import tokenize
 import traceback
@@ -137,10 +131,7 @@ def moduleAndOutputOf(
 				setattr(mod, attr, value)
 
 			# execute code in mod
-			if sys.version_info >= (3,0):
-				exec(src, mod.__dict__)
-			else:
-				exec(src) in mod.__dict__
+			exec(src, mod.__dict__)
 
 			# add resulting module to sys
 			sys.modules[moduleName] = mod
@@ -288,10 +279,6 @@ def captureStdin(stdin=None):
 
 	oldInput = input
 	__builtins__["input"] = newInput(oldInput)
-	if sys.version_info < (3,0):
-		oldRawInput = raw_input
-		__builtins__["raw_input"] = newInput(oldRawInput)
-
 	old = sys.stdin
 	if stdin is None:
 		stdin = StringIO.StringIO()
@@ -304,5 +291,3 @@ def captureStdin(stdin=None):
 	finally:
 		sys.stdin = old
 		__builtins__["input"] = oldInput
-		if sys.version_info < (3,0):
-			__builtins__["raw_input"] = oldRawInput

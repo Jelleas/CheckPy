@@ -1,5 +1,4 @@
 import os
-import re
 import checkpy.database as database
 from checkpy.entities.path import Path
 
