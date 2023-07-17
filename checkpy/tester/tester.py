@@ -21,13 +21,13 @@ from multiprocessing.queues import Queue
 import time
 
 
-__all__ = ["getTest", "test", "testModule", "TesterResult"]
+__all__ = ["getActiveTest", "test", "testModule", "TesterResult"]
 
 
 _activeTest: Optional[Test] = None
 
 
-def getTest() -> Optional[Test]:
+def getActiveTest() -> Optional[Test]:
 	return _activeTest
 
 
