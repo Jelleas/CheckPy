@@ -1,3 +1,3 @@
 from checkpy.tester.tester import *
 
-__all__ = ["test", "testModule", "only", "include", "exclude", "require"]
+__all__ = ["test", "testModule", "getTest", "only", "include", "exclude", "require"]

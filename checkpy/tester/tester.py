@@ -1,10 +1,13 @@
 import checkpy
 from checkpy import printer
-from checkpy.entities import exception, path
+from checkpy.entities import exception
 from checkpy.tester import discovery
 from checkpy.lib.sandbox import conditionalSandbox
 from checkpy.lib.explanation import explainCompare
-from checkpy.tests import Test
+from checkpy.tests import Test, TestResult, TestFunction
+
+from types import ModuleType
+from typing import Dict, Iterable, List, Optional, Union
 
 import dessert
 
@@ -14,9 +17,21 @@ import subprocess
 import sys
 import importlib
 import multiprocessing
+from multiprocessing.queues import Queue
 import time
 
-def test(testName, module = "", debugMode = False, silentMode = False):
+
+__all__ = ["getTest", "test", "testModule", "TesterResult"]
+
+
+_activeTest: Optional[Test] = None
+
+
+def getTest() -> Optional[Test]:
+	return _activeTest
+
+
+def test(testName: str, module="", debugMode=False, silentMode=False) -> "TesterResult":
 	printer.printer.SILENT_MODE = silentMode
 
 	result = TesterResult(testName)
@@ -70,25 +85,23 @@ def test(testName, module = "", debugMode = False, silentMode = False):
 	return testerResult
 
 
-def testModule(module, debugMode = False, silentMode = False):
+def testModule(module: ModuleType, debugMode=False, silentMode=False) -> Optional[List["TesterResult"]]:
 	printer.printer.SILENT_MODE = silentMode
 	testNames = discovery.getTestNames(module)
 
 	if not testNames:
 		printer.displayError("no tests found in module: {}".format(module))
-		return
+		return None
 
 	return [test(testName, module = module, debugMode = debugMode, silentMode = silentMode) for testName in testNames]
 
-def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
-	if sys.version_info[:2] >= (3,4):
-		ctx = multiprocessing.get_context("spawn")
-	else:
-		ctx = multiprocessing
 
-	signalQueue = ctx.Queue()
-	resultQueue = ctx.Queue()
-	tester = _Tester(moduleName, path.Path(fileName).absolutePath(), debugMode, silentMode, signalQueue, resultQueue)
+def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
+	ctx = multiprocessing.get_context("spawn")
+	
+	signalQueue: "Queue[_Signal]" = ctx.Queue()
+	resultQueue: "Queue[TesterResult]" = ctx.Queue()
+	tester = _Tester(moduleName, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
 	p = ctx.Process(target=tester.run, name="Tester")
 	p.start()
 
@@ -99,17 +112,17 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 		while not signalQueue.empty():
 			signal = signalQueue.get()
 			
-			if signal.description != None:
+			if signal.description is not None:
 				description = signal.description
-			if signal.isTiming != None:
+			if signal.isTiming is not None:
 				isTiming = signal.isTiming
-			if signal.timeout != None:
+			if signal.timeout is not None:
 				timeout = signal.timeout
 			if signal.resetTimer:
 				start = time.time()
 
 		if isTiming and time.time() - start > timeout:
-			result = TesterResult(path.Path(fileName).fileName)
+			result = TesterResult(pathlib.Path(fileName).name)
 			result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
 			p.terminate()
 			p.join()
@@ -127,33 +140,43 @@ def _runTests(moduleName, fileName, debugMode = False, silentMode = False):
 	
 	raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
 
+
 class TesterResult(object):
-	def __init__(self, name):
+	def __init__(self, name: str):
 		self.name = name
 		self.nTests = 0
 		self.nPassedTests = 0
 		self.nFailedTests = 0
 		self.nRunTests = 0
-		self.output = []
-		self.testResults = []
+		self.output: List[str] = []
+		self.testResults: List[TestResult] = []
 
-	def addOutput(self, output):
+	def addOutput(self, output: str):
 		self.output.append(output)
 
-	def addResult(self, testResult):
+	def addResult(self, testResult: TestResult):
 		self.testResults.append(testResult)
 
-	def asDict(self):
-		return {"name":self.name,
-				"nTests":self.nTests,
-			    "nPassed":self.nPassedTests,
-				"nFailed":self.nFailedTests,
-				"nRun":self.nRunTests,
-				"output":self.output,
-				"results":[tr.asDict() for tr in self.testResults]}
+	def asDict(self) -> Dict[str, Union[str, int, List]]:
+		return {
+			"name": self.name,
+			"nTests": self.nTests,
+			"nPassed": self.nPassedTests,
+			"nFailed": self.nFailedTests,
+			"nRun": self.nRunTests,
+			"output": self.output,
+			"results": [tr.asDict() for tr in self.testResults]
+		}
+
 
 class _Signal(object):
-	def __init__(self, isTiming=None, resetTimer=None, description=None, timeout=None):
+	def __init__(
+			self, 
+			isTiming: Optional[bool]=None, 
+			resetTimer: Optional[bool]=None, 
+			description: Optional[str]=None, 
+			timeout: Optional[int]=None
+		):
 		self.isTiming = isTiming
 		self.resetTimer = resetTimer
 		self.description = description
@@ -161,9 +184,17 @@ class _Signal(object):
 
 
 class _Tester(object):
-	def __init__(self, moduleName, filePath, debugMode, silentMode, signalQueue, resultQueue):
+	def __init__(
+			self, 
+			moduleName: str,
+			filePath: pathlib.Path,
+			debugMode: bool,
+			silentMode: bool,
+			signalQueue: "Queue[_Signal]",
+			resultQueue: "Queue[TesterResult]"
+		):
 		self.moduleName = moduleName
-		self.filePath = filePath
+		self.filePath = filePath.absolute()
 		self.debugMode = debugMode
 		self.silentMode = silentMode
 		self.signalQueue = signalQueue
@@ -173,10 +204,10 @@ class _Tester(object):
 		printer.printer.DEBUG_MODE = self.debugMode
 		printer.printer.SILENT_MODE = self.silentMode
 
-		checkpy.file = pathlib.Path(self.filePath.fileName)
+		checkpy.file = self.filePath
 
 		# overwrite argv so that it seems the file was run directly
-		sys.argv = [self.filePath.fileName]
+		sys.argv = [self.filePath.name]
 
 		# have pytest (dessert) rewrite the asserts in the AST
 		with dessert.rewrite_assertions_context():
@@ -186,15 +217,15 @@ class _Tester(object):
 
 			with conditionalSandbox():
 				module = importlib.import_module(self.moduleName)
-				module._fileName = self.filePath.fileName
+				module._fileName = self.filePath.name
 
-				return self._runTestsFromModule(module)
+				self._runTestsFromModule(module)
 
-	def _runTestsFromModule(self, module):
+	def _runTestsFromModule(self, module: ModuleType):
 		self._sendSignal(_Signal(isTiming = False))
 
-		result = TesterResult(self.filePath.fileName)
-		result.addOutput(printer.displayTestName(self.filePath.fileName))
+		result = TesterResult(self.filePath.name)
+		result.addOutput(printer.displayTestName(self.filePath.name))
 
 		if hasattr(module, "before"):
 			try:
@@ -203,10 +234,10 @@ class _Tester(object):
 				result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
 				return
 
-		testCreators = [method for method in module.__dict__.values() if getattr(method, "isTestFunction", False)]
-		result.nTests = len(testCreators)
+		testFunctions = [method for method in module.__dict__.values() if getattr(method, "isTestFunction", False)]
+		result.nTests = len(testFunctions)
 
-		testResults = self._runTests(testCreators)
+		testResults = self._runTests(testFunctions)
 
 		result.nRunTests = len(testResults)
 		result.nPassedTests = len([tr for tr in testResults if tr.hasPassed])
@@ -224,32 +255,36 @@ class _Tester(object):
 
 		self._sendResult(result)
 
-	def _runTests(self, testCreators):
-		cachedResults = {}
+	def _runTests(self, testFunctions: Iterable[TestFunction]) -> List[TestResult]:
+		cachedResults: Dict[Test, Optional[TestResult]] = {}
 
-		def handleDescriptionChange(test):
+		def handleDescriptionChange(test: Test):
 			self._sendSignal(_Signal(
 				description=test.description
 			))
 
-		def handleTimeoutChange(test):
+		def handleTimeoutChange(test: Test):
 			self._sendSignal(_Signal(
 				isTiming=True,
 				resetTimer=True,
 				timeout=test.timeout
 			))
 
+		global _activeTest
+
 		# run tests in noncolliding execution order
-		for testCreator in self._getTestCreatorsInExecutionOrder(testCreators):
+		for testFunction in self._getTestFunctionsInExecutionOrder(testFunctions):
 			test = Test(
-				self.filePath.fileName,
-				testCreator.priority,
-				timeout=testCreator.timeout,
+				self.filePath.name,
+				testFunction.priority,
+				timeout=testFunction.timeout,
 				onDescriptionChange=handleDescriptionChange,
 				onTimeoutChange=handleTimeoutChange
 			)
 			
-			run = testCreator(test)
+			_activeTest = test
+
+			run = testFunction(test)
 
 			self._sendSignal(_Signal(
 				isTiming=True, 
@@ -260,20 +295,23 @@ class _Tester(object):
 
 			cachedResults[test] = run()
 
+			_activeTest = None
+
 			self._sendSignal(_Signal(isTiming=False))
 		
 		# return test results in specified order
-		return [cachedResults[test] for test in sorted(cachedResults.keys()) if cachedResults[test] != None]
-
-	def _sendResult(self, result):
+		sortedResults = [cachedResults[test] for test in sorted(cachedResults)]
+		return [result for result in sortedResults if result is not None]
+	
+	def _sendResult(self, result: TesterResult):
 		self.resultQueue.put(result)
 
-	def _sendSignal(self, signal):
+	def _sendSignal(self, signal: _Signal):
 		self.signalQueue.put(signal)
 
-	def _getTestCreatorsInExecutionOrder(self, testCreators):
-		sortedTCs = []
-		for tc in testCreators:
-			dependencies = self._getTestCreatorsInExecutionOrder(tc.dependencies) + [tc]
-			sortedTCs.extend([t for t in dependencies if t not in sortedTCs])
-		return sortedTCs
+	def _getTestFunctionsInExecutionOrder(self, testFunctions: Iterable[TestFunction]) -> List[TestFunction]:
+		sortedTFs: List[TestFunction] = []
+		for tf in testFunctions:
+			dependencies = self._getTestFunctionsInExecutionOrder(tf.dependencies) + [tf]
+			sortedTFs.extend([t for t in dependencies if t not in sortedTFs])
+		return sortedTFs
