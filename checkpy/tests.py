@@ -1,7 +1,7 @@
 import inspect
 import traceback
 
-from typing import Dict, List, Set, Tuple, Union, Callable, Iterable, Optional
+from typing import Any, Dict, List, Set, Tuple, Union, Callable, Iterable, Optional
 
 from checkpy import caches
 from checkpy.entities import exception
@@ -95,11 +95,11 @@ class Test:
 		return self._description
 	
 	@description.setter
-	def description(self, new_description):
-		if callable(new_description):
-			self._description = new_description()
+	def description(self, newDescription: Union[str, Callable[[], str]]):
+		if callable(newDescription):
+			self._description = newDescription()
 		else:
-			self._description = new_description
+			self._description = newDescription
 
 		self._onDescriptionChange(self)
 
@@ -108,13 +108,20 @@ class Test:
 		return self._timeout
 	
 	@timeout.setter
-	def timeout(self, new_timeout):
+	def timeout(self, new_timeout: Union[int, Callable[[], int]]):
 		if callable(new_timeout):
 			self._timeout = new_timeout()
 		else:
 			self._timeout = new_timeout
 		
 		self._onTimeoutChange(self)
+
+	def __setattr__(self, __name: str, __value: Any) -> None:
+		value = __value
+		if __name in ["fail", "success", "exception"]:
+			if not callable(__value):
+				value = lambda *args, **kwargs: __value
+		super().__setattr__(__name, value)
 
 
 class TestResult(object):
@@ -179,9 +186,6 @@ class TestFunction:
 					else:
 						result = self._function()
 
-					for attr in ["success", "fail", "exception"]:
-						TestFunction._ensureCallable(test, attr)
-
 					if result is None:
 						if test.test != Test.test:
 							result = test.test()
@@ -218,12 +222,6 @@ class TestFunction:
 
 		if self._function.__doc__ != None:
 			test.description = self._function.__doc__
-
-	@staticmethod
-	def _ensureCallable(test: Test, attribute: str) -> None:
-		value = getattr(test, attribute)
-		if not callable(value):
-			setattr(test, attribute, lambda *args, **kwargs: value)
 
 	def _getPriority(self, priority: Optional[int]) -> int:
 		if priority != None:
