@@ -197,12 +197,16 @@ class TestFunction:
 					else:
 						hasPassed, info = result, ""
 				except AssertionError as e:
-					last = traceback.extract_tb(e.__traceback__)[-1]
+					# last = traceback.extract_tb(e.__traceback__)[-1]
 					# print(last, dir(last), last.line, last.lineno)
 
-					msg = simplifyAssertionMessage(str(e))
+					assertMsg = simplifyAssertionMessage(str(e))
+					failMsg = test.fail("")
+					if failMsg and not failMsg.endswith("\n"):
+						failMsg += "\n"
+					msg = failMsg + assertMsg
 
-					return TestResult(False, test.description, test.exception(msg), exception=e)
+					return TestResult(False, test.description, msg)
 				except exception.CheckpyError as e:
 					return TestResult(False, test.description, test.exception(e), exception=e)
 				except Exception as e:

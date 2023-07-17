@@ -1,6 +1,8 @@
 from checkpy.entities import exception
+
 import os
 import traceback
+
 import colorama
 colorama.init()
 
@@ -24,7 +26,7 @@ def display(testResult):
 	color, smiley = _selectColorAndSmiley(testResult)
 	msg = "{}{} {}{}".format(color, smiley, testResult.description, _Colors.ENDC)
 	if testResult.message:
-		msg += "\n  - {}".format(testResult.message)
+		msg += "\n   " + "\n   ".join(testResult.message.split("\n"))
 
 	if DEBUG_MODE and testResult.exception:
 		exc = testResult.exception

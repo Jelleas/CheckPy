@@ -34,7 +34,6 @@ def explainCompare(op: str, left: str, right: str) -> Optional[str]:
 
 def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
     message = str(assertion)
-    # return message
 
     # Find any substitution lines of the form where ... = ... from pytest
     whereRegex = re.compile(r"\n[\s]*\+(\s*)(where|and)[\s]*(.*)")
@@ -99,7 +98,6 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
 
         # Ensure all newlines are escaped
         assertLine = assertLine.replace("\n", "\\n")
-
     return result + assertLine
 
 
