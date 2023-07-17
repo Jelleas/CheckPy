@@ -44,7 +44,14 @@ setup(
 
 	include_package_data=True,
 
-	install_requires=["requests", "tinydb", "dill", "colorama", "redbaron"],
+	install_requires=[
+		"requests",
+		"tinydb",
+		"dill",
+		"colorama",
+		"redbaron",
+		"dessert"
+	],
 
 	extras_require={
 		'dev': [],
