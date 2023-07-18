@@ -1,29 +1,30 @@
-import io
-import re
-import tokenize
+import io as _io
+import re as _re
+import tokenize as _tokenize
 
-from pathlib import Path
-from typing import Optional, Union
+from pathlib import Path as _Path
+from typing import Optional as _Optional
+from typing import Union as _Union
 
-import checkpy
+import checkpy as _checkpy
 
 
 __all__ = ["getSource", "getSourceOfDefinitions", "removeComments"]
 
 
-def getSource(fileName: Optional[Union[str, Path]]=None) -> str:
+def getSource(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 	"""Get the contents of the file."""
 	if fileName is None:
-		fileName = checkpy.file.name
+		fileName = _checkpy.file.name
 
 	with open(fileName) as f:
 		return f.read()
 
 
-def getSourceOfDefinitions(fileName: Optional[Union[str, Path]]=None) -> str:
+def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 	"""Get just the source code inside definitions (def / class)."""
 	if fileName is None:
-		fileName = checkpy.file.name
+		fileName = _checkpy.file.name
 
 	newSource = ""
 
@@ -50,7 +51,6 @@ def getSourceOfDefinitions(fileName: Optional[Union[str, Path]]=None) -> str:
 def removeComments(source: str) -> str:
 	io_obj = io.StringIO(source)
 	out = ""
-	prev_toktype = tokenize.INDENT
 	last_lineno = -1
 	last_col = 0
 	indentation = "\t"
@@ -78,7 +78,6 @@ def removeComments(source: str) -> str:
 		else:
 			out += token_string
 
-		prev_toktype = token_type
 		last_col = end_col
 		last_lineno = end_line
 	return out
