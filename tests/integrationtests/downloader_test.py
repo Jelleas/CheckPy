@@ -9,6 +9,7 @@ except:
 	# Python 3
 	import io as StringIO
 import checkpy
+import checkpy.interactive
 import checkpy.downloader as downloader
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
@@ -53,13 +54,13 @@ class TestDownload(BaseClean):
 
     def test_spelledOutLink(self):
         downloader.download("https://github.com/jelleas/tests")
-        testerResult = checkpy.test(self.fileName)
+        testerResult = checkpy.interactive.test(self.fileName)
         self.assertTrue(len(testerResult.testResults) == 1)
         self.assertTrue(testerResult.testResults[0].hasPassed)
 
     def test_incompleteLink(self):
         downloader.download("jelleas/tests")
-        testerResult = checkpy.test(self.fileName)
+        testerResult = checkpy.interactive.test(self.fileName)
         self.assertTrue(len(testerResult.testResults) == 1)
         self.assertTrue(testerResult.testResults[0].hasPassed)
    

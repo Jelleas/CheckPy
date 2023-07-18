@@ -1,6 +1,13 @@
 from checkpy import lib
 import re
 import os
+import warnings
+
+warnings.warn(
+	"""checkpy.assertlib is deprecated. Use `assert` statements instead.""",
+	DeprecationWarning, 
+	stacklevel=2
+)
 
 def exact(actual, expected):
 	return actual == expected

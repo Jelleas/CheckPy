@@ -204,6 +204,10 @@ class _Tester(object):
 		printer.printer.DEBUG_MODE = self.debugMode
 		printer.printer.SILENT_MODE = self.silentMode
 
+		if self.debugMode:
+			import warnings	
+			warnings.simplefilter('always', DeprecationWarning)
+
 		checkpy.file = self.filePath
 
 		# overwrite argv so that it seems the file was run directly

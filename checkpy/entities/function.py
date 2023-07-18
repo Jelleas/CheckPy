@@ -1,15 +1,12 @@
 import os
 import sys
 import re
-
 import contextlib
 import inspect
+import io
+
 import checkpy.entities.exception as exception
 
-if sys.version_info >= (3,0):
-	import io
-else:
-	import StringIO as io
 
 class Function(object):
 	def __init__(self, function):

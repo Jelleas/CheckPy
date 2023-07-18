@@ -1,97 +1,102 @@
+import io
 import sys
 import re
 import os
-import io as StringIO
 import contextlib
 import imp
-import tokenize
 import traceback
 import requests
+
+from pathlib import Path
+from types import ModuleType
+from typing import Any, Iterable, List, Optional, Tuple, TextIO, Union
+from warnings import warn
 
 import checkpy
 from checkpy.entities import path, exception, function
 from checkpy import caches
+from checkpy.lib.static import getSource
 
 
-def require(fileName, source=None):
-	if source:
-		download(fileName, source)
-		return
+__all__ = [
+	"getFunction",
+	"getModule",
+	"outputOf",
+	"getModuleAndOutputOf",
+	"captureStdin",
+	"captureStdout"
+]
 
-	filePath = path.userPath + fileName
 
-	if not fileExists(str(filePath)):
-		raise exception.CheckpyError("Required file {} does not exist".format(fileName))
+def getFunction(
+		functionName: str,
+		fileName: Optional[Union[str, Path]]=None,
+		src: Optional[str]=None,
+		argv: Optional[List[str]]=None,
+		stdinArgs: Optional[List[str]]=None,
+		ignoreExceptions: Iterable[Exception]=(),
+		overwriteAttributes: Iterable[Tuple[str, Any]]=()
+) -> function.Function:
+	"""Run the file then get the function with functionName"""
+	return getattr(getModule(
+		fileName=fileName,
+		src=src,
+		argv=argv,
+		stdinArgs=stdinArgs,
+		ignoreExceptions=ignoreExceptions,
+		overwriteAttributes=overwriteAttributes
+	), functionName)
 
-	filePath.copyTo(path.current() + fileName)
 
-def fileExists(fileName):
-	return path.Path(fileName).exists()
-
-def source(fileName=None):
-	if fileName is None:
-		fileName = checkpy.file.name
-
-	source = ""
-	with open(fileName) as f:
-		source = f.read()
-	return source
-
-def sourceOfDefinitions(fileName=None):
-	if fileName is None:
-		fileName = checkpy.file.name
-
-	newSource = ""
-
-	with open(fileName) as f:
-		insideDefinition = False
-		for line in removeComments(f.read()).split("\n"):
-			line += "\n"
-			if not line.strip():
-				continue
-
-			if (line.startswith(" ") or line.startswith("\t")) and insideDefinition:
-				newSource += line
-			elif line.startswith("def ") or line.startswith("class "):
-				newSource += line
-				insideDefinition = True
-			elif line.startswith("import ") or line.startswith("from "):
-				newSource += line
-			else:
-				insideDefinition = False
-	return newSource
-
-def documentFunction(func, documentation):
-	"""Creates a function that shows documentation when its printed / shows up in an error."""
-	class PrintableFunction:
-		def __call__(self, *args, **kwargs):
-			return func(*args, **kwargs)
-
-		def __repr__(self):
-			return documentation
-
-	return PrintableFunction()
-
-def getFunction(functionName, *args, **kwargs):
-	return getattr(module(*args, **kwargs), functionName)
-
-def outputOf(*args, **kwargs):
-	_, output = moduleAndOutputOf(*args, **kwargs)
+def outputOf(
+		fileName: Optional[Union[str, Path]]=None,
+		src: Optional[str]=None,
+		argv: Optional[List[str]]=None,
+		stdinArgs: Optional[List[str]]=None,
+		ignoreExceptions: Iterable[Exception]=(),
+		overwriteAttributes: Iterable[Tuple[str, Any]]=()
+) -> str:
+	"""Get the output after running the file."""
+	_, output = getModuleAndOutputOf(
+		fileName=fileName,
+		src=src,
+		argv=argv,
+		stdinArgs=stdinArgs,
+		ignoreExceptions=ignoreExceptions,
+		overwriteAttributes=overwriteAttributes
+	)
 	return output
 
-def module(*args, **kwargs):
-	mod, _ = moduleAndOutputOf(*args, **kwargs)
+
+def getModule(
+		fileName: Optional[Union[str, Path]]=None,
+		src: Optional[str]=None,
+		argv: Optional[List[str]]=None,
+		stdinArgs: Optional[List[str]]=None,
+		ignoreExceptions: Iterable[Exception]=(),
+		overwriteAttributes: Iterable[Tuple[str, Any]]=()
+) -> ModuleType:
+	"""Get the python Module after running the file."""
+	mod, _ = getModuleAndOutputOf(
+		fileName=fileName,
+		src=src,
+		argv=argv,
+		stdinArgs=stdinArgs,
+		ignoreExceptions=ignoreExceptions,
+		overwriteAttributes=overwriteAttributes
+	)
 	return mod
 
+
 @caches.cache()
-def moduleAndOutputOf(
-		fileName=None,
-		src=None,
-		argv=None,
-		stdinArgs=None,
-		ignoreExceptions=(),
-		overwriteAttributes=()
-	):
+def getModuleAndOutputOf(
+		fileName: Optional[Union[str, Path]]=None,
+		src: Optional[str]=None,
+		argv: Optional[List[str]]=None,
+		stdinArgs: Optional[List[str]]=None,
+		ignoreExceptions: Iterable[Exception]=(),
+		overwriteAttributes: Iterable[Tuple[str, Any]]=()
+	) -> Tuple[ModuleType, str]:
 	"""
 	This function handles most of checkpy's under the hood functionality
 	fileName: the name of the file to run
@@ -103,8 +108,8 @@ def moduleAndOutputOf(
 	if fileName is None:
 		fileName = checkpy.file.name
 
-	if src == None:
-		src = source(fileName)
+	if src is None:
+		src = getSource(fileName)
 
 	mod = None
 	output = ""
@@ -121,21 +126,20 @@ def moduleAndOutputOf(
 		if argv:
 			sys.argv, argv = argv, sys.argv
 
-		moduleName = fileName.split(".")[0]
+		moduleName = str(fileName).split(".")[0]
+
+		mod = imp.new_module(moduleName)
+		# overwrite attributes
+		for attr, value in overwriteAttributes:
+			setattr(mod, attr, value)
 
 		try:
-			mod = imp.new_module(moduleName)
-
-			# overwrite attributes
-			for attr, value in overwriteAttributes:
-				setattr(mod, attr, value)
-
 			# execute code in mod
 			exec(src, mod.__dict__)
 
 			# add resulting module to sys
 			sys.modules[moduleName] = mod
-		except tuple(ignoreExceptions) as e:
+		except tuple(ignoreExceptions) as e: # type: ignore
 			pass
 		except exception.CheckpyError as e:
 			excep = e
@@ -166,92 +170,14 @@ def moduleAndOutputOf(
 
 	return mod, output
 
-def neutralizeFunction(function):
-	def dummy(*args, **kwargs):
-		pass
-	setattr(function, "__code__", dummy.__code__)
-
-def neutralizeFunctionFromImport(mod, functionName, importedModuleName):
-	for attr in [getattr(mod, name) for name in dir(mod)]:
-		if getattr(attr, "__name__", None) == importedModuleName:
-			if hasattr(attr, functionName):
-				neutralizeFunction(getattr(attr, functionName))
-		if getattr(attr, "__name__", None) == functionName and getattr(attr, "__module__", None) == importedModuleName:
-			if hasattr(mod, functionName):
-				neutralizeFunction(getattr(mod, functionName))
-
-def download(fileName, source):
-	try:
-		r = requests.get(source)
-	except requests.exceptions.ConnectionError as e:
-		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
-
-	if not r.ok:
-		raise exception.DownloadError(message = "Failed to download {} because: {}".format(source, r.reason))
-
-	with open(str(fileName), "wb+") as target:
-		target.write(r.content)
-
-def removeWhiteSpace(s):
-	return re.sub(r"\s+", "", s, flags=re.UNICODE)
-
-def getPositiveIntegersFromString(s):
-	return [int(i) for i in re.findall(r"\d+", s)]
-
-def getNumbersFromString(s):
-	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", s)]
-
-def getLine(text, lineNumber):
-	lines = text.split("\n")
-	try:
-		return lines[lineNumber]
-	except IndexError:
-		raise IndexError("Expected to have atleast {} lines in:\n{}".format(lineNumber + 1, text))
-
-# inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
-def removeComments(source):
-	io_obj = StringIO.StringIO(source)
-	out = ""
-	prev_toktype = tokenize.INDENT
-	last_lineno = -1
-	last_col = 0
-	indentation = "\t"
-	for token_type, token_string, (start_line, start_col), (end_line, end_col), ltext in tokenize.generate_tokens(io_obj.readline):
-		if start_line > last_lineno:
-			last_col = 0
-
-		# figure out type of indentation used
-		if token_type == tokenize.INDENT:
-			indentation = "\t" if "\t" in token_string else " "
-
-		# write indentation
-		if start_col > last_col and last_col == 0:
-			out += indentation * (start_col - last_col)
-		# write other whitespace
-		elif start_col > last_col:
-			out += " " * (start_col - last_col)
-
-		# ignore comments
-		if token_type == tokenize.COMMENT:
-			pass
-		# put all docstrings on a single line
-		elif token_type == tokenize.STRING:
-			out += re.sub("\n", " ", token_string)
-		else:
-			out += token_string
-
-		prev_toktype = token_type
-		last_col = end_col
-		last_lineno = end_line
-	return out
 
 @contextlib.contextmanager
-def captureStdout(stdout=None):
+def captureStdout(stdout: Optional[TextIO]=None):
 	old_stdout = sys.stdout
 	old_stderr = sys.stderr
 
 	if stdout is None:
-		stdout = StringIO.StringIO()
+		stdout = io.StringIO()
 
 	try:
 		sys.stdout = stdout
@@ -264,8 +190,9 @@ def captureStdout(stdout=None):
 		sys.stdout = old_stdout
 		sys.stderr = old_stderr
 
+
 @contextlib.contextmanager
-def captureStdin(stdin=None):
+def captureStdin(stdin: Optional[TextIO]=None):
 	def newInput(oldInput):
 		def input(prompt = None):
 			try:
@@ -281,7 +208,7 @@ def captureStdin(stdin=None):
 	__builtins__["input"] = newInput(oldInput)
 	old = sys.stdin
 	if stdin is None:
-		stdin = StringIO.StringIO()
+		stdin = io.StringIO()
 	sys.stdin = stdin
 
 	try:
@@ -291,3 +218,97 @@ def captureStdin(stdin=None):
 	finally:
 		sys.stdin = old
 		__builtins__["input"] = oldInput
+
+
+def removeWhiteSpace(s):
+	warn("""checkpy.lib.removeWhiteSpace() is deprecated. Instead use:
+	import re
+	re.sub(r"\s+", "", text)	
+	""", DeprecationWarning, stacklevel=2)
+	return re.sub(r"\s+", "", s, flags=re.UNICODE)
+
+
+def getPositiveIntegersFromString(s):
+	warn("""checkpy.lib.getPositiveIntegersFromString() is deprecated. Instead use:
+	import re
+	[int(i) for i in re.findall(r"\d+", text)]
+	""", DeprecationWarning, stacklevel=2)
+	return [int(i) for i in re.findall(r"\d+", s)]
+
+
+def getNumbersFromString(s):
+	warn("""checkpy.lib.getNumbersFromString() is deprecated. Instead use:
+	import re
+	re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", text)
+
+	OR
+
+	numbers = []
+	for item in text.split():
+		try:
+			numbers.append(float(item))
+		except ValueError:
+			pass
+	""", DeprecationWarning, stacklevel=2)
+	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", s)]
+
+
+def getLine(text, lineNumber):
+	warn("""checkpy.lib.getLine() is deprecated. Instead try:
+	lines = text.split("\n")
+	assert len(lines) >= lineNumber
+	line = lines[lineNumber]
+	""", DeprecationWarning, stacklevel=2)
+	lines = text.split("\n")
+	try:
+		return lines[lineNumber]
+	except IndexError:
+		raise IndexError("Expected to have atleast {} lines in:\n{}".format(lineNumber + 1, text))
+
+
+def fileExists(fileName):
+	warn("""checkpy.lib.fileExists() is deprecated. Use pathlib.Path instead:
+	from pathlib import Path
+	Path(filename).exists()
+	""", DeprecationWarning, stacklevel=2)
+	return path.Path(fileName).exists()
+
+
+def download(fileName, source):
+	warn("""checkpy.lib.download() is deprecated. Use requests to download files:
+	import requests
+	url = 'http://google.com/favicon.ico'
+	r = requests.get(url, allow_redirects=True)
+	with open('google.ico', 'wb') as f:
+		f.write(r.content)
+	""", DeprecationWarning, stacklevel=2)	
+	try:
+		r = requests.get(source)
+	except requests.exceptions.ConnectionError as e:
+		raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
+
+	if not r.ok:
+		raise exception.DownloadError(message = "Failed to download {} because: {}".format(source, r.reason))
+
+	with open(str(fileName), "wb+") as target:
+		target.write(r.content)
+
+
+def require(fileName, source=None):
+	warn("""checkpy.lib.require() is deprecated. Use requests to download files:
+	import requests
+	url = 'http://google.com/favicon.ico'
+	r = requests.get(url, allow_redirects=True)
+	with open('google.ico', 'wb') as f:
+		f.write(r.content)
+	""", DeprecationWarning, stacklevel=2)
+	if source:
+		download(fileName, source)
+		return
+
+	filePath = path.userPath + fileName
+
+	if not fileExists(str(filePath)):
+		raise exception.CheckpyError("Required file {} does not exist".format(fileName))
+
+	filePath.copyTo(path.current() + fileName)

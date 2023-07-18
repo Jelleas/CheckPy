@@ -28,7 +28,8 @@ def localTable():
 		yield db.table("local")
 
 def clean():
-	database().drop_tables()
+	with database() as db:
+		db.drop_tables()
 
 def forEachTestsPath():
 	for path in forEachGithubPath():
