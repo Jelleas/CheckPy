@@ -7,8 +7,12 @@ from checkpy import tester
 from checkpy import printer
 import json
 import pkg_resources
+import warnings
+
 
 def main():
+	warnings.filterwarnings("ignore")
+
 	parser = argparse.ArgumentParser(
 		description =
 			"""

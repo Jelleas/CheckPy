@@ -208,13 +208,13 @@ class TestFunction:
 
 					return TestResult(False, test.description, msg)
 				except exception.CheckpyError as e:
-					return TestResult(False, test.description, test.exception(e), exception=e)
+					return TestResult(False, test.description, str(test.exception(e)), exception=e)
 				except Exception as e:
 					e = exception.TestError(
 						exception = e,
 						message = "while testing",
 						stacktrace = traceback.format_exc())
-					return TestResult(False, test.description, test.exception(e), exception=e)
+					return TestResult(False, test.description, str(test.exception(e)), exception=e)
 
 				return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info))
 		

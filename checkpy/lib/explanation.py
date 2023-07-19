@@ -1,5 +1,6 @@
 import re
 
+from types import ModuleType
 from typing import Callable, List, Optional, Union
 
 from dessert.util import assertrepr_compare
@@ -80,8 +81,9 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
         match = substitutionRegex.match(substitution)
         left, right = match.group(1), match.group(2)
 
-        # If the right contains any checkpy function, skip
-        if any(elem + "(" in right for elem in checkpy.__all__):
+        # If the right contains any checkpy function or module, skip
+        print(left)
+        if _shouldSkip(right):
             skipping = True
             continue
 
@@ -100,6 +102,23 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
         assertLine = assertLine.replace("\n", "\\n")
     return result + assertLine
 
+
+def _shouldSkip(content):
+    modules = [checkpy]
+    for elem in checkpy.__all__:
+        attr = getattr(checkpy, elem)
+        if isinstance(attr, ModuleType):
+            modules.append(attr)
+
+    skippedFunctionNames = []
+    for module in modules:
+        for elem in module.__all__:
+            attr = getattr(module, elem)
+            if callable(attr):
+                skippedFunctionNames.append(elem)
+    
+    return any(elem in content for elem in skippedFunctionNames)
+    
 
 class MockConfig:
     """This config is only used for config.getoption('verbose')"""

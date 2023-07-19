@@ -19,6 +19,7 @@ import importlib
 import multiprocessing
 from multiprocessing.queues import Queue
 import time
+import warnings
 
 
 __all__ = ["getActiveTest", "test", "testModule", "TesterResult"]
@@ -204,8 +205,8 @@ class _Tester(object):
 		printer.printer.DEBUG_MODE = self.debugMode
 		printer.printer.SILENT_MODE = self.silentMode
 
+		warnings.filterwarnings("ignore")
 		if self.debugMode:
-			import warnings	
 			warnings.simplefilter('always', DeprecationWarning)
 
 		checkpy.file = self.filePath
