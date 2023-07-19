@@ -82,7 +82,6 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
         left, right = match.group(1), match.group(2)
 
         # If the right contains any checkpy function or module, skip
-        print(left)
         if _shouldSkip(right):
             skipping = True
             continue

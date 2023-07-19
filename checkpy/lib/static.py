@@ -1,3 +1,4 @@
+import ast as _ast
 import io as _io
 import re as _re
 import tokenize as _tokenize
@@ -57,12 +58,12 @@ def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source: str) -> str:
 	"""Remove comments from a string containing Python source code."""
-	io_obj = io.StringIO(source)
+	io_obj = _io.StringIO(source)
 	out = ""
 	last_lineno = -1
 	last_col = 0
 	indentation = "\t"
-	for token_type, token_string, (start_line, start_col), (end_line, end_col), ltext in tokenize.generate_tokens(io_obj.readline):
+	for token_type, token_string, (start_line, start_col), (end_line, end_col), ltext in _tokenize.generate_tokens(io_obj.readline):
 		if start_line > last_lineno:
 			last_col = 0
 
@@ -92,10 +93,8 @@ def removeComments(source: str) -> str:
 
 
 def getFunctionCalls(source: _Optional[str]=None) -> _List[str]:
-	"""Get all Function calls from source."""
-	import ast
-
-	class CallVisitor(ast.NodeVisitor):
+	"""Get all names of function called in source."""
+	class CallVisitor(_ast.NodeVisitor):
 		def __init__(self):
 			self.parts = []
 
@@ -108,9 +107,9 @@ def getFunctionCalls(source: _Optional[str]=None) -> _List[str]:
 
 		@property
 		def call(self):
-			return ".".join(self.parts) + "()"
+			return ".".join(self.parts)
 
-	class FunctionsVisitor(ast.NodeVisitor):
+	class FunctionsVisitor(_ast.NodeVisitor):
 		def __init__(self):
 			self.functionCalls = []
 
@@ -123,21 +122,26 @@ def getFunctionCalls(source: _Optional[str]=None) -> _List[str]:
 	if source is None:
 		source = getSource()
 
-	tree = ast.parse(source)
+	tree = _ast.parse(source)
 	visitor = FunctionsVisitor()
 	visitor.visit(tree)
 	return visitor.functionCalls
 
-def getFunctionDefinitions(
-		*functionNames: str,
-		source: _Optional[str]=None
-	) -> _List[str]:
-	"""Get all Function definitions from source."""
-	def isFunctionDefIn(functionName, src):
-		regex = _re.compile(".*def[ \\t]+{}[ \\t]*\(.*?\).*".format(functionName), _re.DOTALL)
-		return regex.match(src)
+
+def getFunctionDefinitions(source: _Optional[str]=None) -> _List[str]:
+	"""Get all names of Function definitions from source."""
+	class FunctionsVisitor(_ast.NodeVisitor):
+		def __init__(self):
+			self.functionNames = []
+
+		def visit_FunctionDef(self, node: _ast.FunctionDef):
+			self.functionNames.append(node.name)
+			super().generic_visit(node)
 
 	if source is None:
 		source = getSource()
-	source = removeComments(source)
-	return all(isFunctionDefIn(fName, source) for fName in functionNames)
+
+	tree = _ast.parse(source)
+	visitor = FunctionsVisitor()
+	visitor.visit(tree)
+	return visitor.functionNames
