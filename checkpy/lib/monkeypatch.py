@@ -55,7 +55,7 @@ def patchNumpy():
 
 class _PrintableFunction(_Function):
     def __init__(self, function, docs):
-        super().__init__(self, function)
+        super().__init__(function)
         self._docs = docs
         
     def __repr__(self):
