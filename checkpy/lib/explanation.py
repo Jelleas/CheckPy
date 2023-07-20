@@ -36,6 +36,11 @@ def explainCompare(op: str, left: str, right: str) -> Optional[str]:
 def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
     message = str(assertion)
 
+    # Filter out pytest's "Use -v to get the full diff" message
+    lines = message.split("\n")
+    lines = [line for line in lines if "Use -v to get the full diff" not in line]
+    message = "\n".join(lines)
+
     # Find any substitution lines of the form where ... = ... from pytest
     whereRegex = re.compile(r"\n[\s]*\+(\s*)(where|and)[\s]*(.*)")
     whereLines = whereRegex.findall(message)
