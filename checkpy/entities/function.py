@@ -53,6 +53,9 @@ class Function(object):
 		"""stateful function that returns the print (stdout) output of the latest function call as a string"""
 		return self._printOutput
 
+	def __repr__(self):
+		return self._function.__name__
+
 	@contextlib.contextmanager
 	def _captureStdout(self):
 		"""
