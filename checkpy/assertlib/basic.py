@@ -44,10 +44,10 @@ def numberOnLine(number, line, deviation = 0):
 
 def fileContainsFunctionCalls(fileName, *functionNames):
 	source = lib.removeComments(lib.source(fileName))
-	fCallInSrc = lambda fName, src : re.match(re.compile(".*{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)
+	fCallInSrc = lambda fName, src : re.match(re.compile(r".*{}[ \t]*(.*?).*".format(fName), re.DOTALL), src)
 	return all(fCallInSrc(fName, source) for fName in functionNames)
 
 def fileContainsFunctionDefinitions(fileName, *functionNames):
 	source = lib.removeComments(lib.source(fileName))
-	fDefInSrc = lambda fName, src : re.match(re.compile(".*def[ \\t]+{}[ \\t]*\(.*?\).*".format(fName), re.DOTALL), src)
+	fDefInSrc = lambda fName, src : re.match(re.compile(r".*def[ \t]+{}[ \t]*(.*?).*".format(fName), re.DOTALL), src)
 	return all(fDefInSrc(fName, source) for fName in functionNames)

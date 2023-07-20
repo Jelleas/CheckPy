@@ -92,15 +92,21 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
             continue
 
         # Substitute the first match in assertLine
+        oldAssertLine = assertLine
         assertLine = re.sub(
-            r"( )" + re.escape(left) + r"( |$|\()",
+            r"([^\w])" + re.escape(left) + r"([^\w\.])",
             r"\1" + right + r"\2",
             assertLine,
             count=1,
             flags=re.S
         )
 
-        oldSub = right
+        # If substitution succeeds, keep track of the sub
+        if oldAssertLine != assertLine:
+            oldSub = right
+        # Else substitution failed, start skipping.
+        else:
+            skipping = True
 
         # Ensure all newlines are escaped
         assertLine = assertLine.replace("\n", "\\n")
@@ -120,7 +126,7 @@ def _shouldSkip(content):
             attr = getattr(module, elem)
             if callable(attr):
                 skippedFunctionNames.append(elem)
-    
+
     return any(elem in content for elem in skippedFunctionNames)
     
 

@@ -49,7 +49,7 @@ setup(
 		"tinydb",
 		"dill",
 		"colorama",
-		"redbaron",
+		"pytest",
 		"dessert"
 	],
 

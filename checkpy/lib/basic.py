@@ -255,8 +255,8 @@ def getNumbersFromString(s):
 
 def getLine(text, lineNumber):
 	warn("""checkpy.lib.getLine() is deprecated. Instead try:
-	lines = text.split("\n")
-	assert len(lines) >= lineNumber
+	lines = text.split("\\n")
+	assert len(lines) >= lineNumber + 1
 	line = lines[lineNumber]
 	""", DeprecationWarning, stacklevel=2)
 	lines = text.split("\n")
