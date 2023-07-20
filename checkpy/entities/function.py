@@ -31,11 +31,14 @@ class Function(object):
 
 			message = "while trying to execute {}()".format(self.name)
 			if nArgs > 0:
-				argsRepr = ", ".join("{}={}".format(argumentNames[i], args[i]) for i in range(len(args)))
-				kwargsRepr = ", ".join("{}={}".format(kwargName, kwargs[kwargName]) for kwargName in argumentNames[len(args):nArgs])
-				representation = ", ".join(s for s in [argsRepr, kwargsRepr] if s)
-				message = "while trying to execute {}({})".format(self.name, representation)
-
+				if len(argumentNames) == len(args):
+					argsRepr = ", ".join("{}={}".format(argumentNames[i], args[i]) for i in range(len(args)))
+					kwargsRepr = ", ".join("{}={}".format(kwargName, kwargs[kwargName]) for kwargName in argumentNames[len(args):nArgs])
+					representation = ", ".join(s for s in [argsRepr, kwargsRepr] if s)
+					message = "while trying to execute {}({})".format(self.name, representation)
+				else:
+					argsRepr = ','.join(str(arg) for arg in args)
+					message = f"while trying to exectute {self.name}({argsRepr})"
 			raise exception.SourceException(exception = e, message = message)
 
 	@property
