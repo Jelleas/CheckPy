@@ -93,8 +93,8 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
 
         # Substitute the first match in assertLine
         assertLine = re.sub(
-            re.escape(left),
-            right,
+            r"( )" + re.escape(left) + r"( |$|\()",
+            r"\1" + right + r"\2",
             assertLine,
             count=1,
             flags=re.S
