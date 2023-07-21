@@ -238,17 +238,7 @@ def getPositiveIntegersFromString(s):
 
 def getNumbersFromString(s):
 	warn("""checkpy.lib.getNumbersFromString() is deprecated. Instead use:
-	import re
-	re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", text)
-
-	OR
-
-	numbers = []
-	for item in text.split():
-		try:
-			numbers.append(float(item))
-		except ValueError:
-			pass
+	lib.static.getNumbersFrom(s)
 	""", DeprecationWarning, stacklevel=2)
 	return [eval(n) for n in re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", s)]
 

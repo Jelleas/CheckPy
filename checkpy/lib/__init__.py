@@ -3,6 +3,9 @@ from checkpy.lib.sandbox import *
 from checkpy.lib.static import getSource
 from checkpy.lib.static import getSourceOfDefinitions
 from checkpy.lib.static import removeComments
+from checkpy.lib.static import getFunctionDefinitions
+from checkpy.lib.static import getFunctionCalls
+from checkpy.lib.static import getNumbersFrom
 from checkpy.lib.monkeypatch import documentFunction
 from checkpy.lib.monkeypatch import neutralizeFunction
 

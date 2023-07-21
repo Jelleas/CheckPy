@@ -55,6 +55,27 @@ def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 	return newSource
 
 
+def getNumbersFrom(text: str) -> _List[_Union[int, float]]:
+	"""
+	Get all Python parseable numbers from a string.
+	Numbers are assumed to be seperated by whitespace from other text.
+	whitespace = \s = [\\r\\n\\t\\f\\v ]
+	"""
+	numbers: _List[_Union[int, float]] = []
+
+	numbers = []
+	for elem in _re.split(r"\s", text):
+		try:
+			if "." in elem:
+				numbers.append(float(elem))
+			else:
+				numbers.append(int(elem))
+		except ValueError:
+			pass
+
+	return numbers
+
+
 # inspiration from http://stackoverflow.com/questions/1769332/script-to-remove-python-comments-docstrings
 def removeComments(source: str) -> str:
 	"""Remove comments from a string containing Python source code."""
