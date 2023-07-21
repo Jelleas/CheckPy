@@ -51,8 +51,13 @@ class Function(object):
 
     @property
     def arguments(self):
-        """gives the argument names of the function"""
+        """gives the parameter names of the function"""
         return inspect.getfullargspec(self._function)[0]
+
+    @property
+    def parameters(self):
+        """gives the parameter names of the function"""
+        return self.arguments
 
     @property
     def printOutput(self):
