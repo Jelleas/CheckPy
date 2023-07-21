@@ -62,8 +62,6 @@ def getNumbersFrom(text: str) -> _List[_Union[int, float]]:
 	whitespace = \s = [\\r\\n\\t\\f\\v ]
 	"""
 	numbers: _List[_Union[int, float]] = []
-
-	numbers = []
 	for elem in _re.split(r"\s", text):
 		try:
 			if "." in elem:
