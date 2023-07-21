@@ -48,7 +48,8 @@ setup(
 		"dill",
 		"colorama",
 		"pytest",
-		"dessert"
+		"dessert",
+		"typeguard"
 	],
 
 	extras_require={
