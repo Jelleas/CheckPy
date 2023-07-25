@@ -1,7 +1,7 @@
 import re
 
 from types import ModuleType
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 from dessert.util import assertrepr_compare
 
@@ -17,11 +17,18 @@ def addExplainer(explainer: Callable[[str, str, str], Optional[str]]) -> None:
     _explainers.append(explainer)
 
 
-def explainCompare(op: str, left: str, right: str) -> Optional[str]:
+def explainCompare(op: str, left: Any, right: Any) -> Optional[str]:
     for explainer in _explainers:
         rep = explainer(op, left, right)
         if rep:
             return rep
+
+    # Custom Type messages
+    if isinstance(right, checkpy.Type):
+        return f"{left} is not of type {right}"
+
+    if isinstance(left, checkpy.Type):
+        return f"{right} is not of type {left}"
 
     # Fall back on pytest (dessert) explanations
     rep = assertrepr_compare(MockConfig(), op, left, right)
