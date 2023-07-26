@@ -18,6 +18,7 @@ import re
 
 from copy import deepcopy
 from typing import Any, Callable, Dict, Iterable, Optional, List, Union
+from typing_extensions import Self
 from uuid import uuid4
 
 import checkpy.tests
@@ -83,17 +84,20 @@ class function:
 
         self.name(functionName)
 
-    def name(self, functionName: str) -> "function":
+    def name(self, functionName: str) -> Self:
         """Assert that a function with functionName is defined."""
         def testName(state: FunctionState):
             state.name = functionName
             state.description = f"defines the function {functionName}()"
-            assert functionName in checkpy.static.getFunctionDefinitions(),\
+
+            source = checkpy.static.getSource(state.fileName)
+            funcDefs = checkpy.static.getFunctionDefinitions(source)
+            assert functionName in funcDefs,\
                 f'no function found with name {functionName}()'
 
         return self.do(testName)
 
-    def params(self, *params: str) -> "function":
+    def params(self, *params: str) -> Self:
         """Assert that the function accepts exactly these parameters."""
         def testParams(state: FunctionState):
             state.params = list(params)
@@ -111,7 +115,7 @@ class function:
 
         return self.do(testParams)
 
-    def returnType(self, type_: type) -> "function":
+    def returnType(self, type_: type) -> Self:
         """
         From now on, assert that the function always returns values of type_ when called. 
         Note that type_ can be any typehint. For instance:
@@ -123,7 +127,7 @@ class function:
 
         return self.do(testType)
 
-    def returns(self, expected: Any) -> "function":
+    def returns(self, expected: Any) -> Self:
         """Assert that the last call returns expected."""
         def testReturned(state: FunctionState):
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
@@ -131,7 +135,7 @@ class function:
 
         return self.do(testReturned)
     
-    def stdout(self, expected: Any) -> "function":
+    def stdout(self, expected: Any) -> Self:
         """Assert that the last call printed expected."""
         def testStdout(state: FunctionState):
             nonlocal expected
@@ -146,7 +150,7 @@ class function:
 
         return self.do(testStdout)
 
-    def stdoutRegex(self, regex: Union[str, re.Pattern], readable: Optional[str]=None) -> "function":
+    def stdoutRegex(self, regex: Union[str, re.Pattern], readable: Optional[str]=None) -> Self:
         """
         Assert that the last call printed output matching regex.
         If readable is passed, show that instead of the regex in the test's output.
@@ -176,7 +180,7 @@ class function:
 
         return self.do(testStdoutRegex)
 
-    def call(self, *args: Any, **kwargs: Any) -> "function":
+    def call(self, *args: Any, **kwargs: Any) -> Self:
         """Call the function with args and kwargs."""
         def testCall(state: FunctionState):
             state.args = list(args)
@@ -191,14 +195,14 @@ class function:
 
         return self.do(testCall)
 
-    def timeout(self, time: int) -> "function":
+    def timeout(self, time: int) -> Self:
         """Reset the timeout on the check to time."""
         def setTimeout(state: FunctionState):
             state.timeout = time
 
         return self.do(setTimeout)
 
-    def description(self, description: str) -> "function":
+    def description(self, description: str) -> Self:
         """
         Fixate the test's description on description. 
         The test's description will not change after a call to this method,
@@ -212,7 +216,7 @@ class function:
 
         return self.do(setDecription)
 
-    def do(self, function: Callable[["FunctionState"], None]) -> "function":
+    def do(self, function: Callable[["FunctionState"], None]) -> Self:
         """
         Put function on the internal stack and call it after all previous calls have resolved.
         .do serves as an entry point for extensibility. Allowing you, the test writer, to insert
