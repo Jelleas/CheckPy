@@ -5,12 +5,13 @@ from uuid import uuid4
 from typing import Any, Callable, Dict, Iterable, Optional, List, Tuple, Union
 
 import checkpy.tests
+import checkpy.tester
 import checkpy.entities.function
 import checkpy.entities.exception
 import checkpy
 
 
-__all__ = ["function", "FunctionBuilder", "FunctionState"]
+__all__ = ["function"]
 
 
 def function(functionName: str) -> "FunctionBuilder":
@@ -85,7 +86,7 @@ class FunctionBuilder:
     def params(self, *params: str) -> "FunctionBuilder":
         """Assert that the function accepts exactly these parameters."""
         def testParams(state: FunctionState):
-            state.params = params
+            state.params = list(params)
             state.description = f"defines the function as {state.name}({', '.join(params)})"
 
             real = state.function.parameters
@@ -178,7 +179,7 @@ class FunctionBuilder:
     def call(self, *args: Any, **kwargs: Any) -> "FunctionBuilder":
         """Call the function with args and kwargs."""
         def testCall(state: FunctionState):
-            state.args = args
+            state.args = list(args)
             state.kwargs = kwargs
             state.description = f"calling function {state.getFunctionCallRepr()}"
             state.returned = state.function(*args, **kwargs)
@@ -261,7 +262,7 @@ class FunctionState:
         self._params: Optional[List[str]] = None
         self._wasCalled: bool = False
         self._returned: Any = None
-        self._returnType: type = Any
+        self._returnType: Any = Any
         self._args: List[Any] = []
         self._kwargs: Dict[str, Any] = {}
         self._timeout: int = 10
@@ -279,7 +280,7 @@ class FunctionState:
         self._name = str(newName)
 
     @property
-    def params(self) -> Tuple[str]:
+    def params(self) -> List[str]:
         """The exact parameter names and order that the function accepts."""
         if self._params is None:
             raise checkpy.entities.exception.CheckpyError(
@@ -311,7 +312,7 @@ class FunctionState:
         return self._returned
 
     @returned.setter
-    def returned(self, newReturned):
+    def returned(self, newReturned: Any):
         self._wasCalled = True
         self._returned = newReturned
 
@@ -322,7 +323,7 @@ class FunctionState:
 
     @args.setter
     def args(self, newArgs: Iterable[Any]):
-        self._args = newArgs
+        self._args = list(newArgs)
 
     @property
     def kwargs(self) -> Dict[str, Any]:
@@ -354,7 +355,7 @@ class FunctionState:
         return self._timeout
 
     @timeout.setter
-    def timeout(self, newTimeout):
+    def timeout(self, newTimeout: int):
         self._timeout = newTimeout
         checkpy.tester.getActiveTest().timeout = self.timeout
 
@@ -364,7 +365,7 @@ class FunctionState:
         return self._descriptionFormatter(self._description, self)
 
     @description.setter
-    def description(self, newDescription):
+    def description(self, newDescription: str):
         if not self.isDescriptionMutable:
             return
         self._description = newDescription
