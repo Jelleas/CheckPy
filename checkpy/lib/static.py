@@ -16,8 +16,10 @@ __all__ = [
     "getSource",
     "getSourceOfDefinitions",
     "removeComments",
+    "getNumbersFrom",
     "getFunctionCalls",
-    "getFunctionDefinitions"
+    "getFunctionDefinitions",
+    "getAstNodes"
 ]
 
 
