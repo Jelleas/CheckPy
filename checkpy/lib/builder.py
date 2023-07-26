@@ -27,7 +27,7 @@ import checkpy.entities.exception
 import checkpy
 
 
-__all__ = ["function"]
+__all__ = ["function", "FunctionState"]
 
 
 class function:
@@ -126,22 +126,22 @@ class function:
     def returns(self, expected: Any) -> "function":
         """Assert that the last call returns expected."""
         def testReturned(state: FunctionState):
-            actual = state.returned
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
-            assert actual == expected
+            assert state.returned == expected
 
         return self.do(testReturned)
     
-    def stdout(self, expected: str) -> "function":
+    def stdout(self, expected: Any) -> "function":
         """Assert that the last call printed expected."""
         def testStdout(state: FunctionState):
-            actual = state.function.printOutput
-
+            nonlocal expected
+            expected = str(expected)
             descrStr = expected.replace("\n", "\\n")
             if len(descrStr) > 40:
                 descrStr = descrStr[:20] + " ... " + descrStr[-20:]
             state.description = f"{state.getFunctionCallRepr()} should print {descrStr}"
-   
+
+            actual = state.function.printOutput
             assert actual == expected
 
         return self.do(testStdout)
