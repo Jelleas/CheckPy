@@ -1,3 +1,8 @@
+import dessert as _dessert
+
+with _dessert.rewrite_assertions_context():
+    from checkpy.lib import builder
+
 from checkpy.tests import test, failed, passed
 from checkpy.lib.basic import outputOf, getModule, getFunction
 from checkpy.lib.sandbox import only, include, exclude, require
@@ -18,6 +23,7 @@ __all__ = [
     "Type",
     "static",
     "monkeypatch",
+    "builder",
     "only",
     "include",
     "exclude",

@@ -1,3 +1,19 @@
+"""
+A declarative approach to writing checks through method chaining. For example:
+
+```
+testSquare = (builder
+    .function("square")  # assert function square() is defined
+    .params("x")        # assert that square() accepts one parameter called x
+    .returnType("int")  # assert that the function always returns an integer
+    .call(2)            # call the function with argument 2
+    .returns(4)         # assert that the function returns 4
+    .call(3)            # now call the function with argument 3
+    .returns(9)         # assert that the function returns 9
+    .build()            # done, build the test
+)
+"""
+
 import re
 
 from copy import deepcopy
