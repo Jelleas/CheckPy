@@ -99,11 +99,13 @@ def getModuleAndOutputOf(
 	) -> Tuple[ModuleType, str]:
 	"""
 	This function handles most of checkpy's under the hood functionality
-	fileName: the name of the file to run
-	source: the source code to be run
-	stdinArgs: optional arguments passed to stdin
-	ignoredExceptions: a collection of Exceptions that will silently pass
-	overwriteAttributes: a list of tuples [(attribute, value), ...]
+
+    fileName (optional): the name of the file to run
+    src (optional): the source code to run
+    argv (optional): set sys.argv to argv before importing,
+    stdinArgs (optional): arguments passed to stdin
+    ignoreExceptions (optional): exceptions that will silently pass while importing
+    overwriteAttributes (optional): attributes to overwrite in the imported module
 	"""
 	if fileName is None:
 		fileName = checkpy.file.name
@@ -126,7 +128,10 @@ def getModuleAndOutputOf(
 		if argv:
 			sys.argv, argv = argv, sys.argv
 
-		moduleName = str(fileName).split(".")[0]
+		if any(name == "__name__" and attr == "__main__" for name, attr in overwriteAttributes):
+			moduleName = "__main__"
+		else:
+			moduleName = str(fileName).split(".")[0]
 
 		mod = imp.new_module(moduleName)
 		# overwrite attributes

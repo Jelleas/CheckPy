@@ -4,21 +4,22 @@ A declarative approach to writing checks through method chaining. For example:
 ```
 testSquare = (builder
     .function("square")  # assert function square() is defined
-    .params("x")        # assert that square() accepts one parameter called x
-    .returnType("int")  # assert that the function always returns an integer
-    .call(2)            # call the function with argument 2
-    .returns(4)         # assert that the function returns 4
-    .call(3)            # now call the function with argument 3
-    .returns(9)         # assert that the function returns 9
-    .build()            # done, build the test
+    .params("x")         # assert that square() accepts one parameter called x
+    .returnType("int")   # assert that the function always returns an integer
+    .call(2)             # call the function with argument 2
+    .returns(4)          # assert that the function returns 4
+    .call(3)             # now call the function with argument 3
+    .returns(9)          # assert that the function returns 9
+    .build()             # done, build the test
 )
 """
 
 import re
 
 from copy import deepcopy
-from uuid import uuid4
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional, List, Tuple, Union
+from uuid import uuid4
 
 import checkpy.tests
 import checkpy.tester
@@ -30,9 +31,11 @@ import checkpy
 __all__ = ["function"]
 
 
-def function(functionName: str) -> "FunctionBuilder":
+def function(functionName: str, fileName: Optional[str]=None) -> "FunctionBuilder":
     """
-    A declarative approach to writing checks through method chaining. For example:
+    A declarative approach to writing checks through method chaining.
+
+    For example:
 
     ```
     testSquare = (
@@ -73,17 +76,17 @@ def function(functionName: str) -> "FunctionBuilder":
         return False
     ```
     """
-    return FunctionBuilder(functionName)
+    return FunctionBuilder(functionName, fileName=fileName)
 
 
 class FunctionBuilder:
-    def __init__(self, functionName: str):
+    def __init__(self, functionName: str, fileName: Optional[str]=None):
         """
         A Builder of Function tests through method chaining.
         Each method adds a part of a test on a stack.
         Upon `.build()` a checkpy test is created that executes each entry in the stack. 
         """
-        self._state: FunctionState = FunctionState(functionName)
+        self._state: FunctionState = FunctionState(functionName, fileName=fileName)
         self._blocks: List[Callable[["FunctionState"], None]] = []
 
         self.name(functionName)
@@ -272,9 +275,10 @@ class FunctionState:
     The state of the current test.
     This object serves as the "single source of truth" for each method in `FunctionBuilder`.
     """
-    def __init__(self, functionName: str):
+    def __init__(self, functionName: str, fileName: Optional[str]=None):
         self._description: str = f"defines the function {functionName}()"
         self._name: str = functionName
+        self._fileName: Optional[str] = fileName
         self._params: Optional[List[str]] = None
         self._wasCalled: bool = False
         self._returned: Any = None
@@ -296,6 +300,18 @@ class FunctionState:
         self._name = str(newName)
 
     @property
+    def fileName(self) -> Optional[str]:
+        """
+        The name of the Python file to run and import.
+        If this is not set (`None`), the default file (`checkpy.file.name`) is used.
+        """
+        return self._fileName
+
+    @fileName.setter
+    def fileName(self, newFileName: Optional[str]):
+        self._fileName = newFileName
+
+    @property
     def params(self) -> List[str]:
         """The exact parameter names and order that the function accepts."""
         if self._params is None:
@@ -311,7 +327,7 @@ class FunctionState:
     @property
     def function(self) -> checkpy.entities.function.Function:
         """The executable function."""
-        return checkpy.getFunction(self.name)
+        return checkpy.getFunction(self.name, fileName=self.fileName)
 
     @property
     def wasCalled(self) -> bool:
