@@ -25,10 +25,23 @@ def explainCompare(op: str, left: Any, right: Any) -> Optional[str]:
 
     # Custom Type messages
     if isinstance(right, checkpy.Type):
-        return f"{left} is not of type {right}"
+        return f"{left} is of type {right}"
 
     if isinstance(left, checkpy.Type):
-        return f"{right} is not of type {left}"
+        return f"{right} is of type {left}"
+
+    # Custom AbstractSyntaxTree messages
+    if isinstance(right, checkpy.AbstractSyntaxTree):
+        if op == "in":
+            return f"'{left.__name__}' is used in the source code"
+
+        prefix = f"'{left.__name__}' is not used in the source code\n~"
+        allLines = right.source.split("\n")
+        lineNoWidth = len(str(max(n.lineno for n in right.foundNodes)))
+        lines = []
+        for node in right.foundNodes:
+            lines.append(f"On line {str(node.lineno).rjust(lineNoWidth)}: {allLines[node.lineno - 1]}")
+        return prefix + "\n~".join(lines)
 
     # Fall back on pytest (dessert) explanations
     rep = assertrepr_compare(MockConfig(), op, left, right)
