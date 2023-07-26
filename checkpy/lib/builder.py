@@ -122,7 +122,7 @@ class FunctionBuilder:
 
     def returnType(self, type_: type) -> "FunctionBuilder":
         """
-        Assert that the function always returns values of type_. 
+        From now on, assert that the function always returns values of type_ when called. 
         Note that type_ can be any typehint. For instance:
 
         `function("square").returnType(Optional[int]).call(2) # assert that square returns an int or None`
