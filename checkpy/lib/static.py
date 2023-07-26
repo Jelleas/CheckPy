@@ -172,7 +172,7 @@ def getFunctionDefinitions(source: _Optional[str]=None) -> _List[str]:
 
 def getAstNodes(*types: type, source: _Optional[str]=None) -> _List[_ast.AST]:
     """
-    Given a list of ast.AST types find all nodes with those types.
+    Given ast.AST types find all nodes with those types.
     Every node found will have a `.lineno` attribute to get its line number.
     Some examples:
 
