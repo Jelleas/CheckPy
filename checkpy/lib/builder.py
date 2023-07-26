@@ -1,10 +1,20 @@
+import re
+
+from copy import deepcopy
+from uuid import uuid4
+from typing import Any, Callable, Dict, Iterable, Optional, List, Tuple, Union
+
 import checkpy.tests
 import checkpy.entities.function
 import checkpy.entities.exception
 import checkpy
-from copy import deepcopy
-from uuid import uuid4
-from typing import Any, Callable, Dict, Iterable, Optional, List, Tuple, Union
+
+
+__all__ = ["function", "FunctionBuilder", "FunctionState"]
+
+
+def function(functionName: str) -> "FunctionBuilder":
+    return FunctionBuilder(functionName)
 
 
 class FunctionBuilder:
@@ -54,13 +64,55 @@ class FunctionBuilder:
         self._blocks.append(testType)
         return self
 
-    def returned(self, expected: Any) -> "FunctionBuilder":
+    def returns(self, expected: Any) -> "FunctionBuilder":
         def testReturned(state: FunctionState):
             actual = state.returned
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
             assert actual == expected
 
         self._blocks.append(testReturned)
+        return self
+    
+    def stdout(self, expected: Any) -> "FunctionBuilder":
+        def testStdout(state: FunctionState):
+            actual = state.function.printOutput
+            expectedStr = str(expected)
+
+            descrStr = expectedStr.replace("\n", "\\n")
+            if len(descrStr) > 40:
+                descrStr = descrStr[:20] + " ... " + descrStr[-20:]
+            state.description = f"{state.getFunctionCallRepr()} should print {descrStr}"
+   
+            assert actual == expectedStr
+
+        self._blocks.append(testStdout)
+        return self
+
+    def stdoutRegex(self, regex: Union[str, re.Pattern], readable: Optional[str]=None) -> "FunctionBuilder":
+        def testStdoutRegex(state: FunctionState):
+            nonlocal regex
+            if isinstance(regex, str):
+                regex = re.compile(regex)
+
+            if readable:
+                state.description = f"{state.getFunctionCallRepr()} should print {readable}"
+            else:
+                state.description = f"{state.getFunctionCallRepr()} should print output matching regular expression: {regex}"
+
+            actual = state.function.printOutput
+
+            match = regex.match(actual)
+            if not match:
+                if readable:
+                    raise AssertionError(f"The printed output does not match the expected output. This is expected:\n"
+                                         f"{readable}\n"
+                                         f"This is what {state.getFunctionCallRepr()} printed:\n"
+                                         f"{actual}")
+                raise AssertionError(f"The printed output does not match regular expression: {regex}.\n"
+                                     f"This is what {state.getFunctionCallRepr()} printed:\n"
+                                     f"{actual}")
+
+        self._blocks.append(testStdoutRegex)
         return self
 
     def call(self, *args: Any, **kwargs: Any) -> "FunctionBuilder":
@@ -215,7 +267,3 @@ class FunctionState:
     def setDescriptionFormatter(self, formatter: Callable[[str, "FunctionState"], str]):
         self._descriptionFormatter = formatter
         checkpy.tester.getActiveTest().description = self.description
-
-
-def function(functionName: str) -> FunctionBuilder:
-    return FunctionBuilder(functionName)
