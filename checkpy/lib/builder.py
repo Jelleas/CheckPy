@@ -251,6 +251,10 @@ class FunctionBuilder:
 
 
 class FunctionState:
+    """
+    The state of the current test.
+    This object serves as the "single source of truth" for each method in `FunctionBuilder`.
+    """
     def __init__(self, functionName: str):
         self._description: str = f"defines the function {functionName}()"
         self._name: str = functionName
@@ -267,6 +271,7 @@ class FunctionState:
 
     @property
     def name(self) -> str:
+        """The name of the function to be tested."""
         return self._name
 
     @name.setter
@@ -275,6 +280,7 @@ class FunctionState:
 
     @property
     def params(self) -> Tuple[str]:
+        """The exact parameter names and order that the function accepts."""
         if self._params is None:
             raise checkpy.entities.exception.CheckpyError(
                 f"params are not set for function builder test {self._name}()"
@@ -287,14 +293,17 @@ class FunctionState:
 
     @property
     def function(self) -> checkpy.entities.function.Function:
+        """The executable function."""
         return checkpy.getFunction(self.name)
 
     @property
     def wasCalled(self) -> bool:
+        """Has the function been called yet?"""
         return self._wasCalled
 
     @property
     def returned(self) -> Any:
+        """What the last function call returned."""
         if not self.wasCalled:
             raise checkpy.entities.exception.CheckpyError(
                 f"function was never called for function builder test {self._name}"
@@ -308,6 +317,7 @@ class FunctionState:
 
     @property
     def args(self) -> List[Any]:
+        """The args that were given to the last function call (excluding keyword args)"""
         return self._args
 
     @args.setter
@@ -316,6 +326,7 @@ class FunctionState:
 
     @property
     def kwargs(self) -> Dict[str, Any]:
+        """The keyword args that were given to the last function call (excluding normal args)"""
         return self._kwargs
 
     @kwargs.setter
@@ -324,6 +335,10 @@ class FunctionState:
 
     @property
     def returnType(self) -> type:
+        """
+        The typehint of what the function should return according to the test.
+        This is not the typehint of the function itself!
+        """
         return self._returnType
 
     @returnType.setter
@@ -332,6 +347,10 @@ class FunctionState:
 
     @property
     def timeout(self) -> int:
+        """
+        The timeout of the test in seconds.
+        This is not the time left, just the total time available for this test.
+        """
         return self._timeout
 
     @timeout.setter
@@ -341,6 +360,7 @@ class FunctionState:
 
     @property
     def description(self) -> str:
+        """The description of the test, what is ultimately shown on the screen."""
         return self._descriptionFormatter(self._description, self)
 
     @description.setter
@@ -352,6 +372,7 @@ class FunctionState:
 
     @property
     def isDescriptionMutable(self):
+        """Can the description be changed (mutated)?"""
         return self._isDescriptionMutable
 
     @isDescriptionMutable.setter
@@ -359,11 +380,23 @@ class FunctionState:
         self._isDescriptionMutable = newIsDescriptionMutable
 
     def getFunctionCallRepr(self):
+        """
+        Helper method to get a formatted string of the function call.
+        For instance: foo(2, bar=3)
+        Note this method can only be called after a call to the tested function.
+        Do be sure to check state.wasCalled! 
+        """
         argsRepr = ", ".join(str(arg) for arg in self.args)
         kwargsRepr = ", ".join(f"{k}={v}" for k, v in self.kwargs.items())
         repr = ', '.join([a for a in (argsRepr, kwargsRepr) if a])
         return f"{self.name}({repr})"
 
     def setDescriptionFormatter(self, formatter: Callable[[str, "FunctionState"], str]):
+        """
+        The test's description is formatted by a function accepting the new description and the state.
+        This method allows you to overwrite that function, for instance:
+
+        `state.setDescriptionFormatter(lambda descr, state: f"Testing your function {state.name}: {descr}")`
+        """
         self._descriptionFormatter = formatter
         checkpy.tester.getActiveTest().description = self.description
