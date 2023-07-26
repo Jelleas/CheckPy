@@ -3,7 +3,6 @@ import sys
 import re
 import os
 import contextlib
-import imp
 import traceback
 import requests
 
@@ -133,7 +132,7 @@ def getModuleAndOutputOf(
 		else:
 			moduleName = str(fileName).split(".")[0]
 
-		mod = imp.new_module(moduleName)
+		mod = ModuleType(moduleName)
 		# overwrite attributes
 		for attr, value in overwriteAttributes:
 			setattr(mod, attr, value)
