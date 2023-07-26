@@ -17,6 +17,7 @@ def function(functionName: str) -> "FunctionBuilder":
     """
     A declarative approach to writing checks through method chaining. For example:
 
+    ```
     testSquare = (
         function("square")  # assert function square() is defined
         .params("x")        # assert that square() accepts one parameter called x
@@ -53,6 +54,7 @@ def function(functionName: str) -> "FunctionBuilder":
         except ValueError:
             return
         return False
+    ```
     """
     return FunctionBuilder(functionName)
 
@@ -104,7 +106,7 @@ class FunctionBuilder:
         Assert that the function always returns values of type_. 
         Note that type_ can be any typehint. For instance:
 
-        function("square").returnType(Optional[int]) # assert that square returns an int or None
+        `function("square").returnType(Optional[int]) # assert that square returns an int or None`
         """
         def testType(state: FunctionState):
             state.returnType = type_
@@ -218,11 +220,13 @@ class FunctionBuilder:
         .do serves as an entry point for extensibility. Allowing you, the test writer, to insert
         specific and custom asserts, hints, and the like. For example:
 
+        ```
         def checkDataFileIsUnchanged(state: "FunctionState"):
             with open("data.txt") as f:
                 assert f.read() == "42\\n", "make sure not to change the file data.txt"
         
         test = function("process_data").call("data.txt").do(checkDataFileIsUnchanged).build()
+        ```
         """
         self._blocks.append(function)
         return self
@@ -232,7 +236,7 @@ class FunctionBuilder:
         Build the actual test (checkpy.tests.TestFunction). This should always be the last call.
         Be sure to store the result in a global, to allow checkpy to discover the test. For instance:
 
-        testSquare = (function("square").call(3).returns(9).build())
+        `testSquare = (function("square").call(3).returns(9).build())`
         """
         def testFunction():
             self.log: List[FunctionState] = []
