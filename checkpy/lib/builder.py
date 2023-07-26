@@ -30,9 +30,11 @@ import checkpy
 __all__ = ["function"]
 
 
-def function(functionName: str, fileName: Optional[str]=None) -> "FunctionBuilder":
+class function:
     """
     A declarative approach to writing checks through method chaining.
+    Each method adds a part of a test on a stack.
+    Upon `.build()` a checkpy test is created that executes each entry in the stack. 
 
     For example:
 
@@ -75,22 +77,13 @@ def function(functionName: str, fileName: Optional[str]=None) -> "FunctionBuilde
         return False
     ```
     """
-    return FunctionBuilder(functionName, fileName=fileName)
-
-
-class FunctionBuilder:
-    def __init__(self, functionName: str, fileName: Optional[str]=None):
-        """
-        A Builder of Function tests through method chaining.
-        Each method adds a part of a test on a stack.
-        Upon `.build()` a checkpy test is created that executes each entry in the stack. 
-        """
+    def __init__(self, functionName: str, fileName: Optional[str]=None): 
         self._state: FunctionState = FunctionState(functionName, fileName=fileName)
         self._blocks: List[Callable[["FunctionState"], None]] = []
 
         self.name(functionName)
 
-    def name(self, functionName: str) -> "FunctionBuilder":
+    def name(self, functionName: str) -> "function":
         """Assert that a function with functionName is defined."""
         def testName(state: FunctionState):
             state.name = functionName
@@ -98,10 +91,9 @@ class FunctionBuilder:
             assert functionName in checkpy.static.getFunctionDefinitions(),\
                 f'no function found with name {functionName}()'
 
-        self._blocks.append(testName)
-        return self
+        return self.do(testName)
 
-    def params(self, *params: str) -> "FunctionBuilder":
+    def params(self, *params: str) -> "function":
         """Assert that the function accepts exactly these parameters."""
         def testParams(state: FunctionState):
             state.params = list(params)
@@ -117,10 +109,9 @@ class FunctionBuilder:
             assert real == expected,\
                 f"parameters should exactly match the requested function definition"
 
-        self._blocks.append(testParams)
-        return self
+        return self.do(testParams)
 
-    def returnType(self, type_: type) -> "FunctionBuilder":
+    def returnType(self, type_: type) -> "function":
         """
         From now on, assert that the function always returns values of type_ when called. 
         Note that type_ can be any typehint. For instance:
@@ -130,20 +121,18 @@ class FunctionBuilder:
         def testType(state: FunctionState):
             state.returnType = type_
 
-        self._blocks.append(testType)
-        return self
+        return self.do(testType)
 
-    def returns(self, expected: Any) -> "FunctionBuilder":
+    def returns(self, expected: Any) -> "function":
         """Assert that the last call returns expected."""
         def testReturned(state: FunctionState):
             actual = state.returned
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
             assert actual == expected
 
-        self._blocks.append(testReturned)
-        return self
+        return self.do(testReturned)
     
-    def stdout(self, expected: str) -> "FunctionBuilder":
+    def stdout(self, expected: str) -> "function":
         """Assert that the last call printed expected."""
         def testStdout(state: FunctionState):
             actual = state.function.printOutput
@@ -155,10 +144,9 @@ class FunctionBuilder:
    
             assert actual == expected
 
-        self._blocks.append(testStdout)
-        return self
+        return self.do(testStdout)
 
-    def stdoutRegex(self, regex: Union[str, re.Pattern], readable: Optional[str]=None) -> "FunctionBuilder":
+    def stdoutRegex(self, regex: Union[str, re.Pattern], readable: Optional[str]=None) -> "function":
         """
         Assert that the last call printed output matching regex.
         If readable is passed, show that instead of the regex in the test's output.
@@ -186,10 +174,9 @@ class FunctionBuilder:
                                      f"This is what {state.getFunctionCallRepr()} printed:\n"
                                      f"{actual}")
 
-        self._blocks.append(testStdoutRegex)
-        return self
+        return self.do(testStdoutRegex)
 
-    def call(self, *args: Any, **kwargs: Any) -> "FunctionBuilder":
+    def call(self, *args: Any, **kwargs: Any) -> "function":
         """Call the function with args and kwargs."""
         def testCall(state: FunctionState):
             state.args = list(args)
@@ -202,18 +189,16 @@ class FunctionBuilder:
             returned = state.returned
             assert returned == checkpy.Type(type_)
 
-        self._blocks.append(testCall)
-        return self
+        return self.do(testCall)
 
-    def timeout(self, time: int) -> "FunctionBuilder":
+    def timeout(self, time: int) -> "function":
         """Reset the timeout on the check to time."""
         def setTimeout(state: FunctionState):
             state.timeout = time
 
-        self._blocks.append(setTimeout)
-        return self
+        return self.do(setTimeout)
 
-    def description(self, description: str) -> "FunctionBuilder":
+    def description(self, description: str) -> "function":
         """
         Fixate the test's description on description. 
         The test's description will not change after a call to this method,
@@ -225,10 +210,9 @@ class FunctionBuilder:
             state.description = description
             state.isDescriptionMutable = False
 
-        self._blocks.append(setDecription)
-        return self
+        return self.do(setDecription)
 
-    def do(self, function: Callable[["FunctionState"], None]) -> "FunctionBuilder":
+    def do(self, function: Callable[["FunctionState"], None]) -> "function":
         """
         Put function on the internal stack and call it after all previous calls have resolved.
         .do serves as an entry point for extensibility. Allowing you, the test writer, to insert
@@ -267,7 +251,7 @@ class FunctionBuilder:
 class FunctionState:
     """
     The state of the current test.
-    This object serves as the "single source of truth" for each method in `FunctionBuilder`.
+    This object serves as the "single source of truth" for each method in `function`.
     """
     def __init__(self, functionName: str, fileName: Optional[str]=None):
         self._description: str = f"defines the function {functionName}()"
