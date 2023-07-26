@@ -11,8 +11,8 @@ class AbstractSyntaxTree:
     For instance:
 
     ```
-    ast.For in AbstractSyntaxTree() # check if a for-loop is present
-    ast.Mult in AbstractSyntaxTree() # check if multiplication is used
+    assert ast.For in AbstractSyntaxTree() # assert that a for-loop is present
+    assert ast.Mult in AbstractSyntaxTree() # assert that multiplication is present
     ```
     """
     def __init__(self, fileName: Optional[str]=None):
