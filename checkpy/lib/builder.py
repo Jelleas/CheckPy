@@ -17,8 +17,7 @@ testSquare = (builder
 import re
 
 from copy import deepcopy
-from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Optional, List, Union
 from uuid import uuid4
 
 import checkpy.tests
@@ -126,15 +125,10 @@ class FunctionBuilder:
         Assert that the function always returns values of type_. 
         Note that type_ can be any typehint. For instance:
 
-        `function("square").returnType(Optional[int]) # assert that square returns an int or None`
+        `function("square").returnType(Optional[int]).call(2) # assert that square returns an int or None`
         """
         def testType(state: FunctionState):
             state.returnType = type_
-
-            if state.wasCalled:
-                state.description = f"{state.getFunctionCallRepr()} returns a value of type {state.returnType}"
-                returned = state.returned
-                assert returned == checkpy.Type(type_)
 
         self._blocks.append(testType)
         return self
