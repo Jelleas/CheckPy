@@ -262,11 +262,13 @@ class function:
         state = deepcopy(self._initialState)
 
         def testFunction():
-            self.log: List[FunctionState] = []
-
             for block in blocks:
-                self.log.append(deepcopy(state))
                 block(state)
+
+            if state.wasCalled:
+                state.description = f"{state.getFunctionCallRepr()} works as expected"
+            else:
+                state.description = f"{state.name} is correctly defined"
 
         testFunction.__name__ = f"builder_function_test_{state.name}()_{uuid4()}"
         testFunction.__doc__ = self._description if self._description is not None else state.description
