@@ -23,14 +23,15 @@ def explainCompare(op: str, left: Any, right: Any) -> Optional[str]:
         if rep:
             return rep
 
-    # Custom Type messages
-    if isinstance(right, checkpy.Type):
+    # Custom Type message
+    if isinstance(left, checkpy.Type) or isinstance(right, checkpy.Type):
+        if isinstance(left, checkpy.Type):
+            left, right = right, left
+        if isinstance(left, str):
+            left = f'"{left}"'
         return f"{left} is of type {right}"
 
-    if isinstance(left, checkpy.Type):
-        return f"{right} is of type {left}"
-
-    # Custom AbstractSyntaxTree messages
+    # Custom AbstractSyntaxTree message
     if isinstance(right, checkpy.static.AbstractSyntaxTree):
         if op == "in":
             return f"'{left.__name__}' is used in the source code"

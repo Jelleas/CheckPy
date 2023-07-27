@@ -109,8 +109,8 @@ class function:
             expected = state.params
 
             assert len(real) == len(expected),\
-                f"expected {len(expected)} parameters, your function {state.name}() takes"\
-                f" {len(real)} parameters"
+                f"expected {len(expected)} parameter(s), your function {state.name}() takes"\
+                f" {len(real)} parameter(s)"
 
             assert real == expected,\
                 f"parameters should exactly match the requested function definition"
@@ -135,7 +135,7 @@ class function:
         """Assert that the last call returns expected."""
         def testReturned(state: FunctionState):
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
-            assert state.returned == expected
+            assert state.returned == expected, f"{state.getFunctionCallRepr()} returned: {state.returned}"
             state.description = ""
 
         return self.do(testReturned)
@@ -198,7 +198,7 @@ class function:
             state.description = f"{state.getFunctionCallRepr()} returns a value of type {checkpy.Type(state.returnType)}"
             type_ = state.returnType
             returned = state.returned
-            assert returned == checkpy.Type(type_)
+            assert returned == checkpy.Type(type_), f"{state.getFunctionCallRepr()} returned: {returned}"
             state.description = ""
 
         return self.do(testCall)
