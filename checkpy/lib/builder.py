@@ -224,6 +224,10 @@ class function:
 
         self = self.do(setDecription)
         
+        # If the description block is the only block (after the mandatory name block), put it first
+        if len(self._blocks) == 2:
+            self._blocks.reverse()
+
         if self._description is None:
             self._description = description
 
