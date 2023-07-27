@@ -34,7 +34,7 @@ def getSource(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 
 
 def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
-    """Get just the source code inside definitions (def / class)."""
+    """Get just the source code inside definitions (def / class) and any imports."""
     if fileName is None:
         fileName = _checkpy.file.name
 
@@ -50,6 +50,14 @@ def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
         
         def visit_FunctionDef(self, node: _ast.FunctionDef):
             self.lineNumbers |= set(range(node.lineno - 1, node.end_lineno))
+            super().generic_visit(node)
+
+        def visit_Import(self, node: _ast.Import):
+            self.lineNumbers.add(node.lineno - 1)
+            super().generic_visit(node)
+
+        def visit_ImportFrom(self, node: _ast.ImportFrom):
+            self.lineNumbers.add(node.lineno - 1)
             super().generic_visit(node)
 
     tree = _ast.parse(source)

@@ -49,8 +49,6 @@ class TestRequire(Base):
         os.remove(fileName)
 
     def test_fileLocalCopy(self):
-        import checkpy.entities.path as path
-        print(path.userPath)
         os.chdir(self.dirname)
         lib.require(self.fileName)
         self.assertTrue(os.path.isfile(self.fileName))
@@ -93,8 +91,7 @@ if __name__ == "__main__":
 """
         expectedOutcome = \
 """def main():
-    pass
-"""
+    pass"""
         self.write(source)
         self.assertEqual(lib.sourceOfDefinitions(self.fileName), expectedOutcome)
 
@@ -119,8 +116,7 @@ x = \"\"\"foo\"\"\"
     def test_import(self):
         source = \
 """import os
-from os import path
-"""
+from os import path"""
         self.write(source)
         self.assertEqual(lib.sourceOfDefinitions(self.fileName), source)
 

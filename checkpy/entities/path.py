@@ -2,6 +2,13 @@ import os
 import sys
 import shutil
 import checkpy.entities.exception as exception
+import warnings
+
+warnings.warn(
+	"""checkpy.entities.path is deprecated. Use pathlib.Path instead.""",
+	DeprecationWarning,
+	stacklevel=2
+)
 
 class Path(object):
 	def __init__(self, path):

@@ -1,10 +1,12 @@
-import io
-import sys
-import re
-import os
 import contextlib
-import traceback
+import io
+import os
+import pathlib
+import re
 import requests
+import shutil
+import sys
+import traceback
 
 from pathlib import Path
 from types import ModuleType
@@ -300,9 +302,9 @@ def require(fileName, source=None):
 		download(fileName, source)
 		return
 
-	filePath = path.userPath + fileName
+	filePath = checkpy.USERPATH / fileName
 
 	if not fileExists(str(filePath)):
 		raise exception.CheckpyError("Required file {} does not exist".format(fileName))
 
-	filePath.copyTo(path.current() + fileName)
+	shutil.copyfile(filePath, pathlib.Path.cwd() / fileName)

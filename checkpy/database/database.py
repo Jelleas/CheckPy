@@ -1,16 +1,16 @@
 import tinydb
-import os
+from tinydb.table import Table
 import time
 import contextlib
-from checkpy.entities.path import Path, CHECKPYPATH
+import checkpy
+import pathlib
+from typing import Generator, Iterable, Tuple
 
-_DBPATH = CHECKPYPATH + "database" + "db.json"
+_DBPATH = checkpy.CHECKPYPATH / "database" / "db.json"
 
 @contextlib.contextmanager
-def database():
-	if not _DBPATH.exists():
-		with open(str(_DBPATH), 'w') as f:
-			pass
+def database() -> Generator[tinydb.TinyDB, None, None]:
+	_DBPATH.touch()
 	try:
 		db = tinydb.TinyDB(str(_DBPATH))
 		yield db
@@ -18,12 +18,12 @@ def database():
 		db.close()
 
 @contextlib.contextmanager
-def githubTable():
+def githubTable()-> Generator[Table, None, None]:
 	with database() as db:
 		yield db.table("github")
 
 @contextlib.contextmanager
-def localTable():
+def localTable() -> Generator[Table, None, None]:
 	with database() as db:
 		yield db.table("local")
 
@@ -31,36 +31,35 @@ def clean():
 	with database() as db:
 		db.drop_tables()
 
-def forEachTestsPath():
+def forEachTestsPath() -> Iterable[pathlib.Path]:
 	for path in forEachGithubPath():
 		yield path
 
 	for path in forEachLocalPath():
 		yield path
 
-def forEachUserAndRepo():
+def forEachUserAndRepo() -> Iterable[Tuple[str, str]]:
 	with githubTable() as table:
-		for username, repoName in [(entry["user"], entry["repo"]) for entry in table.all()]:
-			yield username, repoName
+		return [(entry["user"], entry["repo"]) for entry in table.all()]
 
-def forEachGithubPath():
+def forEachGithubPath() -> Iterable[pathlib.Path]:
 	with githubTable() as table:
 		for entry in table.all():
-			yield Path(entry["path"])
+			yield pathlib.Path(entry["path"])
 
-def forEachLocalPath():
+def forEachLocalPath() -> Iterable[pathlib.Path]:
 	with localTable() as table:
 		for entry in table.all():
-			yield Path(entry["path"])
+			yield pathlib.Path(entry["path"])
 
-def isKnownGithub(username, repoName):
+def isKnownGithub(username: str, repoName: str) -> bool:
 	query = tinydb.Query()
 	with githubTable() as table:
 		return table.contains((query.user == username) & (query.repo == repoName))
 
-def addToGithubTable(username, repoName, releaseId, releaseTag):
+def addToGithubTable(username: str, repoName: str, releaseId: str, releaseTag: str):
 	if not isKnownGithub(username, repoName):
-		path = str(CHECKPYPATH + "tests" + repoName)
+		path = str(checkpy.CHECKPYPATH / "tests" / repoName)
 
 		with githubTable() as table:
 			table.insert({
@@ -72,7 +71,7 @@ def addToGithubTable(username, repoName, releaseId, releaseTag):
 				"timestamp" 	: time.time()
 			})
 
-def addToLocalTable(localPath):
+def addToLocalTable(localPath: pathlib.Path):
 	query = tinydb.Query()
 	with localTable() as table:
 		if not table.search(query.path == str(localPath)):
@@ -80,9 +79,9 @@ def addToLocalTable(localPath):
 				"path" : str(localPath)
 			})
 
-def updateGithubTable(username, repoName, releaseId, releaseTag):
+def updateGithubTable(username: str, repoName: str, releaseId: str, releaseTag: str):
 	query = tinydb.Query()
-	path = str(CHECKPYPATH + "tests" + repoName)
+	path = str(checkpy.CHECKPYPATH / "tests" / repoName)
 	with githubTable() as table:
 		table.update({
 			"user" 			: username,
@@ -93,12 +92,12 @@ def updateGithubTable(username, repoName, releaseId, releaseTag):
 			"timestamp" 	: time.time()
 		}, query.user == username and query.repo == repoName)
 
-def timestampGithub(username, repoName):
+def timestampGithub(username: str, repoName: str) -> float:
 	query = tinydb.Query()
 	with githubTable() as table:
 		return table.search(query.user == username and query.repo == repoName)[0]["timestamp"]
 
-def setTimestampGithub(username, repoName):
+def setTimestampGithub(username: str, repoName: str):
 	query = tinydb.Query()
 	with githubTable() as table:
 		table.update(
@@ -106,17 +105,17 @@ def setTimestampGithub(username, repoName):
 			query.user == username and query.repo == repoName
 		)
 
-def githubPath(username, repoName):
+def githubPath(username: str, repoName: str) -> pathlib.Path:
 	query = tinydb.Query()
 	with githubTable() as table:
-		return Path(table.search(query.user == username and query.repo == repoName)[0]["path"])
+		return pathlib.Path(table.search(query.user == username and query.repo == repoName)[0]["path"])
 
-def releaseId(username, repoName):
+def releaseId(username: str, repoName: str) -> str:
 	query = tinydb.Query()
 	with githubTable() as table:
 		return table.search(query.user == username and query.repo == repoName)[0]["release"]
 
-def releaseTag(username, repoName):
+def releaseTag(username: str, repoName: str) -> str:
 	query = tinydb.Query()
 	with githubTable() as table:
 		return table.search(query.user == username and query.repo == repoName)[0]["tag"]
