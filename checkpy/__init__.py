@@ -8,8 +8,7 @@ from checkpy.lib.basic import outputOf, getModule, getFunction
 from checkpy.lib.sandbox import only, include, exclude, require
 from checkpy.lib import static
 from checkpy.lib import monkeypatch
-from checkpy.entities.type import Type
-from checkpy.entities.abstractsyntaxtree import AbstractSyntaxTree
+from checkpy.lib.type import Type
 from pytest import approx
 
 import pathlib as _pathlib
@@ -22,7 +21,6 @@ __all__ = [
     "getModule",
     "getFunction",
     "Type",
-    "AbstractSyntaxTree",
     "static",
     "monkeypatch",
     "builder",

@@ -79,10 +79,10 @@ class function:
     ```
     """
     def __init__(self, functionName: str, fileName: Optional[str]=None): 
-        self._state: FunctionState = FunctionState(functionName, fileName=fileName)
+        self._initialState: FunctionState = FunctionState(functionName, fileName=fileName)
         self._blocks: List[Callable[["FunctionState"], None]] = []
-
-        self.name(functionName)
+        self._description: Optional[str] = None
+        self._blocks = self.name(functionName)._blocks
 
     def name(self, functionName: str) -> Self:
         """Assert that a function with functionName is defined."""
@@ -94,6 +94,8 @@ class function:
             funcDefs = checkpy.static.getFunctionDefinitions(source)
             assert functionName in funcDefs,\
                 f'no function found with name {functionName}()'
+            
+            state.description = ""
 
         return self.do(testName)
 
@@ -107,11 +109,13 @@ class function:
             expected = state.params
 
             assert len(real) == len(expected),\
-                f"expected {len(expected)} arguments. Your function {state.name}() has"\
-                f" {len(real)} arguments"
+                f"expected {len(expected)} parameters, your function {state.name}() takes"\
+                f" {len(real)} parameters"
 
             assert real == expected,\
                 f"parameters should exactly match the requested function definition"
+            
+            state.description = ""
 
         return self.do(testParams)
 
@@ -132,6 +136,7 @@ class function:
         def testReturned(state: FunctionState):
             state.description = f"{state.getFunctionCallRepr()} should return {expected}"
             assert state.returned == expected
+            state.description = ""
 
         return self.do(testReturned)
     
@@ -147,6 +152,7 @@ class function:
 
             actual = state.function.printOutput
             assert actual == expected
+            state.description = ""
 
         return self.do(testStdout)
 
@@ -177,6 +183,7 @@ class function:
                 raise AssertionError(f"The printed output does not match regular expression: {regex}.\n"
                                      f"This is what {state.getFunctionCallRepr()} printed:\n"
                                      f"{actual}")
+            state.description = ""
 
         return self.do(testStdoutRegex)
 
@@ -188,10 +195,11 @@ class function:
             state.description = f"calling function {state.getFunctionCallRepr()}"
             state.returned = state.function(*args, **kwargs)
 
-            state.description = f"{state.getFunctionCallRepr()} returns a value of type {state.returnType}"
+            state.description = f"{state.getFunctionCallRepr()} returns a value of type {checkpy.Type(state.returnType)}"
             type_ = state.returnType
             returned = state.returned
             assert returned == checkpy.Type(type_)
+            state.description = ""
 
         return self.do(testCall)
 
@@ -204,7 +212,7 @@ class function:
 
     def description(self, description: str) -> Self:
         """
-        Fixate the test's description on description. 
+        Fixate the test's description on this description. 
         The test's description will not change after a call to this method,
         and can only change by calling this method again.
         """
@@ -214,7 +222,12 @@ class function:
             state.description = description
             state.isDescriptionMutable = False
 
-        return self.do(setDecription)
+        self = self.do(setDecription)
+        
+        if self._description is None:
+            self._description = description
+
+        return self
 
     def do(self, function: Callable[["FunctionState"], None]) -> Self:
         """
@@ -230,6 +243,7 @@ class function:
         test = function("process_data").call("data.txt").do(checkDataFileIsUnchanged).build()
         ```
         """
+        self = deepcopy(self)
         self._blocks.append(function)
         return self
 
@@ -240,15 +254,18 @@ class function:
 
         `testSquare = (function("square").call(3).returns(9).build())`
         """
+        blocks = list(self._blocks)
+        state = deepcopy(self._initialState)
+
         def testFunction():
             self.log: List[FunctionState] = []
 
-            for block in self._blocks:
-                self.log.append(deepcopy(self._state))
-                block(self._state)
+            for block in blocks:
+                self.log.append(deepcopy(state))
+                block(state)
 
-        testFunction.__name__ = f"builder_function_test_{self._state.name}()_{uuid4()}"
-        testFunction.__doc__ = self._state.description
+        testFunction.__name__ = f"builder_function_test_{state.name}()_{uuid4()}"
+        testFunction.__doc__ = self._description if self._description is not None else state.description
         return checkpy.tests.test()(testFunction)
 
 
@@ -270,7 +287,7 @@ class FunctionState:
         self._timeout: int = 10
         self._isDescriptionMutable: bool = True
         self._descriptionFormatter: Callable[[str, FunctionState], str] =\
-            lambda descr, state: f"testing {state.name}() >> {descr}"
+            lambda descr, state: f"testing {state.name}()" + (f" >> {descr}" if descr else "")
 
     @property
     def name(self) -> str:

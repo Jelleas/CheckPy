@@ -10,10 +10,10 @@ import checkpy
 __all__ = ["addExplainer"]
 
 
-_explainers: List[Callable[[str, str, str], Optional[str]]] = []
+_explainers: List[Callable[[str, Any, Any], Optional[str]]] = []
 
 
-def addExplainer(explainer: Callable[[str, str, str], Optional[str]]) -> None:
+def addExplainer(explainer: Callable[[str, Any, Any], Optional[str]]) -> None:
     _explainers.append(explainer)
 
 
@@ -31,7 +31,7 @@ def explainCompare(op: str, left: Any, right: Any) -> Optional[str]:
         return f"{right} is of type {left}"
 
     # Custom AbstractSyntaxTree messages
-    if isinstance(right, checkpy.AbstractSyntaxTree):
+    if isinstance(right, checkpy.static.AbstractSyntaxTree):
         if op == "in":
             return f"'{left.__name__}' is used in the source code"
 

@@ -19,7 +19,8 @@ __all__ = [
     "getNumbersFrom",
     "getFunctionCalls",
     "getFunctionDefinitions",
-    "getAstNodes"
+    "getAstNodes",
+    "AbstractSyntaxTree"
 ]
 
 
@@ -207,3 +208,30 @@ def getAstNodes(*types: type, source: _Optional[str]=None) -> _List[_ast.AST]:
     tree = _ast.parse(source)
     Visitor().visit(tree)
     return nodes
+
+
+class AbstractSyntaxTree:
+    """
+    An 'in' and 'not in' comparible AbstractSyntaxTree for any ast.Node (any type of ast.AST).
+    For instance:
+
+    ```
+    assert ast.For in AbstractSyntaxTree() # assert that a for-loop is present
+    assert ast.Mult in AbstractSyntaxTree() # assert that multiplication is present
+    ```
+    """
+    def __init__(self, fileName: _Optional[str]=None):
+        # Keep track of any nodes found from last search for a pretty assertion message 
+        self.foundNodes: _List[_ast.AST] = []
+
+        # Similarly hold on to the source code
+        self.source: str = getSource(fileName=fileName)
+
+    def __contains__(self, item: type) -> bool:
+        if item.__module__ != _ast.__name__:
+            raise _checkpy.entities.exception.CheckpyError(
+                f"{item} is not of type {_ast.AST}. Can only search for {_ast.AST} types in AbstractSyntaxTree."
+            )
+        
+        self.foundNodes = getAstNodes(item, source=self.source)        
+        return bool(self.foundNodes)
