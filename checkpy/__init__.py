@@ -10,7 +10,7 @@ CHECKPYPATH: _pathlib.Path = _pathlib.Path(__file__).parent
 import dessert as _dessert
 
 with _dessert.rewrite_assertions_context():
-    from checkpy.lib import builder
+    from checkpy.lib import declarative
 
 from checkpy.tests import test, failed, passed
 from checkpy.lib.basic import outputOf, getModule, getFunction
@@ -31,7 +31,7 @@ __all__ = [
     "Type",
     "static",
     "monkeypatch",
-    "builder",
+    "declarative",
     "only",
     "include",
     "exclude",

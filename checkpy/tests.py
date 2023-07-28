@@ -187,7 +187,8 @@ class TestFunction:
                 try:
                     if getattr(self._function, "isTestFunction", False):
                         result = self._function(test)()
-                    elif inspect.getfullargspec(self._function).args:
+                    elif (len(inspect.getfullargspec(self._function).args) >
+                          1 if inspect.ismethod(self._function) else 0):
                         result = self._function(test)
                     else:
                         result = self._function()
@@ -238,11 +239,12 @@ class TestFunction:
             TestFunction._previousPriority = priority
             return priority
         
-        inheritedPriority = getattr(self._function, "priority", None)
-        if inheritedPriority:
-            TestFunction._previousPriority = inheritedPriority
-            return inheritedPriority
-        
+        if getattr(self._function, "isTestFunction", False):
+            inheritedPriority = getattr(self._function, "priority", None)
+            if inheritedPriority:
+                TestFunction._previousPriority = inheritedPriority
+                return inheritedPriority
+            
         TestFunction._previousPriority += 1
         return TestFunction._previousPriority
     
@@ -250,9 +252,10 @@ class TestFunction:
         if timeout is not None:
             return timeout
         
-        inheritedTimeout = getattr(self._function, "timeout", None)
-        if inheritedTimeout:
-            return inheritedTimeout
+        if getattr(self._function, "isTestFunction", False):
+            inheritedTimeout = getattr(self._function, "timeout", None)
+            if inheritedTimeout:
+                return inheritedTimeout
         
         return Test.DEFAULT_TIMEOUT
 

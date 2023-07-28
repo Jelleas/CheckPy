@@ -9,17 +9,16 @@ from checkpy.tests import Test, TestResult, TestFunction
 from types import ModuleType
 from typing import Dict, Iterable, List, Optional, Union
 
-import dessert
-
 import os
 import pathlib
 import subprocess
 import sys
 import importlib
-import multiprocessing
-from multiprocessing.queues import Queue
 import time
 import warnings
+
+import dessert
+import multiprocessing as mp
 
 
 __all__ = ["getActiveTest", "test", "testModule", "TesterResult"]
@@ -96,12 +95,11 @@ def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List[
 
     return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
 
-
 def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
-    ctx = multiprocessing.get_context("spawn")
+    ctx = mp.get_context("spawn")
     
-    signalQueue: "Queue[_Signal]" = ctx.Queue()
-    resultQueue: "Queue[TesterResult]" = ctx.Queue()
+    signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
+    resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
     tester = _Tester(moduleName, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
     p = ctx.Process(target=tester.run, name="Tester")
     p.start()
@@ -191,8 +189,8 @@ class _Tester(object):
             filePath: pathlib.Path,
             debugMode: bool,
             silentMode: bool,
-            signalQueue: "Queue[_Signal]",
-            resultQueue: "Queue[TesterResult]"
+            signalQueue: "mp.Queue[_Signal]",
+            resultQueue: "mp.Queue[TesterResult]"
         ):
         self.moduleName = moduleName
         self.filePath = filePath.absolute()
@@ -290,7 +288,7 @@ class _Tester(object):
             _activeTest = test
 
             run = testFunction(test)
-
+            
             self._sendSignal(_Signal(
                 isTiming=True, 
                 resetTimer=True, 
@@ -312,6 +310,7 @@ class _Tester(object):
         self.resultQueue.put(result)
 
     def _sendSignal(self, signal: _Signal):
+        #return
         self.signalQueue.put(signal)
 
     def _getTestFunctionsInExecutionOrder(self, testFunctions: Iterable[TestFunction]) -> List[TestFunction]:

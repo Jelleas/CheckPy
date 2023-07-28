@@ -2,7 +2,7 @@
 A declarative approach to writing checks through method chaining. For example:
 
 ```
-testSquare = (builder
+testSquare = test(timeout=3)(declarative
     .function("square")  # assert function square() is defined
     .params("x")         # assert that square() accepts one parameter called x
     .returnType("int")   # assert that the function always returns an integer
@@ -10,7 +10,6 @@ testSquare = (builder
     .returns(4)          # assert that the function returns 4
     .call(3)             # now call the function with argument 3
     .returns(9)          # assert that the function returns 9
-    .build()             # done, build the test
 )
 """
 
@@ -35,37 +34,37 @@ class function:
     """
     A declarative approach to writing checks through method chaining.
     Each method adds a part of a test on a stack.
-    Upon `.build()` a checkpy test is created that executes each entry in the stack. 
 
     For example:
 
     ```
-    testSquare = (
-        function("square")  # assert function square() is defined
+    from checkpy import *
+
+    testSquare = test(timeout=3)(declarative
+        .function("square")  # assert function square() is defined
         .params("x")        # assert that square() accepts one parameter called x
         .returnType("int")  # assert that the function always returns an integer
         .call(2)            # call the function with argument 2
         .returns(4)         # assert that the function returns 4
         .call(3)            # now call the function with argument 3
         .returns(9)         # assert that the function returns 9
-        .build()            # done, build the test
     )
 
-    # Builders can be reused as long as build() is not called. For example:
+    # This `function` object can be reused for multiple tests. For example:
 
-    squareBuilder = (
-        function("square")
+    square = (declarative
+        .function("square")
         .params("x")
         .returnType("int")
     )
 
-    testSquare2 = squareBuilder.call(2).returns(4).build() # do remember to call build()!
-    testSquare3 = squareBuilder.call(3).returns(9).build() # do remember to call build()!
+    testSquare2 = test()(square.call(2).returns(4)) # A test is only created after calling checkpy's test decorator
+    testSquare3 = test()(square.call(3).returns(9))
 
     # Tests created by this approach can depend and be depended on by other tests like normal:
 
     testSquare4 = passed(testSquare2, testSquare3)(
-        squareBuilder.call(4).returns(16).build()  # testSquare4 will only run if both testSquare2 and 3 pass
+        square.call(4).returns(16)  # testSquare4 will only run if both testSquare2 and 3 pass
     )
 
     @passed(testSquare2)
@@ -80,9 +79,9 @@ class function:
     """
     def __init__(self, functionName: str, fileName: Optional[str]=None): 
         self._initialState: FunctionState = FunctionState(functionName, fileName=fileName)
-        self._blocks: List[Callable[["FunctionState"], None]] = []
+        self._stack: List[Callable[["FunctionState"], None]] = []
         self._description: Optional[str] = None
-        self._blocks = self.name(functionName)._blocks
+        self._stack = self.name(functionName)._stack
 
     def name(self, functionName: str) -> Self:
         """Assert that a function with functionName is defined."""
@@ -199,7 +198,7 @@ class function:
             type_ = state.returnType
             returned = state.returned
             assert returned == checkpy.Type(type_), f"{state.getFunctionCallRepr()} returned: {returned}"
-            state.description = ""
+            state.description = f"calling function {state.getFunctionCallRepr()}"
 
         return self.do(testCall)
 
@@ -224,9 +223,9 @@ class function:
 
         self = self.do(setDecription)
         
-        # If the description block is the only block (after the mandatory name block), put it first
-        if len(self._blocks) == 2:
-            self._blocks.reverse()
+        # If the description step is the only step (after the mandatory name step), put it first
+        if len(self._stack) == 2:
+            self._stack.reverse()
 
         if self._description is None:
             self._description = description
@@ -244,35 +243,29 @@ class function:
             with open("data.txt") as f:
                 assert f.read() == "42\\n", "make sure not to change the file data.txt"
         
-        test = function("process_data").call("data.txt").do(checkDataFileIsUnchanged).build()
+        testDataUnchanged = test()(function("process_data").call("data.txt").do(checkDataFileIsUnchanged))
         ```
         """
         self = deepcopy(self)
-        self._blocks.append(function)
+        self._stack.append(function)
+        
+        self.__name__ = f"declarative_function_test_{self._initialState.name}()_{uuid4()}"
+        self.__doc__ = self._description if self._description is not None else self._initialState.description
+        
         return self
-
-    def build(self) -> checkpy.tests.TestFunction:
-        """
-        Build the actual test (checkpy.tests.TestFunction). This should always be the last call.
-        Be sure to store the result in a global, to allow checkpy to discover the test. For instance:
-
-        `testSquare = (function("square").call(3).returns(9).build())`
-        """
-        blocks = list(self._blocks)
+    
+    def __call__(self) -> Callable[[], None]:
+        """Run the test."""
+        stack = list(self._stack)
         state = deepcopy(self._initialState)
 
-        def testFunction():
-            for block in blocks:
-                block(state)
+        for step in stack:
+            step(state)
 
-            if state.wasCalled:
-                state.description = f"{state.getFunctionCallRepr()} works as expected"
-            else:
-                state.description = f"{state.name} is correctly defined"
-
-        testFunction.__name__ = f"builder_function_test_{state.name}()_{uuid4()}"
-        testFunction.__doc__ = self._description if self._description is not None else state.description
-        return checkpy.tests.test()(testFunction)
+        if state.wasCalled:
+            state.description = f"{state.getFunctionCallRepr()} works as expected"
+        else:
+            state.description = f"{state.name} is correctly defined"
 
 
 class FunctionState:
@@ -292,8 +285,10 @@ class FunctionState:
         self._kwargs: Dict[str, Any] = {}
         self._timeout: int = 10
         self._isDescriptionMutable: bool = True
-        self._descriptionFormatter: Callable[[str, FunctionState], str] =\
-            lambda descr, state: f"testing {state.name}()" + (f" >> {descr}" if descr else "")
+    
+    @staticmethod
+    def _descriptionFormatter(descr: str, state: "FunctionState") -> str:
+        return f"testing {state.name}()" + (f" >> {descr}" if descr else "")
 
     @property
     def name(self) -> str:
@@ -321,7 +316,7 @@ class FunctionState:
         """The exact parameter names and order that the function accepts."""
         if self._params is None:
             raise checkpy.entities.exception.CheckpyError(
-                message=f"params are not set for function builder test {self._name}()"
+                message=f"params are not set for declarative function test {self._name}()"
             )
         return self._params
 
@@ -344,7 +339,7 @@ class FunctionState:
         """What the last function call returned."""
         if not self.wasCalled:
             raise checkpy.entities.exception.CheckpyError(
-                message=f"function was never called for function builder test {self._name}"
+                message=f"function was never called for declarative function test {self._name}"
             )
         return self._returned
 
