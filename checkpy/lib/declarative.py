@@ -254,18 +254,27 @@ class function:
         
         return self
     
-    def __call__(self) -> Callable[[], None]:
+    def __call__(self) -> "FunctionState":
         """Run the test."""
+        test = checkpy.tester.getActiveTest()
+        initialDescription = ""
+        if test is not None and test.description != test.PLACEHOLDER_DESCRIPTION:
+            initialDescription = test.description
+
         stack = list(self._stack)
         state = deepcopy(self._initialState)
 
         for step in stack:
             step(state)
 
-        if state.wasCalled:
+        if initialDescription:
+            state.description = initialDescription
+        elif state.wasCalled:
             state.description = f"{state.getFunctionCallRepr()} works as expected"
         else:
             state.description = f"{state.name} is correctly defined"
+
+        return state
 
 
 class FunctionState:
@@ -443,7 +452,7 @@ class FunctionState:
 
         `state.setDescriptionFormatter(lambda descr, state: f"Testing your function {state.name}: {descr}")`
         """
-        self._descriptionFormatter = formatter
+        self._descriptionFormatter = formatter # type:ignore [method-assign, assignment]
         
         test = checkpy.tester.getActiveTest()
         if test is None:
