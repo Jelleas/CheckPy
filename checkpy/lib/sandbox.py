@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Iterable, List, Set, Union
+from typing import List, Set, Union
 
 from checkpy.entities.exception import TooManyFilesError, MissingRequiredFiles
 
@@ -15,16 +15,54 @@ __all__ = ["exclude", "include", "only", "require"]
 DEFAULT_FILE_LIMIT = 10000
 
 
-def exclude(*patterns: Iterable[Union[str, Path]]):
+def exclude(*patterns: Union[str, Path]):
+	"""
+	Exclude all files matching patterns from the check's sandbox.
+	
+	If this is the first call to only/include/exclude/require initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+
+	Patterns are shell globs in the same style as .gitignore.
+	"""
 	config.exclude(*patterns)
 
-def include(*patterns: Iterable[Union[str, Path]]):
+def include(*patterns: Union[str, Path]):
+	"""
+	Include all files matching patterns from the check's sandbox.
+	
+	If this is the first call to only/include/exclude/require initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+
+	Patterns are shell globs in the same style as .gitignore.
+	"""
 	config.include(*patterns)
 
-def only(*patterns: Iterable[Union[str, Path]]):
+def only(*patterns: Union[str, Path]):
+	"""
+	Only files matching patterns will be in the check's sandbox.
+	
+	If this is the first call to only/include/exclude/require initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+
+	Patterns are shell globs in the same style as .gitignore.
+	"""
 	config.only(*patterns)
 
-def require(*filePaths: Iterable[Union[str, Path]]):
+def require(*filePaths: Union[str, Path]):
+	"""
+	Include all files in the check's sandbox. 
+	Raises checkpy.entities.exception.MissingRequiredFiles if any required file is missing.
+	Note that this function does not accept patterns (globs), but concrete filenames or paths.
+	
+	If this is the first call to only/include/exclude/require initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+
+	Patterns are shell globs in the same style as .gitignore.
+	"""
 	config.require(*filePaths)
 
 
@@ -44,7 +82,7 @@ class Config:
 		self.includedFiles = _glob("*", root=self.root)
 		self.isSandboxed = True
 
-	def exclude(self, *patterns: Iterable[Union[str, Path]]):
+	def exclude(self, *patterns: Union[str, Path]):
 		self._initSandbox()
 
 		newExcluded: Set[str] = set()
@@ -57,7 +95,7 @@ class Config:
 
 		self.onUpdate(self)
 
-	def include(self, *patterns: Iterable[Union[str, Path]]):
+	def include(self, *patterns: Union[str, Path]):
 		self._initSandbox()
 
 		newIncluded: Set[str] = set()
@@ -70,7 +108,7 @@ class Config:
 
 		self.onUpdate(self)
 
-	def only(self, *patterns: Iterable[Union[str, Path]]):
+	def only(self, *patterns: Union[str, Path]):
 		self._initSandbox()
 
 		allFiles = self.includedFiles | self.excludedFiles
@@ -79,7 +117,7 @@ class Config:
 
 		self.onUpdate(self)
 
-	def require(self, *filePaths: Iterable[Union[str, Path]]):
+	def require(self, *filePaths: Union[str, Path]):
 		self._initSandbox()
 
 		with cd(self.root):
@@ -111,38 +149,37 @@ def sandbox(name: Union[str, Path]=""):
 		return
 
 	with tempfile.TemporaryDirectory() as dir:
-		dir = Path(Path(dir) / name)
-		dir.mkdir(exist_ok=True)
+		dirPath = Path(Path(dir) / name)
+		dirPath.mkdir(exist_ok=True)
 
 		for f in config.includedFiles:
-			dest = (dir / f).absolute()
+			dest = (dirPath / f).absolute()
 			dest.parent.mkdir(parents=True, exist_ok=True)
 			shutil.copy(f, dest)
 
-		with cd(dir), sandboxConfig():
+		with cd(dirPath), sandboxConfig():
 			yield
 
 
 @contextlib.contextmanager
 def conditionalSandbox(name: Union[str, Path]=""):
-	isSandboxed = False
 	tempDir = None
 	dir = None
 
 	oldIncluded: Set[str] = set()
 	oldExcluded: Set[str] = set()
 
-	def sync(config: Config):
+	def sync(config: Config, sandboxDir: Path):
 		nonlocal oldIncluded, oldExcluded
 		for f in config.excludedFiles - oldExcluded:
-			dest = (dir / f).absolute()
+			dest = (sandboxDir / f).absolute()
 			try:
 				os.remove(dest)
 			except FileNotFoundError:
 				pass
 
 		for f in config.includedFiles - oldExcluded:
-			dest = (dir / f).absolute()
+			dest = (sandboxDir / f).absolute()
 			dest.parent.mkdir(parents=True, exist_ok=True)
 			origin = (config.root / f).absolute()
 			shutil.copy(origin, dest)
@@ -154,17 +191,15 @@ def conditionalSandbox(name: Union[str, Path]=""):
 		if config.missingRequiredFiles:
 			raise MissingRequiredFiles(config.missingRequiredFiles)
 
-		nonlocal isSandboxed
-		if not isSandboxed:
-			isSandboxed = True
-			nonlocal tempDir
+		nonlocal tempDir
+		nonlocal dir
+		if dir is None or tempDir is None:
 			tempDir = tempfile.TemporaryDirectory()
-			nonlocal dir
 			dir = Path(Path(tempDir.name) / name)
 			dir.mkdir(exist_ok=True)
 			os.chdir(dir)
 		
-		sync(config)
+		sync(config, dir)
 
 	with sandboxConfig(onUpdate=onUpdate):
 		try:
@@ -196,7 +231,12 @@ def cd(dest: Union[str, Path]):
 		os.chdir(origin)
 
 
-def _glob(pattern: Union[str, Path], root: Union[str, Path]=None, skip_dirs: bool=False, limit: int=DEFAULT_FILE_LIMIT) -> Set[str]:
+def _glob(
+		pattern: Union[str, Path],
+		root: Union[str, Path, None]=None,
+		skip_dirs: bool=False,
+		limit: int=DEFAULT_FILE_LIMIT
+	) -> Set[str]:
 	with cd(root) if root else contextlib.nullcontext():
 		pattern = str(pattern)
 
@@ -212,7 +252,9 @@ def _glob(pattern: Union[str, Path], root: Union[str, Path]=None, skip_dirs: boo
 			fname = str(Path(f))
 			all_files.add(fname)
 			if len(all_files) > limit:
-				raise TooManyFilesError(limit)
+				raise TooManyFilesError(
+					message=f"found {len(all_files)} files but checkpy only accepts up to {limit} number of files"
+				)
 
 		# Expand dirs
 		for file in files:

@@ -72,6 +72,11 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
 
     # Find the line containing assert ..., this is what will be substituted
     match = re.compile(r".*assert .*").search(message)
+
+    # If there is no line starting with "assert ", nothing to do
+    if match is None:
+        return message
+    
     assertLine = match.group(0)
 
     # Always include any lines before the assert line (a custom message)
@@ -94,7 +99,14 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
         # This prevents previous substitutions from interfering with new substitutions
         # For instance (2 == 1) + where 2 = foo(1) => (foo(1) == 1) where 1 = ...
         if newIndent <= oldIndent:
-            end = re.search(re.escape(oldSub), assertLine).end()
+            cutttingMatch = re.search(re.escape(oldSub), assertLine)
+            if cutttingMatch is None:
+                raise checkpy.entities.exception.CheckpyError(
+                    message=f"parsing the assertion '{message}' failed."
+                            f" Please create an issue over at https://github.com/Jelleas/CheckPy/issues"
+                            f" and copy-paste this entire message."
+                )
+            end = cutttingMatch.end()
             result += assertLine[:end]
             assertLine = assertLine[end:]
             oldSub = ""
@@ -105,6 +117,12 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
 
         # Find the left (the original) and the right (the substitute)
         match = substitutionRegex.match(substitution)
+        if match is None:
+            raise checkpy.entities.exception.CheckpyError(
+                    message=f"parsing the assertion '{message}' failed."
+                            f" Please create an issue over at https://github.com/Jelleas/CheckPy/issues"
+                            f" and copy-paste this entire message."
+                )
         left, right = match.group(1), match.group(2)
 
         # If the right contains any checkpy function or module, skip

@@ -27,6 +27,10 @@ __all__ = [
 def getSource(fileName: _Optional[_Union[str, _Path]]=None) -> str:
     """Get the contents of the file."""
     if fileName is None:
+        if _checkpy.file is None:
+            raise _exception.CheckpyError(
+                message=f"Cannot call getSource() without passing fileName as argument if not test is running."
+            )
         fileName = _checkpy.file.name
 
     with open(fileName) as f:
@@ -36,6 +40,10 @@ def getSource(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
     """Get just the source code inside definitions (def / class) and any imports."""
     if fileName is None:
+        if _checkpy.file is None:
+            raise _exception.CheckpyError(
+                message=f"Cannot call getSourceOfDefinitions() without passing fileName as argument if not test is running."
+            )
         fileName = _checkpy.file.name
 
     source = getSource(fileName)
@@ -45,11 +53,17 @@ def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
             self.lineNumbers = set()
 
         def visit_ClassDef(self, node: _ast.ClassDef):
-            self.lineNumbers |= set(range(node.lineno - 1, node.end_lineno))
+            if node.end_lineno is None:
+                self.lineNumbers.add(node.lineno - 1)
+            else:
+                self.lineNumbers |= set(range(node.lineno - 1, node.end_lineno))
             super().generic_visit(node)
         
         def visit_FunctionDef(self, node: _ast.FunctionDef):
-            self.lineNumbers |= set(range(node.lineno - 1, node.end_lineno))
+            if node.end_lineno is None:
+                self.lineNumbers.add(node.lineno - 1)
+            else:
+                self.lineNumbers |= set(range(node.lineno - 1, node.end_lineno))
             super().generic_visit(node)
 
         def visit_Import(self, node: _ast.Import):
@@ -192,7 +206,7 @@ def getAstNodes(*types: type, source: _Optional[str]=None) -> _List[_ast.AST]:
     """
     for type_ in types:
         if type_.__module__ != _ast.__name__:
-            raise _exception.CheckpyError(f"{type_} passed to getAstNodes() is not of type ast.AST")
+            raise _exception.CheckpyError(message=f"{type_} passed to getAstNodes() is not of type ast.AST")
 
     nodes: _List[_ast.AST] = []
 
@@ -238,7 +252,8 @@ class AbstractSyntaxTree:
     def __contains__(self, item: type) -> bool:
         if item.__module__ != _ast.__name__:
             raise _checkpy.entities.exception.CheckpyError(
-                f"{item} is not of type {_ast.AST}. Can only search for {_ast.AST} types in AbstractSyntaxTree."
+                message=f"{item} is not of type {_ast.AST}."
+                        f" Can only search for {_ast.AST} types in AbstractSyntaxTree."
             )
         
         self.foundNodes = getAstNodes(item, source=self.source)        

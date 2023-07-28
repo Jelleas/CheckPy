@@ -37,11 +37,11 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
 
 	result = TesterResult(testName)
 
-	path = discovery.getPath(testName)
-	if not path:
+	discoveredPath = discovery.getPath(testName)
+	if discoveredPath is None:
 		result.addOutput(printer.displayError("File not found: {}".format(testName)))
 		return result
-	path = str(path)
+	path = str(discoveredPath)
 
 	fileName = os.path.basename(path)
 	filePath = os.path.dirname(path)
@@ -86,7 +86,7 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
 	return testerResult
 
 
-def testModule(module: ModuleType, debugMode=False, silentMode=False) -> Optional[List["TesterResult"]]:
+def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List["TesterResult"]]:
 	printer.printer.SILENT_MODE = silentMode
 	testNames = discovery.getTestNames(module)
 
@@ -94,7 +94,7 @@ def testModule(module: ModuleType, debugMode=False, silentMode=False) -> Optiona
 		printer.displayError("no tests found in module: {}".format(module))
 		return None
 
-	return [test(testName, module = module, debugMode = debugMode, silentMode = silentMode) for testName in testNames]
+	return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
 
 
 def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
@@ -222,7 +222,7 @@ class _Tester(object):
 
 			with conditionalSandbox():
 				module = importlib.import_module(self.moduleName)
-				module._fileName = self.filePath.name
+				module._fileName = self.filePath.name # type: ignore [attr-defined]
 
 				self._runTestsFromModule(module)
 

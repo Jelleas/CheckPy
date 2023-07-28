@@ -1,7 +1,7 @@
 import inspect
 import traceback
 
-from typing import Any, Dict, List, Set, Tuple, Union, Callable, Iterable, Optional
+from typing import Any, Dict, Set, Tuple, Union, Callable, Iterable, Optional
 
 from checkpy import caches
 from checkpy.entities import exception
@@ -22,7 +22,7 @@ def test(
 
 
 def failed(
-		*preconditions: List["TestFunction"],
+		*preconditions: "TestFunction",
 		priority: Optional[int]=None,
 		timeout: Optional[int]=None,
 		hide: bool=True
@@ -33,7 +33,7 @@ def failed(
 
 
 def passed(
-		*preconditions: List["TestFunction"], 
+		*preconditions: "TestFunction", 
 		priority: Optional[int]=None, 
 		timeout: Optional[int]=None, 
 		hide: bool=True
@@ -50,9 +50,9 @@ class Test:
 	def __init__(self, 
 			fileName: str,
 			priority: int,
-			timeout: int=None,
-			onDescriptionChange=lambda self: None, 
-			onTimeoutChange=lambda self: None
+			timeout: Optional[int]=None,
+			onDescriptionChange: Callable[["Test"], None]=lambda self: None, 
+			onTimeoutChange: Callable[["Test"], None]=lambda self: None
 		):
 		self._fileName = fileName
 		self._priority = priority
@@ -125,7 +125,13 @@ class Test:
 
 
 class TestResult(object):
-	def __init__(self, hasPassed: Union[bool, None], description: str, message: str, exception: Exception=None):
+	def __init__(
+		self,
+	    hasPassed: Optional[bool],
+		description: str,
+		message: str,
+		exception: Optional[Exception]=None
+	):
 		self._hasPassed = hasPassed
 		self._description = description
 		self._message = message
@@ -168,7 +174,7 @@ class TestFunction:
 		self._function = function
 		self.isTestFunction = True
 		self.priority = self._getPriority(priority)
-		self.dependencies = getattr(self._function, "dependencies", set())
+		self.dependencies: Set[TestFunction] = getattr(self._function, "dependencies", set())
 		self.timeout = self._getTimeout(timeout)
 		self.__name__ = function.__name__
 
@@ -222,13 +228,13 @@ class TestFunction:
 
 	def useDocStringDescription(self, test: Test) -> None:
 		if getattr(self._function, "isTestFunction", False):
-			self._function.useDocStringDescription(test)
+			self._function.useDocStringDescription(test) # type: ignore [attr-defined]
 
-		if self._function.__doc__ != None:
+		if self._function.__doc__ is not None:
 			test.description = self._function.__doc__
 
 	def _getPriority(self, priority: Optional[int]) -> int:
-		if priority != None:
+		if priority is not None:
 			TestFunction._previousPriority = priority
 			return priority
 		
@@ -241,7 +247,7 @@ class TestFunction:
 		return TestFunction._previousPriority
 	
 	def _getTimeout(self, timeout: Optional[int]) -> int:
-		if timeout != None:
+		if timeout is not None:
 			return timeout
 		
 		inheritedTimeout = getattr(self._function, "timeout", None)
@@ -294,14 +300,14 @@ class FailedTestFunction(TestFunction):
 	
 	def requireDocstringIfNotHidden(self, test: Test) -> None:
 		if not self.shouldHide and test.description == Test.PLACEHOLDER_DESCRIPTION:
-			raise exception.TestError(f"Test {self.__name__} requires a docstring description if hide=False")
+			raise exception.TestError(message=f"Test {self.__name__} requires a docstring description if hide=False")
 
 	@staticmethod
 	def shouldRun(testResults: Iterable[TestResult]) -> bool:
 		return not any(t is None for t in testResults) and not any(t.hasPassed for t in testResults)
 
 	def _getHide(self, hide: Optional[bool]) -> bool:
-		if hide != None:
+		if hide is not None:
 			return hide
 
 		inheritedHide = getattr(self._function, "hide", None)
@@ -309,7 +315,6 @@ class FailedTestFunction(TestFunction):
 			return inheritedHide
 
 		return True
-
 
 
 class PassedTestFunction(FailedTestFunction):

@@ -1,5 +1,4 @@
 from checkpy.lib.basic import *
-from checkpy.lib.sandbox import *
 from checkpy.lib.static import getSource
 from checkpy.lib.static import getSourceOfDefinitions
 from checkpy.lib.static import removeComments

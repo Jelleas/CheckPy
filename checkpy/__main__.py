@@ -76,9 +76,9 @@ def main():
 		results = []
 		for f in args.files:
 			if args.module:
-				result = tester.test(f, module = args.module, debugMode = args.dev, silentMode = args.silent)
+				result = tester.test(f, module=args.module, debugMode=args.dev, silentMode=args.silent)
 			else:
-				result = tester.test(f, debugMode = args.dev, silentMode = args.silent)
+				result = tester.test(f, debugMode=args.dev, silentMode=args.silent)
 			results.append(result)
 
 		if args.json:
@@ -87,12 +87,13 @@ def main():
 
 	if args.module:
 		downloader.updateSilently()
-		results = tester.testModule(args.module, debugMode = args.dev, silentMode = args.silent)
+		moduleResults = tester.testModule(args.module, debugMode=args.dev, silentMode=args.silent)
 
-		if args.json and results:
-			print(json.dumps([r.asDict() for r in results], indent=4))
-		elif args.json and not results:
-			print([])
+		if args.json:
+			if moduleResults is None:
+				print("[]")
+			else:
+				print(json.dumps([r.asDict() for r in moduleResults], indent=4))
 		return
 
 	parser.print_help()

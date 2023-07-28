@@ -31,6 +31,7 @@ def getTestNames(moduleName: str) -> Optional[List[str]]:
 		for (dirPath, subdirs, files) in os.walk(testsPath):
 			if moduleName in dirPath:
 				return [f[:-len("test.py")] for f in files if f.lower().endswith("test.py")]
+	return None
 
 def getTestPaths(testFileName: str, module: str="") -> List[pathlib.Path]:
 	testFilePaths: List[pathlib.Path] = []

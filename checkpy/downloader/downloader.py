@@ -156,8 +156,8 @@ def _download(githubUserName: str, githubRepoName: str):
 
 		existingTests: Set[pathlib.Path] = set()
 		for path, subdirs, files in os.walk(destPath):
-			for f in files:
-				existingTests.add((pathlib.Path(path) / f).relative_to(destPath))
+			for fil in files:
+				existingTests.add((pathlib.Path(path) / fil).relative_to(destPath))
 
 		newTests: Set[pathlib.Path] = set()
 		for name in z.namelist():

@@ -1,4 +1,5 @@
 import pathlib as _pathlib
+import typing as _typing
 
 # Path to the directory checkpy was called from
 USERPATH: _pathlib.Path = _pathlib.Path.cwd()
@@ -39,4 +40,4 @@ __all__ = [
     "approx"
 ]
 
-file: _pathlib.Path = None
+file: _typing.Optional[_pathlib.Path] = None

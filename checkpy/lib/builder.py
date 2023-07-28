@@ -321,7 +321,7 @@ class FunctionState:
         """The exact parameter names and order that the function accepts."""
         if self._params is None:
             raise checkpy.entities.exception.CheckpyError(
-                f"params are not set for function builder test {self._name}()"
+                message=f"params are not set for function builder test {self._name}()"
             )
         return self._params
 
@@ -344,7 +344,7 @@ class FunctionState:
         """What the last function call returned."""
         if not self.wasCalled:
             raise checkpy.entities.exception.CheckpyError(
-                f"function was never called for function builder test {self._name}"
+                message=f"function was never called for function builder test {self._name}"
             )
         return self._returned
 
@@ -394,7 +394,13 @@ class FunctionState:
     @timeout.setter
     def timeout(self, newTimeout: int):
         self._timeout = newTimeout
-        checkpy.tester.getActiveTest().timeout = self.timeout
+        
+        test = checkpy.tester.getActiveTest()
+        if test is None:
+            raise checkpy.entities.exception.CheckpyError(
+                message=f"Cannot change timeout while there is no test running."
+            )
+        test.timeout = self.timeout
 
     @property
     def description(self) -> str:
@@ -406,7 +412,13 @@ class FunctionState:
         if not self.isDescriptionMutable:
             return
         self._description = newDescription
-        checkpy.tester.getActiveTest().description = self.description
+
+        test = checkpy.tester.getActiveTest()
+        if test is None:
+            raise checkpy.entities.exception.CheckpyError(
+                message=f"Cannot change description while there is no test running."
+            )
+        test.description = self.description
 
     @property
     def isDescriptionMutable(self):
@@ -437,4 +449,10 @@ class FunctionState:
         `state.setDescriptionFormatter(lambda descr, state: f"Testing your function {state.name}: {descr}")`
         """
         self._descriptionFormatter = formatter
-        checkpy.tester.getActiveTest().description = self.description
+        
+        test = checkpy.tester.getActiveTest()
+        if test is None:
+            raise checkpy.entities.exception.CheckpyError(
+                message=f"Cannot change descriptionFormatter while there is no test running."
+            )
+        test.description = self.description

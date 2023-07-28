@@ -1,14 +1,23 @@
+import typing as _typing
+
 class CheckpyError(Exception):
-	def __init__(self, exception = None, message = "", output = "", stacktrace = ""):
+	def __init__(
+			self,
+			exception:
+			_typing.Optional[Exception]=None,
+			message: str="",
+			output: str="",
+			stacktrace: str=""
+		):
 		self._exception = exception
 		self._message = message
 		self._output = output
 		self._stacktrace = stacktrace
 
-	def output(self):
+	def output(self) -> str:
 		return self._output
 
-	def stacktrace(self):
+	def stacktrace(self) -> str:
 		return self._stacktrace
 
 	def __str__(self):
@@ -41,5 +50,5 @@ class TooManyFilesError(CheckpyError):
 	pass
 
 class MissingRequiredFiles(CheckpyError):
-	def __init__(self, missingFiles):
+	def __init__(self, missingFiles: _typing.List[str]):
 		super().__init__(message=f"Missing the following required files: {', '.join(missingFiles)}")

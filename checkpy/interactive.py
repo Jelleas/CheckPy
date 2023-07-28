@@ -1,4 +1,3 @@
-import os
 from checkpy.downloader import download, update
 
 def testModule(moduleName, debugMode = False, silentMode = False):
@@ -12,9 +11,12 @@ def testModule(moduleName, debugMode = False, silentMode = False):
 	downloader.updateSilently()
 	results = tester.testModule(moduleName, debugMode = debugMode, silentMode = silentMode)
 	try:
-		if __IPYTHON__:
-			import matplotlib.pyplot
-			matplotlib.pyplot.close("all")
+		if __IPYTHON__: # type: ignore [name-defined]
+			try:
+				import matplotlib.pyplot
+				matplotlib.pyplot.close("all")
+			except:
+				pass
 	except:
 		pass
 	return results
@@ -30,9 +32,12 @@ def test(fileName, debugMode = False, silentMode = False):
 	downloader.updateSilently()
 	result = tester.test(fileName, debugMode = debugMode, silentMode = silentMode)
 	try:
-		if __IPYTHON__:
-			import matplotlib.pyplot
-			matplotlib.pyplot.close("all")
+		if __IPYTHON__: # type: ignore [name-defined]
+			try:
+				import matplotlib.pyplot
+				matplotlib.pyplot.close("all")
+			except:
+				pass
 	except:
 		pass
 	return result
