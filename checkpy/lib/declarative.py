@@ -41,7 +41,7 @@ class function:
     from checkpy import *
 
     testSquare = test(timeout=3)(declarative
-        .function("square")  # assert function square() is defined
+        .function("square") # assert function square() is defined
         .params("x")        # assert that square() accepts one parameter called x
         .returnType("int")  # assert that the function always returns an integer
         .call(2)            # call the function with argument 2
