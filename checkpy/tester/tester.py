@@ -288,7 +288,7 @@ class _Tester(object):
             _activeTest = test
 
             run = testFunction(test)
-            
+
             self._sendSignal(_Signal(
                 isTiming=True, 
                 resetTimer=True, 
@@ -301,7 +301,7 @@ class _Tester(object):
             _activeTest = None
 
             self._sendSignal(_Signal(isTiming=False))
-        
+
         # return test results in specified order
         sortedResults = [cachedResults[test] for test in sorted(cachedResults)]
         return [result for result in sortedResults if result is not None]
@@ -310,7 +310,6 @@ class _Tester(object):
         self.resultQueue.put(result)
 
     def _sendSignal(self, signal: _Signal):
-        #return
         self.signalQueue.put(signal)
 
     def _getTestFunctionsInExecutionOrder(self, testFunctions: Iterable[TestFunction]) -> List[TestFunction]:

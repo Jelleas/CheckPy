@@ -186,23 +186,22 @@ class TestFunction:
             with conditionalSandbox():
                 try:
                     if getattr(self._function, "isTestFunction", False):
-                        result = self._function(test)()
+                        self._function(test)()
                     elif (len(inspect.getfullargspec(self._function).args) >
                           1 if inspect.ismethod(self._function) else 0):
-                        result = self._function(test)
+                        self._function(test)
                     else:
-                        result = self._function()
+                        self._function()
 
-                    if result is None:
-                        if test.test != Test.test:
-                            result = test.test()
+                    # support for old-style tests
+                    hasPassed, info = True, ""
+                    if test.test != Test.test:
+                        result = test.test()
+
+                        if type(result) == tuple:
+                            hasPassed, info = result
                         else:
-                            result = True
-
-                    if type(result) == tuple:
-                        hasPassed, info = result
-                    else:
-                        hasPassed, info = result, ""
+                            hasPassed = result
                 except AssertionError as e:
                     # last = traceback.extract_tb(e.__traceback__)[-1]
                     # print(last, dir(last), last.line, last.lineno)

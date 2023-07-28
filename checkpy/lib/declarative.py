@@ -268,6 +268,7 @@ class function:
             step(state)
 
         if initialDescription:
+            state.setDescriptionFormatter(lambda descr, state: descr)
             state.description = initialDescription
         elif state.wasCalled:
             state.description = f"{state.getFunctionCallRepr()} works as expected"
