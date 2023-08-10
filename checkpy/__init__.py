@@ -7,8 +7,13 @@ USERPATH: _pathlib.Path = _pathlib.Path.cwd()
 # Path to the directory of checkpy
 CHECKPYPATH: _pathlib.Path = _pathlib.Path(__file__).parent
 
-import dessert as _dessert
+# TODO rm me once below is fixed:
+#  https://github.com/pytest-dev/pytest/issues/9174
+# importing requests before dessert/pytest assert rewrite prevents
+# a ValueError on python3.10
+import requests as _requests
 
+import dessert as _dessert
 with _dessert.rewrite_assertions_context():
     from checkpy.lib import declarative
 
