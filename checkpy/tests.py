@@ -188,7 +188,7 @@ class TestFunction:
                     if getattr(self._function, "isTestFunction", False):
                         self._function(test)()
                     elif (len(inspect.getfullargspec(self._function).args) >
-                          1 if inspect.ismethod(self._function) else 0):
+                          (1 if inspect.ismethod(self._function) else 0)):
                         self._function(test)
                     else:
                         self._function()

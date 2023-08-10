@@ -3,7 +3,6 @@ import io
 import os
 import pathlib
 import re
-import requests
 import shutil
 import sys
 import traceback
@@ -281,7 +280,8 @@ def download(fileName, source):
     r = requests.get(url, allow_redirects=True)
     with open('google.ico', 'wb') as f:
         f.write(r.content)
-    """, DeprecationWarning, stacklevel=2)	
+    """, DeprecationWarning, stacklevel=2)
+    import requests
     try:
         r = requests.get(source)
     except requests.exceptions.ConnectionError as e:
