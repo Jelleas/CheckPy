@@ -443,8 +443,8 @@ class FunctionState:
         Note this method can only be called after a call to the tested function.
         Do be sure to check state.wasCalled! 
         """
-        argsRepr = ", ".join(str(arg) for arg in self.args)
-        kwargsRepr = ", ".join(f"{k}={v}" for k, v in self.kwargs.items())
+        argsRepr = ", ".join(f'"{a}"' if isinstance(a, str) else str(a) for a in self.args)
+        kwargsRepr = ", ".join(f'{k}="{v}"' if isinstance(v, str) else f'{k}={v}' for k, v in self.kwargs.items())
         repr = ', '.join([a for a in (argsRepr, kwargsRepr) if a])
         return f"{self.name}({repr})"
 
