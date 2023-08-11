@@ -238,7 +238,7 @@ class AbstractSyntaxTree:
     For instance:
 
     ```
-    assert ast.For in AbstractSyntaxTree() # assert that a for-loop is present
+    assert ast.For not in AbstractSyntaxTree() # assert that a for-loop is not present
     assert ast.Mult in AbstractSyntaxTree() # assert that multiplication is present
     ```
     """

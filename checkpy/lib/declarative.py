@@ -254,9 +254,11 @@ class function:
         
         return self
     
-    def __call__(self) -> "FunctionState":
+    def __call__(self, test: Optional[checkpy.tests.Test]=None) -> "FunctionState":
         """Run the test."""
-        test = checkpy.tester.getActiveTest()
+        if test is None:
+            test = checkpy.tester.getActiveTest()
+
         initialDescription = ""
         if test is not None and test.description != test.PLACEHOLDER_DESCRIPTION:
             initialDescription = test.description
