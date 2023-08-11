@@ -81,7 +81,11 @@ class function:
         self._initialState: FunctionState = FunctionState(functionName, fileName=fileName)
         self._stack: List[Callable[["FunctionState"], None]] = []
         self._description: Optional[str] = None
-        self._stack = self.name(functionName)._stack
+
+        name = self.name(functionName)
+        self._stack = name._stack
+        self.__name__ = name.__name__
+        self.__doc__ = name.__doc__
 
     def name(self, functionName: str) -> Self:
         """Assert that a function with functionName is defined."""
@@ -260,7 +264,9 @@ class function:
             test = checkpy.tester.getActiveTest()
 
         initialDescription = ""
-        if test is not None and test.description != test.PLACEHOLDER_DESCRIPTION:
+        if test is not None\
+            and test.description != test.PLACEHOLDER_DESCRIPTION\
+            and test.description != self._initialState.description:
             initialDescription = test.description
 
         stack = list(self._stack)
