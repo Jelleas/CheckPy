@@ -5,7 +5,7 @@ from typing import Any, Dict, Set, Tuple, Union, Callable, Iterable, Optional
 
 from checkpy import caches
 from checkpy.entities import exception
-from checkpy.lib.sandbox import conditionalSandbox
+from checkpy.lib.sandbox import sandbox
 from checkpy.lib.explanation import simplifyAssertionMessage
 
 
@@ -183,7 +183,7 @@ class TestFunction:
 
         @caches.cacheTestResult(self)
         def runMethod():
-            with conditionalSandbox():
+            with sandbox():
                 try:
                     if getattr(self._function, "isTestFunction", False):
                         self._function(test)()

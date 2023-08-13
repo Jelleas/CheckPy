@@ -2,7 +2,7 @@ import checkpy
 from checkpy import printer
 from checkpy.entities import exception
 from checkpy.tester import discovery
-from checkpy.lib.sandbox import conditionalSandbox
+from checkpy.lib.sandbox import sandbox
 from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test, TestResult, TestFunction
 
@@ -218,7 +218,7 @@ class _Tester(object):
             # TODO: should be a cleaner way to inject "pytest_assertrepr_compare"
             dessert.util._reprcompare = explainCompare
 
-            with conditionalSandbox():
+            with sandbox():
                 module = importlib.import_module(self.moduleName)
                 module._fileName = self.filePath.name # type: ignore [attr-defined]
 

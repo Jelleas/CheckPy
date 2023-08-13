@@ -14,7 +14,7 @@ from checkpy.lib.basic import getPositiveIntegersFromString
 from checkpy.lib.basic import getNumbersFromString
 from checkpy.lib.basic import getLine
 from checkpy.lib.basic import fileExists
-from checkpy.lib.basic import download
+from checkpy.lib.sandbox import download
 from checkpy.lib.basic import require
 
 

@@ -19,7 +19,7 @@ with _dessert.rewrite_assertions_context():
 
 from checkpy.tests import test, failed, passed
 from checkpy.lib.basic import outputOf, getModule, getFunction
-from checkpy.lib.sandbox import only, include, exclude, require
+from checkpy.lib.sandbox import only, include, exclude, require, download
 from checkpy.lib import static
 from checkpy.lib import monkeypatch
 from checkpy.lib.type import Type
@@ -41,6 +41,7 @@ __all__ = [
     "include",
     "exclude",
     "require",
+    "download",
     "file",
     "approx"
 ]

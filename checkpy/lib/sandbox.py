@@ -6,7 +6,9 @@ import tempfile
 from pathlib import Path
 from typing import List, Set, Union
 
-from checkpy.entities.exception import TooManyFilesError, MissingRequiredFiles
+import requests
+
+from checkpy.entities.exception import TooManyFilesError, MissingRequiredFiles, DownloadError
 
 
 __all__ = ["exclude", "include", "only", "require"]
@@ -19,7 +21,7 @@ def exclude(*patterns: Union[str, Path]):
     """
     Exclude all files matching patterns from the check's sandbox.
     
-    If this is the first call to only/include/exclude/require initialize the sandbox: 
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
     * Create a temp dir
     * Copy over all files from current dir (except those files excluded through exclude())
 
@@ -31,7 +33,7 @@ def include(*patterns: Union[str, Path]):
     """
     Include all files matching patterns from the check's sandbox.
     
-    If this is the first call to only/include/exclude/require initialize the sandbox: 
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
     * Create a temp dir
     * Copy over all files from current dir (except those files excluded through exclude())
 
@@ -43,7 +45,7 @@ def only(*patterns: Union[str, Path]):
     """
     Only files matching patterns will be in the check's sandbox.
     
-    If this is the first call to only/include/exclude/require initialize the sandbox: 
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
     * Create a temp dir
     * Copy over all files from current dir (except those files excluded through exclude())
 
@@ -57,7 +59,7 @@ def require(*filePaths: Union[str, Path]):
     Raises checkpy.entities.exception.MissingRequiredFiles if any required file is missing.
     Note that this function does not accept patterns (globs), but concrete filenames or paths.
     
-    If this is the first call to only/include/exclude/require initialize the sandbox: 
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
     * Create a temp dir
     * Copy over all files from current dir (except those files excluded through exclude())
 
@@ -66,11 +68,23 @@ def require(*filePaths: Union[str, Path]):
     config.require(*filePaths)
 
 
+def download(fileName: str, source: str):
+    """
+    Download a file from source and store it in fileName.
+
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+    """
+    config.download(fileName, source)
+
+
 class Config:
     def __init__(self, onUpdate=lambda config: None):
         self.includedFiles: Set[str] = set()
         self.excludedFiles: Set[str] = set()
         self.missingRequiredFiles: List[str] = []
+        self.downloads: List[Download] = []
         self.isSandboxed = False
         self.root = Path.cwd()
         self.onUpdate = onUpdate
@@ -135,34 +149,39 @@ class Config:
 
         self.onUpdate(self)
 
+    def download(self, fileName: str, source: str):
+        self.downloads.append(Download(fileName, source))
+        self.onUpdate(self)
 
 config = Config()
 
 
+class Download:
+    def __init__(self, fileName: str, source: str):
+        self.fileName: str = str(fileName)
+        self.source: str = str(source)
+        self._isDownloaded: bool = False
+
+    def download(self):
+        if self._isDownloaded:
+            return
+
+        try:
+            r = requests.get(self.source, allow_redirects=True)
+        except requests.exceptions.ConnectionError:
+            raise DownloadError(message="Oh no! It seems like there is no internet connection available.")
+
+        if not r.ok:
+            raise DownloadError(message=f"Failed to download {self.source} because: {r.reason}")
+
+        with open(self.fileName, "wb+") as target:
+            target.write(r.content)
+
+        self._isDownloaded = True
+
+
 @contextlib.contextmanager
 def sandbox(name: Union[str, Path]=""):
-    if config.missingRequiredFiles:
-        raise MissingRequiredFiles(config.missingRequiredFiles)
-
-    if not config.isSandboxed:
-        yield
-        return
-
-    with tempfile.TemporaryDirectory() as dir:
-        dirPath = Path(Path(dir) / name)
-        dirPath.mkdir(exist_ok=True)
-
-        for f in config.includedFiles:
-            dest = (dirPath / f).absolute()
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(f, dest)
-
-        with cd(dirPath), sandboxConfig():
-            yield
-
-
-@contextlib.contextmanager
-def conditionalSandbox(name: Union[str, Path]=""):
     tempDir = None
     dir = None
 
@@ -170,6 +189,9 @@ def conditionalSandbox(name: Union[str, Path]=""):
     oldExcluded: Set[str] = set()
 
     def sync(config: Config, sandboxDir: Path):
+        for dl in config.downloads:
+            dl.download()
+
         nonlocal oldIncluded, oldExcluded
         for f in config.excludedFiles - oldExcluded:
             dest = (sandboxDir / f).absolute()

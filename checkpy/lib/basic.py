@@ -273,27 +273,6 @@ def fileExists(fileName):
     return path.Path(fileName).exists()
 
 
-def download(fileName, source):
-    warn("""checkpy.lib.download() is deprecated. Use requests to download files:
-    import requests
-    url = 'http://google.com/favicon.ico'
-    r = requests.get(url, allow_redirects=True)
-    with open('google.ico', 'wb') as f:
-        f.write(r.content)
-    """, DeprecationWarning, stacklevel=2)
-    import requests
-    try:
-        r = requests.get(source)
-    except requests.exceptions.ConnectionError as e:
-        raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
-
-    if not r.ok:
-        raise exception.DownloadError(message = "Failed to download {} because: {}".format(source, r.reason))
-
-    with open(str(fileName), "wb+") as target:
-        target.write(r.content)
-
-
 def require(fileName, source=None):
     warn("""checkpy.lib.require() is deprecated. Use requests to download files:
     import requests
