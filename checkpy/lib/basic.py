@@ -281,6 +281,8 @@ def require(fileName, source=None):
     with open('google.ico', 'wb') as f:
         f.write(r.content)
     """, DeprecationWarning, stacklevel=2)
+    from checkpy.lib import download
+
     if source:
         download(fileName, source)
         return
