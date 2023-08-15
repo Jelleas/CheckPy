@@ -63,7 +63,7 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
     message = "\n".join(lines)
 
     # Find any substitution lines of the form where ... = ... from pytest
-    whereRegex = re.compile(r"\n[\s]*\+(\s*)(where|and)[\s]*(.*)")
+    whereRegex = re.compile(r"\n[\s]*\+(\s*)(where|and)[\s]*(.*) = (.*)")
     whereLines = whereRegex.findall(message)
 
     # If there are none, nothing to do
@@ -88,7 +88,7 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
     skipping = False
 
     # For each where line, apply the substitution on the first match
-    for indent, _, substitution in whereLines:
+    for indent, _, left, right in whereLines:
         newIndent = len(indent)
 
         # If the previous step was skipped, and the next step is more indented, keep skipping
@@ -114,16 +114,6 @@ def simplifyAssertionMessage(assertion: Union[str, AssertionError]) -> str:
         # Otherwise, no longer skipping
         oldIndent = newIndent
         skipping = False
-
-        # Find the left (the original) and the right (the substitute)
-        match = substitutionRegex.match(substitution)
-        if match is None:
-            raise checkpy.entities.exception.CheckpyError(
-                    message=f"parsing the assertion '{message}' failed."
-                            f" Please create an issue over at https://github.com/Jelleas/CheckPy/issues"
-                            f" and copy-paste this entire message."
-                )
-        left, right = match.group(1), match.group(2)
 
         # If the right contains any checkpy function or module, skip
         if _shouldSkip(right):

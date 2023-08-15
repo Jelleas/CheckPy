@@ -106,6 +106,7 @@ def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False)
 
     start = time.time()
     isTiming = False
+    result: Optional[TesterResult] = None
 
     while p.is_alive():
         while not signalQueue.empty():
@@ -128,6 +129,9 @@ def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False)
             return result
 
         if not resultQueue.empty():
+            # .get before .join to prevent hanging indefinitely due to a full pipe
+            # https://bugs.python.org/issue8426
+            result = resultQueue.get()
             p.terminate()
             p.join()
             break
@@ -135,9 +139,12 @@ def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False)
         time.sleep(0.1)
 
     if not resultQueue.empty():
-        return resultQueue.get()
-    
-    raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
+        result = resultQueue.get()
+
+    if result is None:
+        raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
+
+    return result
 
 
 class TesterResult(object):
