@@ -85,7 +85,7 @@ checkpy's `test` decorator marks the function below as a test. The docstring is 
 
 ### Writing tests
 
-Tests are discovered by filename. If you want to test a file called ``hello.py``, the corresponding test must be named ``helloTest.py``. These tests must be placed in a folder called `tests`. For instance: `tests/helloTest.py`. Tests are distributed via GitHub repositories, but for development purposes tests can also be "registered" locally via the `-r` flag. For instance:
+Tests are discovered by filename. If you want to test a file called ``hello.py``, the corresponding test must be named ``helloTest.py``. These tests must be placed in a folder called `tests`. For instance: `tests/helloTest.py`. Tests are distributed via GitHub repositories, but for development purposes tests can also be registered locally via the `-r` flag. For instance:
 
     mkdir tests
     touch tests/helloTest.py
