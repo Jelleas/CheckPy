@@ -10,6 +10,7 @@
 
 name: Upload Python Package
 
+
 on:
   release:
     types: [published]
@@ -36,4 +37,6 @@ jobs:
     - name: Build package
       run: python -m build
     - name: Publish package distributions to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
+      uses: pypa/gh-action-pypi-publish@v1.8.10
+
+
