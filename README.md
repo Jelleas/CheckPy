@@ -233,7 +233,7 @@ correctForPos = test()(declarative
 
 ### Distributing tests
 
-checkpy downloads tests directly from Github repos. The requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules). There must also be at least one release in the Github repo. checkpy will automatically target the latest release. Call checkpy with the optional ``-d`` argument and pass your github repo url. Tests will then be automatically downloaded, installed and kept up to date.
+checkpy downloads tests directly from Github repos. The requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules). There must also be at least one release in the Github repo. checkpy will automatically target the latest release. To download tests call checkpy with the optional ``-d`` argument and pass your github repo url. checkpy will automatically keep tests up to date by checking for any new releases on GitHub.
 
 
 ### Testing checkpy
