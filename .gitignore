@@ -1,6 +1,5 @@
 studentfiles
 checkpy/tests/
-readme.md
 *.json
 .DS_Store
 

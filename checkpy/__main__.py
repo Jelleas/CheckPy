@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--dev", action="store_true", help="get extra information to support the development of tests")
     parser.add_argument("--silent", action="store_true", help="do not print test results to stdout")
     parser.add_argument("--json", action="store_true", help="return output as json, implies silent")
-    parser.add_argument("--gh-auth", action="store", help="username:personal_access_token for authentication with GitHub. Only used to increase the GitHub api's rate limit.")
+    parser.add_argument("--gh-auth", action="store", help="username:personal_access_token for authentication with GitHub. Only used to increase GitHub api's rate limit.")
     parser.add_argument("files", action="store", nargs="*", help="names of files to be tested")
     args = parser.parse_args()
 
