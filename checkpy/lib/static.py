@@ -84,19 +84,29 @@ def getSourceOfDefinitions(fileName: _Optional[_Union[str, _Path]]=None) -> str:
 
 def getNumbersFrom(text: str) -> _List[_Union[int, float]]:
     """
-    Get all Python parseable numbers from a string.
-    Numbers are assumed to be seperated by whitespace from other text.
-    whitespace = \s = [\\r\\n\\t\\f\\v ]
+    Get all numbers from a string.
+    Only the first dot in a number is used:
+        7.3.4 produces float(7.3). The 4 is discarded.
+    'e' is unsupported and considered a normal seperator:
+        1e7 produces int(1) and int(7)
+    Whitespace (or generally non-digits) matters:
+        7-8 produces int(7) and int(8)
+        7 -8 produces int(7) and int(-8)
+        7 - 8 produces int(7) and int(8)
     """
     numbers: _List[_Union[int, float]] = []
-    for elem in _re.split(r"\s", text):
-        try:
-            if "." in elem:
-                numbers.append(float(elem))
-            else:
-                numbers.append(int(elem))
-        except ValueError:
-            pass
+
+    n = ""
+    for c in text + " ":
+        if c.isdigit() or c == "." or (c in "+-" and not n):
+            n += c
+        elif n:
+            # drop everything after the second '.'
+            if n.count(".") > 1:
+                n = ".".join(n.split(".")[:2])
+
+            numbers.append(float(n) if "." in n else int(n))
+            n = ""
 
     return numbers
 
