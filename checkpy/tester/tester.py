@@ -6,6 +6,7 @@ from checkpy.lib.sandbox import sandbox
 from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test, TestResult, TestFunction
 
+from dataclasses import dataclass
 from types import ModuleType
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -76,7 +77,13 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         with open(path, "w") as f:
             f.write("".join([l for l in lines if "get_ipython" not in l]))
 
-    testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode, silentMode = silentMode)
+    monitor = Monitor(
+        moduleName=testFileName.split(".")[0],
+        fileName=path,
+        debugMode=debugMode,
+        silentMode=silentMode
+    )
+    testerResult = monitor.run()
 
     if path.endswith(".ipynb"):
         os.remove(path)
@@ -95,65 +102,107 @@ def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List[
 
     return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
 
-def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
-    ctx = mp.get_context("spawn")
-    
-    signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
-    resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
-    tester = _Tester(moduleName, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
-    p = ctx.Process(target=tester.run, name="Tester")
-    p.start()
 
-    start = time.time()
-    isTiming = False
-    result: Optional[TesterResult] = None
+@dataclass
+class MonitorState:
+    startTime: int
+    timeout: int
+    isTiming: bool
+    description: str
+    result: "TesterResult"
 
-    while p.is_alive():
-        while not signalQueue.empty():
-            signal = signalQueue.get()
-            
-            if signal.description is not None:
-                description = signal.description
-            if signal.isTiming is not None:
-                isTiming = signal.isTiming
-            if signal.timeout is not None:
-                timeout = signal.timeout
-            if signal.resetTimer:
-                start = time.time()
 
-        if isTiming and time.time() - start > timeout:
-            result = TesterResult(pathlib.Path(fileName).name)
-            result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
-            p.terminate()
-            p.join()
-            return result
+class Monitor:
+    def __init__(self, moduleName: str, fileName: str, debugMode=False, silentMode=False):
+        self.moduleName = moduleName
+        self.fileName = fileName
+        self.debugMode = debugMode
+        self.silentMode = silentMode
 
-        if not resultQueue.empty():
-            # .get before .join to prevent hanging indefinitely due to a full pipe
-            # https://bugs.python.org/issue8426
-            result = resultQueue.get()
-            p.terminate()
-            p.join()
-            break
+    def run(self):
+        ctx = mp.get_context("spawn")
+        queue: "mp.Queue[Union[_Signal, TestResult]]" = ctx.Queue()
 
-        time.sleep(0.1)
+        tester = _Tester(
+            self.moduleName,
+            pathlib.Path(self.fileName),
+            self.debugMode,
+            self.silentMode,
+            queue
+        )
+        p = ctx.Process(target=tester.run, name="Tester")
+        p.start()
 
-    if not resultQueue.empty():
-        result = resultQueue.get()
+        state = MonitorState(
+            startTime=time.time(),
+            timeout=10,
+            isTiming=False,
+            description="",
+            result=TesterResult(pathlib.Path(self.fileName).name)
+        )
 
-    if result is None:
-        raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
+        state.result.addOutput(printer.displayTestName(state.result.name))
 
-    return result
+        while p.is_alive():
+            self.processQueue(queue, state)
+
+            if state.isTiming and time.time() - state.startTime > state.timeout:
+                self.processTimeout(state)
+                p.terminate()
+                p.join()
+                return state.result
+
+            time.sleep(0.1)
+
+        self.processQueue(queue, state)
+        return state.result
+
+    def processQueue(
+            self,
+            queue: "mp.Queue[Union[_Signal, TestResult]]",
+            state: MonitorState
+        ):
+        while not queue.empty():
+            item = queue.get()
+
+            if isinstance(item, TestResult):
+                self.processResult(item, state)
+            else:
+                self.processSignal(item, state)
+
+    def processResult(self, result: TestResult, state: MonitorState):
+        state.isTiming = False
+        state.result.addResult(result)
+        state.result.addOutput(printer.display(result))
+
+    def processSignal(self, signal: "_Signal", state: MonitorState):
+        if signal.description is not None:
+            state.description = signal.description
+        if signal.isTiming is not None:
+            state.isTiming = signal.isTiming
+        if signal.timeout is not None:
+            state.timeout = signal.timeout
+        if signal.nTests is not None:
+            state.result.nTests = signal.nTests
+        if signal.resetTimer:
+            state.startTime = time.time()
+
+    def processTimeout(self, state: MonitorState):
+        msg = f"Timeout ({state.timeout} seconds) reached during: {state.description}"
+        state.result.addResult(
+            TestResult(
+                hasPassed=False,
+                description=state.description,
+                message=msg
+            )
+        )
+        state.result.addOutput(printer.displayError(msg))
 
 
 class TesterResult(object):
     def __init__(self, name: str):
         self.name = name
         self.nTests = 0
-        self.nPassedTests = 0
-        self.nFailedTests = 0
-        self.nRunTests = 0
         self.output: List[str] = []
         self.testResults: List[TestResult] = []
 
@@ -162,6 +211,18 @@ class TesterResult(object):
 
     def addResult(self, testResult: TestResult):
         self.testResults.append(testResult)
+
+    @property
+    def nRunTests(self) -> int:
+        return len([t for t in self.testResults if t.hasPassed is not None])
+
+    @property
+    def nPassedTests(self) -> int:
+        return len([t for t in self.testResults if t.hasPassed])
+
+    @property
+    def nFailedTests(self) -> int:
+        return len([t for t in self.testResults if t.hasPassed is False])
 
     def asDict(self) -> Dict[str, Union[str, int, List]]:
         return {
@@ -181,12 +242,14 @@ class _Signal(object):
             isTiming: Optional[bool]=None, 
             resetTimer: Optional[bool]=None, 
             description: Optional[str]=None, 
-            timeout: Optional[int]=None
+            timeout: Optional[int]=None,
+            nTests: Optional[int]=None
         ):
         self.isTiming = isTiming
         self.resetTimer = resetTimer
         self.description = description
         self.timeout = timeout
+        self.nTests = nTests
 
 
 class _Tester(object):
@@ -196,15 +259,13 @@ class _Tester(object):
             filePath: pathlib.Path,
             debugMode: bool,
             silentMode: bool,
-            signalQueue: "mp.Queue[_Signal]",
-            resultQueue: "mp.Queue[TesterResult]"
+            queue: "mp.Queue[Union[_Signal, TestResult]]",
         ):
         self.moduleName = moduleName
         self.filePath = filePath.absolute()
         self.debugMode = debugMode
         self.silentMode = silentMode
-        self.signalQueue = signalQueue
-        self.resultQueue = resultQueue
+        self.queue = queue
 
     def run(self):
         printer.printer.DEBUG_MODE = self.debugMode
@@ -232,49 +293,28 @@ class _Tester(object):
                 self._runTestsFromModule(module)
 
     def _runTestsFromModule(self, module: ModuleType):
-        self._sendSignal(_Signal(isTiming = False))
-
-        result = TesterResult(self.filePath.name)
-        result.addOutput(printer.displayTestName(self.filePath.name))
+        self._send(_Signal(isTiming = False))
 
         if hasattr(module, "before"):
-            try:
-                module.before()
-            except Exception as e:
-                result.addOutput(printer.displayError("Something went wrong at setup:\n{}".format(e)))
-                return
+            module.before()
 
         testFunctions = [method for method in module.__dict__.values() if getattr(method, "isTestFunction", False)]
-        result.nTests = len(testFunctions)
 
-        testResults = self._runTests(testFunctions)
+        self._send(_Signal(nTests=len(testFunctions)))
 
-        result.nRunTests = len(testResults)
-        result.nPassedTests = len([tr for tr in testResults if tr.hasPassed])
-        result.nFailedTests = len([tr for tr in testResults if not tr.hasPassed])
-
-        for testResult in testResults:
-            result.addResult(testResult)
-            result.addOutput(printer.display(testResult))
+        self._runTests(testFunctions)
 
         if hasattr(module, "after"):
-            try:
-                module.after()
-            except Exception as e:
-                result.addOutput(printer.displayError("Something went wrong at closing:\n{}".format(e)))
+            module.after()
 
-        self._sendResult(result)
-
-    def _runTests(self, testFunctions: Iterable[TestFunction]) -> List[TestResult]:
-        cachedResults: Dict[Test, Optional[TestResult]] = {}
-
+    def _runTests(self, testFunctions: Iterable[TestFunction]):
         def handleDescriptionChange(test: Test):
-            self._sendSignal(_Signal(
+            self._send(_Signal(
                 description=test.description
             ))
 
         def handleTimeoutChange(test: Test):
-            self._sendSignal(_Signal(
+            self._send(_Signal(
                 isTiming=True,
                 resetTimer=True,
                 timeout=test.timeout
@@ -285,8 +325,8 @@ class _Tester(object):
         # run tests in noncolliding execution order
         for testFunction in self._getTestFunctionsInExecutionOrder(testFunctions):
             test = Test(
-                self.filePath.name,
-                testFunction.priority,
+                fileName=self.filePath.name,
+                priority=testFunction.priority,
                 timeout=testFunction.timeout,
                 onDescriptionChange=handleDescriptionChange,
                 onTimeoutChange=handleTimeoutChange
@@ -296,28 +336,20 @@ class _Tester(object):
 
             run = testFunction(test)
 
-            self._sendSignal(_Signal(
+            self._send(_Signal(
                 isTiming=True, 
                 resetTimer=True, 
                 description=test.description, 
                 timeout=test.timeout
             ))
 
-            cachedResults[test] = run()
+            result = run()
 
             _activeTest = None
-
-            self._sendSignal(_Signal(isTiming=False))
-
-        # return test results in specified order
-        sortedResults = [cachedResults[test] for test in sorted(cachedResults)]
-        return [result for result in sortedResults if result is not None]
+            self._send(result)
     
-    def _sendResult(self, result: TesterResult):
-        self.resultQueue.put(result)
-
-    def _sendSignal(self, signal: _Signal):
-        self.signalQueue.put(signal)
+    def _send(self, item: Union[_Signal, TestResult]):
+        self.queue.put(item)
 
     def _getTestFunctionsInExecutionOrder(self, testFunctions: Iterable[TestFunction]) -> List[TestFunction]:
         sortedTFs: List[TestFunction] = []
