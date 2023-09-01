@@ -16,6 +16,7 @@ import subprocess
 import sys
 import importlib
 import time
+import traceback
 import warnings
 
 import dessert
@@ -32,7 +33,12 @@ def getActiveTest() -> Optional[Test]:
     return _activeTest
 
 
-def test(testName: str, module="", debugMode=False, silentMode=False) -> "TesterResult":
+def test(
+    testName: str,
+    module="",
+    debugMode=False,
+    silentMode=False
+) -> Union["TesterResult", "ErroredTesterResult"]:
     printer.printer.SILENT_MODE = silentMode
 
     result = TesterResult(testName)
@@ -92,7 +98,11 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
     return testerResult
 
 
-def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List["TesterResult"]]:
+def testModule(
+    module: str,
+    debugMode=False,
+    silentMode=False
+) -> Optional[List[Union["TesterResult", "ErroredTesterResult"]]]:
     printer.printer.SILENT_MODE = silentMode
     testNames = discovery.getTestNames(module)
 
@@ -105,8 +115,8 @@ def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List[
 
 @dataclass
 class MonitorState:
-    startTime: int
-    timeout: int
+    startTime: float
+    timeout: float
     isTiming: bool
     description: str
     result: "TesterResult"
@@ -119,9 +129,9 @@ class Monitor:
         self.debugMode = debugMode
         self.silentMode = silentMode
 
-    def run(self):
+    def run(self) -> Union["TesterResult", "ErroredTesterResult"]:
         ctx = mp.get_context("spawn")
-        queue: "mp.Queue[Union[_Signal, TestResult]]" = ctx.Queue()
+        queue: "mp.Queue[Union[_Signal, TestResult, exception.CheckpyError]]" = ctx.Queue()
 
         tester = _Tester(
             self.moduleName,
@@ -146,6 +156,9 @@ class Monitor:
         while p.is_alive():
             self.processQueue(queue, state)
 
+            if isinstance(state.result, ErroredTesterResult):
+                return state.result
+
             if state.isTiming and time.time() - state.startTime > state.timeout:
                 self.processTimeout(state)
                 p.terminate()
@@ -159,7 +172,7 @@ class Monitor:
 
     def processQueue(
             self,
-            queue: "mp.Queue[Union[_Signal, TestResult]]",
+            queue: "mp.Queue[Union[_Signal, TestResult, exception.CheckpyError]]",
             state: MonitorState
         ):
         while not queue.empty():
@@ -167,6 +180,8 @@ class Monitor:
 
             if isinstance(item, TestResult):
                 self.processResult(item, state)
+            elif isinstance(item, exception.CheckpyError):
+                self.processError(item, state)
             else:
                 self.processSignal(item, state)
 
@@ -187,6 +202,12 @@ class Monitor:
         if signal.resetTimer:
             state.startTime = time.time()
 
+    def processError(self, error: exception.CheckpyError, state: MonitorState):
+        state.result.addOutput(printer.displayError(str(error)))
+        if self.debugMode:
+            state.result.addOutput(printer.displayCustom(error.stacktrace()))
+        state.result = ErroredTesterResult(state.result, error) # type: ignore [assignment]
+
     def processTimeout(self, state: MonitorState):
         msg = f"Timeout ({state.timeout} seconds) reached during: {state.description}"
         state.result.addResult(
@@ -198,8 +219,15 @@ class Monitor:
         )
         state.result.addOutput(printer.displayError(msg))
 
+        nUnrunTests = state.result.nTests - len(state.result.testResults)
+        if nUnrunTests > 0:
+            s = "s" if nUnrunTests > 1 else ""
+            state.result.addOutput(printer.displayWarning(
+                f"{nUnrunTests} test{s} could not run due to the timeout")
+            )
 
-class TesterResult(object):
+
+class TesterResult:
     def __init__(self, name: str):
         self.name = name
         self.nTests = 0
@@ -236,7 +264,22 @@ class TesterResult(object):
         }
 
 
-class _Signal(object):
+class ErroredTesterResult:
+    def __init__(self, testerResult: TesterResult, exception: exception.CheckpyError):
+        self.name = testerResult.name
+        self.output = testerResult.output[:]
+        self.error = exception
+
+    def asDict(self) -> Dict[str, Union[str, int, List]]:
+        return {
+            "name": self.name,
+            "output": self.output,
+            "error": str(self.error),
+            "stacktrace": self.error.stacktrace()
+        }
+
+
+class _Signal:
     def __init__(
             self, 
             isTiming: Optional[bool]=None, 
@@ -259,7 +302,7 @@ class _Tester(object):
             filePath: pathlib.Path,
             debugMode: bool,
             silentMode: bool,
-            queue: "mp.Queue[Union[_Signal, TestResult]]",
+            queue: "mp.Queue[Union[_Signal, TestResult, exception.CheckpyError]]",
         ):
         self.moduleName = moduleName
         self.filePath = filePath.absolute()
@@ -286,14 +329,23 @@ class _Tester(object):
             # TODO: should be a cleaner way to inject "pytest_assertrepr_compare"
             dessert.util._reprcompare = explainCompare
 
-            with sandbox():
-                module = importlib.import_module(self.moduleName)
-                module._fileName = self.filePath.name # type: ignore [attr-defined]
+            try:
+                with sandbox():
+                    module = importlib.import_module(self.moduleName)
+                    module._fileName = self.filePath.name # type: ignore [attr-defined]
 
-                self._runTestsFromModule(module)
+                    self._runTestsFromModule(module)
+            except Exception as e:
+                stacktrace = "\n".join(traceback.format_tb(e.__traceback__))
+                error = exception.CheckpyError(
+                    exception=e,
+                    message="while trying to run tests. This is likely a bug in the tests and not in your code. Best contact the course's staff! You can rerun checkpy with --dev to see more details.",
+                    stacktrace=stacktrace
+                )
+                self._send(error)
 
     def _runTestsFromModule(self, module: ModuleType):
-        self._send(_Signal(isTiming = False))
+        self._send(_Signal(isTiming=False))
 
         if hasattr(module, "before"):
             module.before()
@@ -346,9 +398,10 @@ class _Tester(object):
             result = run()
 
             _activeTest = None
-            self._send(result)
+            if result is not None:
+                self._send(result)
     
-    def _send(self, item: Union[_Signal, TestResult]):
+    def _send(self, item: Union[_Signal, TestResult, exception.CheckpyError]):
         self.queue.put(item)
 
     def _getTestFunctionsInExecutionOrder(self, testFunctions: Iterable[TestFunction]) -> List[TestFunction]:
