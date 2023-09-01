@@ -14,14 +14,14 @@ import os
 import pathlib
 import subprocess
 import sys
+import multiprocessing as mp
 import importlib
 import time
 import traceback
 import warnings
 
 import dessert
-import multiprocessing as mp
-
+from halo import Halo
 
 __all__ = ["getActiveTest", "test", "testModule", "TesterResult"]
 
@@ -120,6 +120,7 @@ class MonitorState:
     isTiming: bool
     description: str
     result: "TesterResult"
+    spinner: Halo
 
 
 class Monitor:
@@ -148,7 +149,8 @@ class Monitor:
             timeout=10,
             isTiming=False,
             description="",
-            result=TesterResult(pathlib.Path(self.fileName).name)
+            result=TesterResult(pathlib.Path(self.fileName).name),
+            spinner=None
         )
 
         state.result.addOutput(printer.displayTestName(state.result.name))
@@ -157,6 +159,8 @@ class Monitor:
             self.processQueue(queue, state)
 
             if isinstance(state.result, ErroredTesterResult):
+                state.spinner.stop()
+                state.spinner.clear()
                 return state.result
 
             if state.isTiming and time.time() - state.startTime > state.timeout:
@@ -168,6 +172,8 @@ class Monitor:
             time.sleep(0.1)
 
         self.processQueue(queue, state)
+        state.spinner.stop()
+        state.spinner.clear()
         return state.result
 
     def processQueue(
@@ -177,7 +183,7 @@ class Monitor:
         ):
         while not queue.empty():
             item = queue.get()
-
+            # print(item)
             if isinstance(item, TestResult):
                 self.processResult(item, state)
             elif isinstance(item, exception.CheckpyError):
@@ -187,14 +193,30 @@ class Monitor:
 
     def processResult(self, result: TestResult, state: MonitorState):
         state.isTiming = False
+        state.spinner.stop()
+        state.spinner.clear()
         state.result.addResult(result)
         state.result.addOutput(printer.display(result))
-
+        
     def processSignal(self, signal: "_Signal", state: MonitorState):
         if signal.description is not None:
             state.description = signal.description
         if signal.isTiming is not None:
             state.isTiming = signal.isTiming
+            frames = [
+                f"{printer.printer._Colors.PASS}:){printer.printer._Colors.ENDC}",
+                f"{printer.printer._Colors.WARNING}:|{printer.printer._Colors.ENDC}",
+                f"{printer.printer._Colors.FAIL}:({printer.printer._Colors.ENDC}",
+                f"{printer.printer._Colors.WARNING}:|{printer.printer._Colors.ENDC}",
+            ] * 10
+            frames[10] = f"{printer.printer._Colors.PASS};){printer.printer._Colors.ENDC}"
+            frames[21] = f"{printer.printer._Colors.PASS}:D{printer.printer._Colors.ENDC}"
+
+            state.spinner = Halo(text=state.description, spinner={
+                'interval': 350,
+                'frames': frames
+            })
+            state.spinner.start()
         if signal.timeout is not None:
             state.timeout = signal.timeout
         if signal.nTests is not None:
@@ -217,14 +239,16 @@ class Monitor:
                 message=msg
             )
         )
+        state.spinner.stop()
+        state.spinner.clear()
         state.result.addOutput(printer.displayError(msg))
 
         nUnrunTests = state.result.nTests - len(state.result.testResults)
         if nUnrunTests > 0:
             s = "s" if nUnrunTests > 1 else ""
             state.result.addOutput(printer.displayWarning(
-                f"{nUnrunTests} test{s} could not run due to the timeout")
-            )
+                f"{nUnrunTests} test{s} could not run due to the timeout"
+            ))
 
 
 class TesterResult:
@@ -279,20 +303,13 @@ class ErroredTesterResult:
         }
 
 
+@dataclass
 class _Signal:
-    def __init__(
-            self, 
-            isTiming: Optional[bool]=None, 
-            resetTimer: Optional[bool]=None, 
-            description: Optional[str]=None, 
-            timeout: Optional[int]=None,
-            nTests: Optional[int]=None
-        ):
-        self.isTiming = isTiming
-        self.resetTimer = resetTimer
-        self.description = description
-        self.timeout = timeout
-        self.nTests = nTests
+    isTiming: Optional[bool]=None
+    resetTimer: Optional[bool]=None
+    description: Optional[str]=None
+    timeout: Optional[int]=None
+    nTests: Optional[int]=None
 
 
 class _Tester(object):
