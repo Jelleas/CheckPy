@@ -271,6 +271,14 @@ class FailedTestFunction(TestFunction):
             hide: Optional[bool]=None
         ):
         super().__init__(function=function, priority=priority, timeout=timeout)
+
+        for precond in preconditions:
+            if not isinstance(precond, TestFunction):
+                raise exception.CheckpyError(
+                    f"{precond} is not a checkpy test and cannot be used as a dependency for test {function}."
+                    f" Did you forget to use the @test() decorator for {precond}?"
+                )
+
         self.preconditions = preconditions
         self.shouldHide = self._getHide(hide)
 
