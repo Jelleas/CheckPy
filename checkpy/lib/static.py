@@ -260,7 +260,8 @@ class AbstractSyntaxTree:
         self.source: str = getSource(fileName=fileName)
 
     def __contains__(self, item: type) -> bool:
-        if item.__module__ != _ast.__name__:
+        # Python 3.8 and before use "_ast" for ast.Break.__module__
+        if item.__module__ not in [_ast.__name__, "_ast"]:
             raise _checkpy.entities.exception.CheckpyError(
                 message=f"{item} is not of type {_ast.AST}."
                         f" Can only search for {_ast.AST} types in AbstractSyntaxTree."
