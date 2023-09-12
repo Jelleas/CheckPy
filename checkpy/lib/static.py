@@ -214,10 +214,6 @@ def getAstNodes(*types: type, source: _Optional[str]=None) -> _List[_ast.AST]:
     getAstNodes(ast.Mult, ast.Add) # Will find all uses of multiplication (*) and addition (+)
     ```
     """
-    for type_ in types:
-        if type_.__module__ != _ast.__name__:
-            raise _exception.CheckpyError(message=f"{type_} passed to getAstNodes() is not of type ast.AST")
-
     nodes: _List[_ast.AST] = []
 
     class Visitor(_ast.NodeVisitor):
@@ -260,12 +256,5 @@ class AbstractSyntaxTree:
         self.source: str = getSource(fileName=fileName)
 
     def __contains__(self, item: type) -> bool:
-        # Python 3.8 and before use "_ast" for ast.Break.__module__
-        if item.__module__ not in [_ast.__name__, "_ast"]:
-            raise _checkpy.entities.exception.CheckpyError(
-                message=f"{item} is not of type {_ast.AST}."
-                        f" Can only search for {_ast.AST} types in AbstractSyntaxTree."
-            )
-        
         self.foundNodes = getAstNodes(item, source=self.source)        
         return bool(self.foundNodes)
