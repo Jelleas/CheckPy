@@ -105,7 +105,9 @@ def getNumbersFrom(text: str) -> _List[_Union[int, float]]:
             if n.count(".") > 1:
                 n = ".".join(n.split(".")[:2])
 
-            numbers.append(float(n) if "." in n else int(n))
+            if n != ".":
+                numbers.append(float(n) if "." in n else int(n))
+            
             n = ""
 
     return numbers
