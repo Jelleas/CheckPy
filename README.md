@@ -186,7 +186,7 @@ def testSquare():
 ```Py
 @test()
 def testFibonacci():
-    """"""
+    """fibonacci(10) returns the first ten fibonacci numbers"""
     fibonacci = getFunction("fibonacci")
     assert fibonacci(10) == Type(list[int])
     assert fibonacci(10) == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
