@@ -150,6 +150,8 @@ class Config:
         self.onUpdate(self)
 
     def download(self, fileName: str, source: str):
+        self._initSandbox()
+
         self.downloads.append(Download(fileName, source))
         self.onUpdate(self)
 
