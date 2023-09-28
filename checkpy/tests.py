@@ -222,6 +222,10 @@ class TestFunction:
                         stacktrace = traceback.format_exc())
                     return TestResult(False, test.description, str(test.exception(e)), exception=e)
 
+                # Ensure hasPassed is None or a boolean
+                # This is needed as boolean operators on np.bool_ return np.bool_
+                hasPassed = hasPassed if hasPassed is None else bool(hasPassed)
+
                 return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info))
         
         return runMethod
