@@ -8,7 +8,9 @@ import typing
 import checkpy.entities.exception as exception
 
 
-class Function(object):
+class Function:
+    _isFirstFunctionCalled = True
+
     def __init__(self, function: typing.Callable):
         self._function = function
         self._printOutput = ""
@@ -16,11 +18,15 @@ class Function(object):
     def __call__(self, *args, **kwargs) -> typing.Any:
         oldStdout = sys.stdout
         oldStderr = sys.stderr
-        _outStreamListener.content = ""
+        oldIsFirstFunctionCalled = Function._isFirstFunctionCalled
 
         try:
-            sys.stdout = _outStreamListener.stream
-            sys.stderr = _devnull
+            # iff this Function is the first one called, capture stdout
+            if Function._isFirstFunctionCalled:
+                Function._isFirstFunctionCalled = False
+                _outStreamListener.content = ""
+                sys.stdout = _outStreamListener.stream
+                sys.stderr = _devnull
 
             outcome = self._function(*args, **kwargs)
             self._printOutput = _outStreamListener.content
@@ -48,8 +54,10 @@ class Function(object):
                     message = f"while trying to exectute {self.name}({argsRepr})"
             raise exception.SourceException(exception = e, message = message)
         finally:
-            sys.stderr = oldStderr
-            sys.stdout = oldStdout
+            if oldIsFirstFunctionCalled:
+                Function._isFirstFunctionCalled = True
+                sys.stderr = oldStderr
+                sys.stdout = oldStdout
 
     @property
     def name(self) -> str:
