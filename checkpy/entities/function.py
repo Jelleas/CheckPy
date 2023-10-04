@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import contextlib
 import inspect
 import io
 import typing
@@ -15,12 +14,17 @@ class Function(object):
         self._printOutput = ""
 
     def __call__(self, *args, **kwargs) -> typing.Any:
-        old = sys.stdout
+        oldStdout = sys.stdout
+        oldStderr = sys.stderr
+        _outStreamListener.content = ""
+
         try:
-            with self._captureStdout() as listener:
-                outcome = self._function(*args, **kwargs)
-                self._printOutput = listener.content
-                return outcome
+            sys.stdout = _outStreamListener.stream
+            sys.stderr = _devnull
+
+            outcome = self._function(*args, **kwargs)
+            self._printOutput = _outStreamListener.content
+            return outcome
         except Exception as e:
             if isinstance(e,TypeError):
                 no_arguments = re.search(r"(\w+\(\)) takes (\d+) positional arguments but (\d+) were given", str(e))
@@ -29,7 +33,6 @@ class Function(object):
                         exception=None,
                          message=f"{no_arguments.group(1)} should take {no_arguments.group(3)} arguments but takes {no_arguments.group(2)} instead"
                     )
-            sys.stdout = old
             argumentNames = self.arguments
             nArgs = len(args) + len(kwargs)
 
@@ -44,6 +47,9 @@ class Function(object):
                     argsRepr = ','.join(str(arg) for arg in args)
                     message = f"while trying to exectute {self.name}({argsRepr})"
             raise exception.SourceException(exception = e, message = message)
+        finally:
+            sys.stderr = oldStderr
+            sys.stdout = oldStdout
 
     @property
     def name(self) -> str:
@@ -67,30 +73,6 @@ class Function(object):
 
     def __repr__(self):
         return self._function.__name__
-
-    @contextlib.contextmanager
-    def _captureStdout(self) -> typing.Generator["_StreamListener", None, None]:
-        """
-        capture sys.stdout in _outStream
-            (a _Stream that is an instance of StringIO extended with the Observer pattern)
-        returns a _StreamListener on said stream
-        """
-        outStreamListener = _StreamListener(_outStream)
-        old_stdout = sys.stdout
-        old_stderr = sys.stderr
-
-        try:
-            outStreamListener.start()
-            sys.stdout = outStreamListener.stream
-            sys.stderr = open(os.devnull)
-            yield outStreamListener
-        except:
-            raise
-        finally:
-            sys.stderr.close()
-            sys.stderr = old_stderr
-            sys.stdout = old_stdout
-            outStreamListener.stop()
 
 class _Stream(io.StringIO):
     def __init__(self, *args, **kwargs):
@@ -121,7 +103,7 @@ class _Stream(io.StringIO):
 class _StreamListener:
     def __init__(self, stream: _Stream):
         self._stream = stream
-        self._content = ""
+        self.content = ""
 
     def start(self):
         self.stream.register(self)
@@ -130,14 +112,13 @@ class _StreamListener:
         self.stream.unregister(self)
 
     def update(self, content: str):
-        self._content += content
-
-    @property
-    def content(self) -> str:
-        return self._content
+        self.content += content
 
     @property
     def stream(self) -> _Stream:
         return self._stream
 
 _outStream = _Stream()
+_outStreamListener = _StreamListener(_outStream)
+_outStreamListener.start()
+_devnull = open(os.devnull)
