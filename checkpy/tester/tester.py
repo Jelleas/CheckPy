@@ -49,7 +49,7 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         sys.path.append(filePath)
 
     testFileName = fileName.split(".")[0] + "Test.py"
-    testPaths = discovery.getTestPaths(testFileName, module = module)
+    testPaths = discovery.getTestPaths(testFileName, module=module)
 
     if not testPaths:
         result.addOutput(printer.displayError("No test found for {}".format(fileName)))
@@ -58,10 +58,10 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
     if len(testPaths) > 1:
         result.addOutput(printer.displayWarning("Found {} tests: {}, using: {}".format(len(testPaths), testPaths, testPaths[0])))
 
-    testFilePath = str(testPaths[0])
+    testPath = testPaths[0]
 
-    if testFilePath not in sys.path:
-        sys.path.append(testFilePath)
+    if str(testPath) not in sys.path:
+        sys.path.append(str(testPath))
 
     if path.endswith(".ipynb"):
         if subprocess.call(['jupyter', 'nbconvert', '--to', 'script', path]) != 0:
@@ -76,7 +76,13 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         with open(path, "w") as f:
             f.write("".join([l for l in lines if "get_ipython" not in l]))
 
-    testerResult = _runTests(testFileName.split(".")[0], path, debugMode = debugMode, silentMode = silentMode)
+    testerResult = _runTests(
+        testFileName.split(".")[0],
+        testPath,
+        path,
+        debugMode=debugMode,
+        silentMode=silentMode
+    )
 
     if path.endswith(".ipynb"):
         os.remove(path)
@@ -95,12 +101,12 @@ def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List[
 
     return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
 
-def _runTests(moduleName: str, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
+def _runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
     ctx = mp.get_context("spawn")
     
     signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
     resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
-    tester = _Tester(moduleName, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
+    tester = _Tester(moduleName, testPath, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
     p = ctx.Process(target=tester.run, name="Tester")
     p.start()
 
@@ -189,10 +195,11 @@ class _Signal(object):
         self.timeout = timeout
 
 
-class _Tester(object):
+class _Tester:
     def __init__(
             self, 
             moduleName: str,
+            testPath: pathlib.Path,
             filePath: pathlib.Path,
             debugMode: bool,
             silentMode: bool,
@@ -200,6 +207,7 @@ class _Tester(object):
             resultQueue: "mp.Queue[TesterResult]"
         ):
         self.moduleName = moduleName
+        self.testPath = testPath
         self.filePath = filePath.absolute()
         self.debugMode = debugMode
         self.silentMode = silentMode
@@ -215,6 +223,7 @@ class _Tester(object):
             warnings.simplefilter('always', DeprecationWarning)
 
         checkpy.file = self.filePath
+        checkpy.testPath = self.testPath
 
         # overwrite argv so that it seems the file was run directly
         sys.argv = [self.filePath.name]

@@ -4,14 +4,16 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import List, Set, Union
+from typing import List, Set, Optional, Union
 
 import requests
+
+import checkpy
 
 from checkpy.entities.exception import TooManyFilesError, MissingRequiredFiles, DownloadError
 
 
-__all__ = ["exclude", "include", "only", "require"]
+__all__ = ["exclude", "include", "includeFromTests", "only", "require", "download"]
 
 
 DEFAULT_FILE_LIMIT = 10000
@@ -31,7 +33,7 @@ def exclude(*patterns: Union[str, Path]):
 
 def include(*patterns: Union[str, Path]):
     """
-    Include all files matching patterns from the check's sandbox.
+    Include all files matching patterns to the check's sandbox.
     
     If this is the first call to only/include/exclude/require/download initialize the sandbox: 
     * Create a temp dir
@@ -40,6 +42,18 @@ def include(*patterns: Union[str, Path]):
     Patterns are shell globs in the same style as .gitignore.
     """
     config.include(*patterns)
+
+def includeFromTests(*patterns: Union[str, Path]):
+    """
+    Include all files matching patterns from the tests directory to the check's sandbox.
+
+    If this is the first call to only/include/exclude/require/download initialize the sandbox: 
+    * Create a temp dir
+    * Copy over all files from current dir (except those files excluded through exclude())
+
+    Patterns are shell globs in the same style as .gitignore.
+    """
+    config.includeFromTests(*patterns)
 
 def only(*patterns: Union[str, Path]):
     """
@@ -67,7 +81,6 @@ def require(*filePaths: Union[str, Path]):
     """
     config.require(*filePaths)
 
-
 def download(fileName: str, source: str):
     """
     Download a file from source and store it in fileName.
@@ -85,6 +98,7 @@ class Config:
         self.excludedFiles: Set[str] = set()
         self.missingRequiredFiles: List[str] = []
         self.downloads: List[Download] = []
+        self.includedFroms: List[IncludedFrom] = []
         self.isSandboxed = False
         self.root = Path.cwd()
         self.onUpdate = onUpdate
@@ -120,6 +134,16 @@ class Config:
         self.excludedFiles -= newIncluded
         self.includedFiles.update(newIncluded)
 
+        self.onUpdate(self)
+
+    def includeFromTests(self, *patterns: Union[str, Path]):
+        self._initSandbox()
+
+        included: Set[str] = set()
+        for pattern in patterns:
+            included |= _glob(pattern, root=checkpy.testPath)
+        self.includedFroms.extend(
+            IncludedFrom((checkpy.testPath / source).resolve(), checkpy.testPath) for source in included)
         self.onUpdate(self)
 
     def only(self, *patterns: Union[str, Path]):
@@ -158,11 +182,31 @@ class Config:
 config = Config()
 
 
+class IncludedFrom:
+    def __init__(self, source: Path, root: Path):
+        self.source = source
+        self.root = root
+        self._isIncluded = False
+
+    def include(self):
+        if self._isIncluded:
+            return
+
+        if self.source.is_relative_to(self.root):
+            dest = (Path.cwd() / self.source.relative_to(self.root)).absolute()
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            dest = (Path.cwd() / self.source.name).absolute()
+
+        origin = self.source.absolute()
+        shutil.copy(origin, dest)
+        self._isIncluded = True
+
 class Download:
     def __init__(self, fileName: str, source: str):
         self.fileName: str = str(fileName)
         self.source: str = str(source)
-        self._isDownloaded: bool = False
+        self._isDownloaded = False
 
     def download(self):
         if self._isDownloaded:
@@ -193,6 +237,9 @@ def sandbox(name: Union[str, Path]=""):
     def sync(config: Config, sandboxDir: Path):
         for dl in config.downloads:
             dl.download()
+
+        for includedFrom in config.includedFroms:
+            includedFrom.include()
 
         nonlocal oldIncluded, oldExcluded
         for f in config.excludedFiles - oldExcluded:
