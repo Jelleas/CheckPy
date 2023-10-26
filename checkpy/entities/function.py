@@ -51,7 +51,7 @@ class Function:
                     message = "while trying to execute {}({})".format(self.name, representation)
                 else:
                     argsRepr = ','.join(str(arg) for arg in args)
-                    message = f"while trying to exectute {self.name}({argsRepr})"
+                    message = f"while trying to execute {self.name}({argsRepr})"
             raise exception.SourceException(exception = e, message = message)
         finally:
             if oldIsFirstFunctionCalled:
