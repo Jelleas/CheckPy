@@ -154,23 +154,25 @@ def _download(githubUserName: str, githubRepoName: str):
     with zf.ZipFile(f) as z:
         destPath = database.githubPath(githubUserName, githubRepoName)
 
-        existingTests: Set[pathlib.Path] = set()
+        existingFiles: Set[pathlib.Path] = set()
         for path, subdirs, files in os.walk(destPath):
             for fil in files:
-                existingTests.add((pathlib.Path(path) / fil).relative_to(destPath))
+                existingFiles.add((pathlib.Path(path) / fil).relative_to(destPath))
 
-        newTests: Set[pathlib.Path] = set()
+        newFiles: Set[pathlib.Path] = set()
         for name in z.namelist():
-            if name.endswith(".py"):
-                newTests.add(pathlib.Path(pathlib.Path(name).as_posix().split("tests/")[1]))
+            if name:
+                path: str = pathlib.Path(name).as_posix()
+                if "tests/" in path:
+                    newFiles.add(pathlib.Path(path.split("tests/")[1]))
 
-        for filePath in [fp for fp in existingTests - newTests if fp]:
+        for filePath in [fp for fp in existingFiles - newFiles if fp.suffix == ".py"]:
             printer.displayRemoved(str(filePath))
 
-        for filePath in [fp for fp in newTests - existingTests if fp.suffix == ".py"]:
+        for filePath in [fp for fp in newFiles - existingFiles if fp.suffix == ".py"]:
             printer.displayAdded(str(filePath))
 
-        for filePath in existingTests - newTests:
+        for filePath in existingFiles - newFiles:
             (destPath / filePath).unlink() # remove file
 
         _extractTests(z, destPath)
@@ -191,7 +193,7 @@ def _extractTest(zipfile: zf.ZipFile, path: pathlib.Path, destPath: pathlib.Path
     subfolderPath = pathlib.Path(path.as_posix().split("tests/")[1])
     filePath = destPath / subfolderPath
 
-    if path.suffix == ".py":
+    if path.suffix:
         _extractFile(zipfile, path, filePath)
     elif subfolderPath and not filePath.exists():
         os.makedirs(str(filePath))
