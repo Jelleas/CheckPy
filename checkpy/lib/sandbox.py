@@ -249,7 +249,7 @@ def sandbox(name: Union[str, Path]=""):
             except FileNotFoundError:
                 pass
 
-        for f in config.includedFiles - oldExcluded:
+        for f in config.includedFiles - oldIncluded:
             dest = (sandboxDir / f).absolute()
             dest.parent.mkdir(parents=True, exist_ok=True)
             origin = (config.root / f).absolute()
