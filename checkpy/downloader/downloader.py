@@ -202,8 +202,15 @@ def _extractFile(zipfile: zf.ZipFile, path: pathlib.Path, filePath: pathlib.Path
     zipPathString = path.as_posix()
     if filePath.is_file():
         with zipfile.open(zipPathString) as new, open(str(filePath), "r") as existing:
-            # read file, decode, strip trailing whitespace, remove carrier return
-            newText = ''.join(new.read().decode('utf-8').strip().splitlines())
+            # read file and decode
+            try:
+                newText = new.read().decode('utf-8')
+            except UnicodeDecodeError:
+                # Skip any non utf-8 file
+                return
+
+            # strip trailing whitespace, remove carrier return
+            newText = ''.join(newText.strip().splitlines())
             existingText = ''.join(existing.read().strip().splitlines())
             if newText != existingText:
                 printer.displayUpdate(str(path))
