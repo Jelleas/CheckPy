@@ -51,4 +51,5 @@ class TooManyFilesError(CheckpyError):
 
 class MissingRequiredFiles(CheckpyError):
     def __init__(self, missingFiles: _typing.List[str]):
-        super().__init__(message=f"Missing the following required files: {', '.join(missingFiles)}")
+        super().__init__(message=f"Missing the following required file{'s' if len(missingFiles) != 1 else ''}: {', '.join(missingFiles)}")
+        self.missingFiles = tuple(missingFiles)

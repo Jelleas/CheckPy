@@ -235,13 +235,19 @@ class _Tester:
             dessert.util._reprcompare = explainCompare
 
             with sandbox():
-                module = importlib.import_module(self.moduleName)
+                try:
+                    module = importlib.import_module(self.moduleName)
+                except exception.MissingRequiredFiles as e:
+                    result = TesterResult(self.filePath.name)
+                    result.addOutput(printer.displayError(e))
+                    self._sendResult(result)
+                    return
                 module._fileName = self.filePath.name # type: ignore [attr-defined]
 
                 self._runTestsFromModule(module)
 
     def _runTestsFromModule(self, module: ModuleType):
-        self._sendSignal(_Signal(isTiming = False))
+        self._sendSignal(_Signal(isTiming=False))
 
         result = TesterResult(self.filePath.name)
         result.addOutput(printer.displayTestName(self.filePath.name))
