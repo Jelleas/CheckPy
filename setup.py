@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
 	name='checkPy',
 
-	version='2.0.11',
+	version='2.0.12',
 
 	description='A simple python testing framework for educational purposes',
 	long_description=long_description,

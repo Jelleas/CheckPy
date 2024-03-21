@@ -35,8 +35,14 @@ def getTestNames(moduleName: str) -> Optional[List[str]]:
 
 def getTestPaths(testFileName: str, module: str="") -> List[pathlib.Path]:
     testFilePaths: List[pathlib.Path] = []
-    for testsPath in database.forEachTestsPath():
-        for (dirPath, dirNames, fileNames) in os.walk(testsPath):
-            if testFileName in fileNames and (not module or module in dirPath):
-                testFilePaths.append(pathlib.Path(dirPath))
+    for testPath in database.forEachTestsPath():
+        testFilePaths.extend(getTestPathsFrom(testFileName, testPath, module=module))
+    return testFilePaths
+
+def getTestPathsFrom(testFileName: str, path: pathlib.Path, module: str="") -> List[pathlib.Path]:
+    """Get all testPaths from a tests folder (path)."""
+    testFilePaths: List[pathlib.Path] = []
+    for (dirPath, _, fileNames) in os.walk(path):
+        if testFileName in fileNames and (not module or module in dirPath):
+            testFilePaths.append(pathlib.Path(dirPath))
     return testFilePaths

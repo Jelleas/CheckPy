@@ -9,8 +9,10 @@ from checkpy.tests import Test, TestResult, TestFunction
 from types import ModuleType
 from typing import Dict, Iterable, List, Optional, Union
 
+import contextlib
 import os
 import pathlib
+import queue
 import subprocess
 import sys
 import importlib
@@ -21,7 +23,7 @@ import dessert
 import multiprocessing as mp
 
 
-__all__ = ["getActiveTest", "test", "testModule", "TesterResult"]
+__all__ = ["getActiveTest", "test", "testModule", "TesterResult", "runTests", "runTestsSynchronously"]
 
 
 _activeTest: Optional[Test] = None
@@ -45,9 +47,6 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
     fileName = os.path.basename(path)
     filePath = os.path.dirname(path)
 
-    if filePath not in sys.path:
-        sys.path.append(filePath)
-
     testFileName = fileName.split(".")[0] + "Test.py"
     testPaths = discovery.getTestPaths(testFileName, module=module)
 
@@ -59,9 +58,6 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         result.addOutput(printer.displayWarning("Found {} tests: {}, using: {}".format(len(testPaths), testPaths, testPaths[0])))
 
     testPath = testPaths[0]
-
-    if str(testPath) not in sys.path:
-        sys.path.append(str(testPath))
 
     if path.endswith(".ipynb"):
         if subprocess.call(['jupyter', 'nbconvert', '--to', 'script', path]) != 0:
@@ -76,13 +72,14 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         with open(path, "w") as f:
             f.write("".join([l for l in lines if "get_ipython" not in l]))
 
-    testerResult = _runTests(
-        testFileName.split(".")[0],
-        testPath,
-        path,
-        debugMode=debugMode,
-        silentMode=silentMode
-    )
+    with _addToSysPath(filePath):
+        testerResult = runTests(
+            testFileName.split(".")[0],
+            testPath,
+            path,
+            debugMode=debugMode,
+            silentMode=silentMode
+        )
 
     if path.endswith(".ipynb"):
         os.remove(path)
@@ -101,56 +98,84 @@ def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List[
 
     return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
 
-def _runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
-    ctx = mp.get_context("spawn")
-    
-    signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
-    resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
-    tester = _Tester(moduleName, testPath, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
-    p = ctx.Process(target=tester.run, name="Tester")
-    p.start()
-
-    start = time.time()
-    isTiming = False
+def runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
     result: Optional[TesterResult] = None
 
-    while p.is_alive():
-        while not signalQueue.empty():
-            signal = signalQueue.get()
-            
-            if signal.description is not None:
-                description = signal.description
-            if signal.isTiming is not None:
-                isTiming = signal.isTiming
-            if signal.timeout is not None:
-                timeout = signal.timeout
-            if signal.resetTimer:
-                start = time.time()
+    with _addToSysPath(testPath):
+        ctx = mp.get_context("spawn")
 
-        if isTiming and time.time() - start > timeout:
-            result = TesterResult(pathlib.Path(fileName).name)
-            result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
-            p.terminate()
-            p.join()
-            return result
+        signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
+        resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
+        tester = _Tester(moduleName, testPath, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
+        p = ctx.Process(target=tester.run, name="Tester")
+        p.start()
+
+        start = time.time()
+        isTiming = False
+
+        while p.is_alive():
+            while not signalQueue.empty():
+                signal = signalQueue.get()
+
+                if signal.description is not None:
+                    description = signal.description
+                if signal.isTiming is not None:
+                    isTiming = signal.isTiming
+                if signal.timeout is not None:
+                    timeout = signal.timeout
+                if signal.resetTimer:
+                    start = time.time()
+
+            if isTiming and time.time() - start > timeout:
+                result = TesterResult(pathlib.Path(fileName).name)
+                result.addOutput(printer.displayError("Timeout ({} seconds) reached during: {}".format(timeout, description)))
+                p.terminate()
+                p.join()
+                return result
+
+            if not resultQueue.empty():
+                # .get before .join to prevent hanging indefinitely due to a full pipe
+                # https://bugs.python.org/issue8426
+                result = resultQueue.get()
+                p.terminate()
+                p.join()
+                break
+
+            time.sleep(0.1)
 
         if not resultQueue.empty():
-            # .get before .join to prevent hanging indefinitely due to a full pipe
-            # https://bugs.python.org/issue8426
             result = resultQueue.get()
-            p.terminate()
-            p.join()
-            break
 
-        time.sleep(0.1)
-
-    if not resultQueue.empty():
-        result = resultQueue.get()
-
-    if result is None:
-        raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
+        if result is None:
+            raise exception.CheckpyError(message="An error occured while testing. The testing process exited unexpectedly.")
 
     return result
+
+
+def runTestsSynchronously(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
+    signalQueue = queue.Queue()
+    resultQueue = queue.Queue()
+
+    tester = _Tester(
+            moduleName=moduleName,
+            testPath=testPath,
+            filePath=pathlib.Path(fileName),
+            debugMode=debugMode,
+            silentMode=silentMode,
+            signalQueue=signalQueue,
+            resultQueue=resultQueue
+    )
+
+    with _addToSysPath(testPath):
+        try:
+            old_debug_mode = printer.printer.DEBUG_MODE
+            old_silent_mode = printer.printer.SILENT_MODE
+            tester.run()
+        finally:
+            printer.printer.DEBUG_MODE = old_debug_mode
+            printer.printer.SILENT_MODE = old_silent_mode
+            
+    return resultQueue.get()
 
 
 class TesterResult(object):
@@ -340,3 +365,16 @@ class _Tester:
             dependencies = self._getTestFunctionsInExecutionOrder(tf.dependencies) + [tf]
             sortedTFs.extend([t for t in dependencies if t not in sortedTFs])
         return sortedTFs
+
+@contextlib.contextmanager
+def _addToSysPath(path: str):
+    addedToPath = False
+    path = str(path)
+    try:
+        if path not in sys.path:
+            addedToPath = True
+            sys.path.append(path)
+        yield
+    finally:
+        if addedToPath and path in sys.path:
+            sys.path.remove(path)
