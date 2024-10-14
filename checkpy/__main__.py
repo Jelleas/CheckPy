@@ -5,7 +5,7 @@ from checkpy import downloader
 from checkpy import tester
 from checkpy import printer
 import json
-import pkg_resources
+import importlib.metadata
 import warnings
 
 
@@ -18,7 +18,7 @@ def main():
             checkPy: a python testing framework for education.
             You are running Python version {}.{}.{} and checkpy version {}.
             """
-            .format(sys.version_info[0], sys.version_info[1], sys.version_info[2], pkg_resources.get_distribution("checkpy").version)
+            .format(sys.version_info[0], sys.version_info[1], sys.version_info[2], importlib.metadata.version("checkpy"))
     )
 
     parser.add_argument("-module", action="store", dest="module", help="provide a module name or path to run all tests from the module, or target a module for a specific test")
