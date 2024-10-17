@@ -29,7 +29,7 @@ def getSource(fileName: _Optional[_Union[str, _Path]]=None) -> str:
     if fileName is None:
         if _checkpy.file is None:
             raise _exception.CheckpyError(
-                message=f"Cannot call getSource() without passing fileName as argument if not test is running."
+                message=f"Cannot call getSource() without passing fileName as argument if no test is running."
             )
         fileName = _checkpy.file.name
 

@@ -163,6 +163,7 @@ class function:
         """
         Assert that the last call printed output matching regex.
         If readable is passed, show that instead of the regex in the test's output.
+        Uses built-in re.search underneath the hood to find the first match.
         """
         def testStdoutRegex(state: FunctionState):
             nonlocal regex
@@ -176,7 +177,7 @@ class function:
 
             actual = state.function.printOutput
 
-            match = regex.match(actual)
+            match = regex.search(actual)
             if not match:
                 if readable:
                     raise AssertionError(f"The printed output does not match the expected output. This is expected:\n"
