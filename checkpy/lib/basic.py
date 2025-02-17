@@ -232,7 +232,7 @@ def captureStdin(stdin: Optional[TextIO]=None):
 def removeWhiteSpace(s):
     warn("""checkpy.lib.removeWhiteSpace() is deprecated. Instead use:
     import re
-    re.sub(r"\s+", "", text)	
+    re.sub(r"\\s+", "", text)	
     """, DeprecationWarning, stacklevel=2)
     return re.sub(r"\s+", "", s, flags=re.UNICODE)
 
@@ -240,7 +240,7 @@ def removeWhiteSpace(s):
 def getPositiveIntegersFromString(s):
     warn("""checkpy.lib.getPositiveIntegersFromString() is deprecated. Instead use:
     import re
-    [int(i) for i in re.findall(r"\d+", text)]
+    [int(i) for i in re.findall(r"\\d+", text)]
     """, DeprecationWarning, stacklevel=2)
     return [int(i) for i in re.findall(r"\d+", s)]
 
