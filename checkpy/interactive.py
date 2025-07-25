@@ -2,6 +2,8 @@ from checkpy.tester import TesterResult
 from checkpy.tester import runTests as _runTests
 from checkpy.tester import runTestsSynchronously as _runTestsSynchronously
 from checkpy import caches as _caches
+import checkpy
+import copy
 import checkpy.tester.discovery as _discovery
 import pathlib as _pathlib
 from typing import List, Optional
@@ -19,7 +21,14 @@ def testModule(moduleName: str, debugMode=False, silentMode=False) -> Optional[L
     from . import downloader
     downloader.updateSilently()
 
-    results = tester.testModule(moduleName, debugMode = debugMode, silentMode = silentMode)
+    try:
+        oldContext = copy.copy(checkpy.context)
+        checkpy.context.silent = silentMode
+        checkpy.context.debug = debugMode
+
+        results = tester.testModule(moduleName)
+    finally:
+        checkpy.context = oldContext
 
     _closeAllMatplotlib()
 
@@ -35,7 +44,14 @@ def test(fileName: str, debugMode=False, silentMode=False) -> TesterResult:
     from . import downloader
     downloader.updateSilently()
     
-    result = tester.test(fileName, debugMode = debugMode, silentMode = silentMode)
+    try:
+        oldContext = copy.copy(checkpy.context)
+        checkpy.context.silent = silentMode
+        checkpy.context.debug = debugMode
+
+        result = tester.test(fileName)
+    finally:
+        checkpy.context = oldContext
 
     _closeAllMatplotlib()
 
@@ -56,10 +72,17 @@ def testOffline(fileName: str, testPath: str | _pathlib.Path, multiprocessing=Tr
     testFileName = f"{fileStem}Test.py" 
     testPath = _discovery.getTestPathsFrom(testFileName, _pathlib.Path(testPath))[0]
 
-    if multiprocessing:
-        result = _runTests(testModuleName, testPath, filePath, debugMode, silentMode)
-    else:
-        result = _runTestsSynchronously(testModuleName, testPath, filePath, debugMode, silentMode)
+    try:
+        oldContext = copy.copy(checkpy.context)
+        checkpy.context.silent = silentMode
+        checkpy.context.debug = debugMode
+
+        if multiprocessing:
+            result = _runTests(testModuleName, testPath, filePath)
+        else:
+            result = _runTestsSynchronously(testModuleName, testPath, filePath)
+    finally:
+        checkpy.context = oldContext
 
     _closeAllMatplotlib()
 

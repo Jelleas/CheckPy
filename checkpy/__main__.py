@@ -1,9 +1,11 @@
 import sys
 import os
 import argparse
+from checkpy import context
 from checkpy import downloader
 from checkpy import tester
 from checkpy import printer
+from checkpy.tester import TesterResult
 import json
 import importlib.metadata
 import warnings
@@ -69,16 +71,21 @@ def main():
 
     if args.json:
         args.silent = True
+        context.silent = True
+        context.json = True
+
+    if args.dev:
+        context.debug = True
 
     if args.files:
         downloader.updateSilently()
 
-        results = []
+        results: list[TesterResult] = []
         for f in args.files:
             if args.module:
-                result = tester.test(f, module=args.module, debugMode=args.dev, silentMode=args.silent)
+                result = tester.test(f, module=args.module)
             else:
-                result = tester.test(f, debugMode=args.dev, silentMode=args.silent)
+                result = tester.test(f)
             results.append(result)
 
         if args.json:
@@ -87,7 +94,7 @@ def main():
 
     if args.module:
         downloader.updateSilently()
-        moduleResults = tester.testModule(args.module, debugMode=args.dev, silentMode=args.silent)
+        moduleResults = tester.testModule(args.module)
 
         if args.json:
             if moduleResults is None:
