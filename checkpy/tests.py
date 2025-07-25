@@ -48,12 +48,12 @@ class Test:
     PLACEHOLDER_DESCRIPTION = "placeholder test description"
 
     def __init__(self, 
-            fileName: str,
-            priority: int,
-            timeout: Optional[int]=None,
-            onDescriptionChange: Callable[["Test"], None]=lambda self: None, 
-            onTimeoutChange: Callable[["Test"], None]=lambda self: None
-        ):
+        fileName: str,
+        priority: int,
+        timeout: Optional[int]=None,
+        onDescriptionChange: Callable[["Test"], None]=lambda self: None, 
+        onTimeoutChange: Callable[["Test"], None]=lambda self: None
+    ):
         self._fileName = fileName
         self._priority = priority
 
@@ -62,6 +62,8 @@ class Test:
 
         self._description = Test.PLACEHOLDER_DESCRIPTION
         self._timeout = Test.DEFAULT_TIMEOUT if timeout is None else timeout
+
+        self._output: list[str] = []
 
     def __lt__(self, other):
         return self._priority < other._priority
@@ -116,6 +118,13 @@ class Test:
         
         self._onTimeoutChange(self)
 
+    @property
+    def output(self) -> str:
+        return "\n".join(self._output)
+    
+    def addOutput(self, output: str) -> None:
+        self._output.append(output)
+
     def __setattr__(self, __name: str, __value: Any) -> None:
         value = __value
         if __name in ["fail", "success", "exception"]:
@@ -130,12 +139,14 @@ class TestResult(object):
         hasPassed: Optional[bool],
         description: str,
         message: str,
+        output: str,
         exception: Optional[Exception]=None
     ):
         self._hasPassed = hasPassed
         self._description = description
         self._message = message
         self._exception = exception
+        self._output = output
 
     @property
     def description(self):
@@ -150,6 +161,10 @@ class TestResult(object):
         return self._hasPassed
 
     @property
+    def output(self):
+        return self._output    
+
+    @property
     def exception(self):
         return self._exception
 
@@ -158,7 +173,8 @@ class TestResult(object):
             "passed": self.hasPassed,
             "description": str(self.description),
             "message": str(self.message),
-            "exception": str(self.exception)
+            "exception": str(self.exception),
+            "output": str(self.output)
         }
 
 
@@ -212,21 +228,21 @@ class TestFunction:
                         failMsg += "\n"
                     msg = failMsg + assertMsg
 
-                    return TestResult(False, test.description, msg)
+                    return TestResult(False, test.description, msg, test.output)
                 except exception.CheckpyError as e:
-                    return TestResult(False, test.description, str(test.exception(e)), exception=e)
+                    return TestResult(False, test.description, str(test.exception(e)), test.output, exception=e)
                 except Exception as e:
                     e = exception.TestError(
                         exception = e,
                         message = "while testing",
                         stacktrace = traceback.format_exc())
-                    return TestResult(False, test.description, str(test.exception(e)), exception=e)
+                    return TestResult(False, test.description, str(test.exception(e)), test.output, exception=e)
 
                 # Ensure hasPassed is None or a boolean
                 # This is needed as boolean operators on np.bool_ return np.bool_
                 hasPassed = hasPassed if hasPassed is None else bool(hasPassed)
 
-                return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info))
+                return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info), test.output)
         
         return runMethod
 
@@ -308,7 +324,8 @@ class FailedTestFunction(TestFunction):
             return TestResult(
                 None,
                 test.description,
-                self.HIDE_MESSAGE
+                self.HIDE_MESSAGE,
+                test.output
             )
         return runMethod
     

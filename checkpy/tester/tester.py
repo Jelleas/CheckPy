@@ -5,6 +5,7 @@ from checkpy.tester import discovery
 from checkpy.lib.sandbox import sandbox
 from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test, TestResult, TestFunction
+import checkpy.lib.io
 
 from types import ModuleType
 from typing import Dict, Iterable, List, Optional, Union
@@ -331,7 +332,7 @@ class _Tester:
 
         global _activeTest
 
-        # run tests in noncolliding execution order
+        # run tests in non-colliding execution order
         for testFunction in self._getTestFunctionsInExecutionOrder(testFunctions):
             test = Test(
                 self.filePath.name,
@@ -352,7 +353,8 @@ class _Tester:
                 timeout=test.timeout
             ))
 
-            cachedResults[test] = run()
+            with checkpy.lib.io.replaceStdout() as stdout, checkpy.lib.io.replaceStdin() as stdin:
+                cachedResults[test] = run()
 
             _activeTest = None
 

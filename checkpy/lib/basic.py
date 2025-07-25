@@ -1,5 +1,4 @@
 import contextlib
-import io
 import os
 import pathlib
 import re
@@ -13,18 +12,17 @@ from typing import Any, Iterable, List, Optional, Tuple, TextIO, Union
 from warnings import warn
 
 import checkpy
+import checkpy.tester
 from checkpy.entities import path, exception, function
 from checkpy import caches
 from checkpy.lib.static import getSource
-
+import checkpy.lib.io
 
 __all__ = [
     "getFunction",
     "getModule",
     "outputOf",
     "getModuleAndOutputOf",
-    "captureStdin",
-    "captureStdout"
 ]
 
 
@@ -121,12 +119,12 @@ def getModuleAndOutputOf(
     output = ""
     excep = None
 
-    with captureStdout() as stdout, captureStdin() as stdin:
+    with checkpy.lib.io.captureStdout() as stdoutListener:
         # fill stdin with args
         if stdinArgs:
             for arg in stdinArgs:
-                stdin.write(str(arg) + "\n")
-            stdin.seek(0)
+                sys.stdin.write(str(arg) + "\n")
+            sys.stdin.seek(0)
 
         # if argv given, overwrite sys.argv
         if argv:
@@ -156,12 +154,12 @@ def getModuleAndOutputOf(
             excep = exception.SourceException(
                 exception = e,
                 message = "while trying to import the code",
-                output = stdout.getvalue(),
+                output = stdoutListener.content,
                 stacktrace = traceback.format_exc())
         except SystemExit as e:
             excep = exception.ExitError(
                 message = "exit({}) while trying to import the code".format(int(e.args[0])),
-                output = stdout.getvalue(),
+                output = stdoutListener.content,
                 stacktrace = traceback.format_exc())
 
         # wrap every function in mod with Function
@@ -173,60 +171,21 @@ def getModuleAndOutputOf(
         if argv:
             sys.argv = argv
 
-        output = stdout.getvalue()
+        output = stdoutListener.content
     if excep:
         raise excep
 
     return mod, output
 
 
-@contextlib.contextmanager
-def captureStdout(stdout: Optional[TextIO]=None):
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-
-    if stdout is None:
-        stdout = io.StringIO()
-
-    try:
-        sys.stdout = stdout
-        sys.stderr = open(os.devnull)
-        yield stdout
-    except:
-        raise
-    finally:
-        sys.stderr.close()
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-
-
-@contextlib.contextmanager
-def captureStdin(stdin: Optional[TextIO]=None):
-    def newInput(oldInput):
-        def input(prompt=None):
-            try:
-                return oldInput()
-            except EOFError:
-                e = exception.InputError(
-                    message="You requested too much user input",
-                    stacktrace=traceback.format_exc())
-                raise e
-        return input
-
-    oldInput = input
-    __builtins__["input"] = newInput(oldInput)
-    old = sys.stdin
-    if stdin is None:
-        stdin = io.StringIO()
-    sys.stdin = stdin
-
-    try:
-        yield stdin
-    except:
-        raise
-    finally:
-        sys.stdin = old
-        __builtins__["input"] = oldInput
+def addOutput(output: str):
+    """
+    Add output to the active test's output.
+    If no active test is found, this function does nothing.
+    """
+    test = checkpy.tester.getActiveTest()
+    if test is not None:
+        test.addOutput(output)
 
 
 def removeWhiteSpace(s):
