@@ -8,7 +8,7 @@ import traceback
 
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Iterable, List, Optional, Tuple, TextIO, Union
+from typing import Any, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import checkpy
@@ -25,7 +25,6 @@ __all__ = [
     "getModuleAndOutputOf",
 ]
 
-
 def getFunction(
         functionName: str,
         fileName: Optional[Union[str, Path]]=None,
@@ -35,15 +34,22 @@ def getFunction(
         ignoreExceptions: Iterable[Exception]=(),
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> function.Function:
-    """Run the file then get the function with functionName"""
-    return getattr(getModule(
+    """Run the file, ignore any side effects, then get the function with functionName"""
+    module = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
         stdinArgs=stdinArgs,
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
-    ), functionName)
+    )[0]
+
+    if functionName not in module.__dict__:
+        raise AssertionError(
+            f"Function '{functionName}' not found in module '{module.__name__}'"
+        )
+
+    return getattr(module, functionName)
 
 
 def outputOf(
@@ -55,7 +61,7 @@ def outputOf(
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> str:
     """Get the output after running the file."""
-    _, output = getModuleAndOutputOf(
+    _, output = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
@@ -63,6 +69,7 @@ def outputOf(
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
     )
+    checkpy.lib.addOutput(output)
     return output
 
 
@@ -75,7 +82,7 @@ def getModule(
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> ModuleType:
     """Get the python Module after running the file."""
-    mod, _ = getModuleAndOutputOf(
+    mod, output = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
@@ -83,11 +90,41 @@ def getModule(
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
     )
+    checkpy.lib.addOutput(output)
     return mod
 
 
-@caches.cache()
 def getModuleAndOutputOf(
+        fileName: Optional[Union[str, Path]]=None,
+        src: Optional[str]=None,
+        argv: Optional[List[str]]=None,
+        stdinArgs: Optional[List[str]]=None,
+        ignoreExceptions: Iterable[Exception]=(),
+        overwriteAttributes: Iterable[Tuple[str, Any]]=()
+    ) -> Tuple[ModuleType, str]:
+    """
+    This function handles most of checkpy's under the hood functionality
+
+    fileName (optional): the name of the file to run
+    src (optional): the source code to run
+    argv (optional): set sys.argv to argv before importing,
+    stdinArgs (optional): arguments passed to stdin
+    ignoreExceptions (optional): exceptions that will silently pass while importing
+    overwriteAttributes (optional): attributes to overwrite in the imported module
+    """
+    mod, output = _getModuleAndOutputOf(
+        fileName=fileName,
+        src=src,
+        argv=argv,
+        stdinArgs=stdinArgs,
+        ignoreExceptions=ignoreExceptions,
+        overwriteAttributes=overwriteAttributes
+    )
+    checkpy.lib.addOutput(output)
+    return mod, output
+
+@caches.cache()
+def _getModuleAndOutputOf(
         fileName: Optional[Union[str, Path]]=None,
         src: Optional[str]=None,
         argv: Optional[List[str]]=None,
@@ -108,7 +145,7 @@ def getModuleAndOutputOf(
     if fileName is None:
         if checkpy.file is None:
             raise checkpy.entities.exception.CheckpyError(
-                message=f"Cannot call getSourceOfDefinitions() without passing fileName as argument if not test is running."
+                message=f"Cannot call getModuleAndOutputOf() without passing fileName as argument if not test is running."
             )
         fileName = checkpy.file.name
 
@@ -151,12 +188,14 @@ def getModuleAndOutputOf(
         except exception.CheckpyError as e:
             excep = e
         except Exception as e:
+            checkpy.lib.addOutput(stdoutListener.content)
             excep = exception.SourceException(
                 exception = e,
                 message = "while trying to import the code",
                 output = stdoutListener.content,
                 stacktrace = traceback.format_exc())
         except SystemExit as e:
+            checkpy.lib.addOutput(stdoutListener.content)
             excep = exception.ExitError(
                 message = "exit({}) while trying to import the code".format(int(e.args[0])),
                 output = stdoutListener.content,
