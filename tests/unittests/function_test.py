@@ -1,17 +1,22 @@
 import unittest
-import os
-import shutil
 import checkpy.lib as lib
 import checkpy.entities.exception as exception
 from checkpy.entities.function import Function
 
-class TestFunctionName(unittest.TestCase):
+class TestFunction(unittest.TestCase):
+    def setUp(self):
+        context = lib.io.replaceStdout()
+        context.__enter__()
+        self.addCleanup(context.__exit__, None, None, None)
+
+
+class TestFunctionName(TestFunction):
     def test_name(self):
         def foo():
             pass
         self.assertEqual(Function(foo).name, "foo")
 
-class TestFunctionArguments(unittest.TestCase):
+class TestFunctionArguments(TestFunction):
     def test_noArgs(self):
         def foo():
             pass
@@ -32,7 +37,7 @@ class TestFunctionArguments(unittest.TestCase):
             pass
         self.assertEqual(Function(foo).arguments, ["bar", "baz"])
 
-class TestFunctionCall(unittest.TestCase):
+class TestFunctionCall(TestFunction):
     def test_dummy(self):
         def foo():
             return None
@@ -63,15 +68,8 @@ class TestFunctionCall(unittest.TestCase):
         with self.assertRaises(exception.SourceException):
             f()
 
-    def test_noStdoutSideEfects(self):
-        def foo():
-            print("bar")
-        f = Function(foo)
-        with lib.captureStdout() as stdout:
-            f()
-            self.assertTrue(len(stdout.read()) == 0)
 
-class TestFunctionPrintOutput(unittest.TestCase):
+class TestFunctionPrintOutput(TestFunction):
     def test_noOutput(self):
         def foo():
             pass
