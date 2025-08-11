@@ -121,15 +121,15 @@ class Test:
     @property
     def output(self) -> str:
         from checkpy import context # avoid circular import
-        stdoutLimit = context.stdoutLimit
+        outputLimit = context.outputLimit
 
         output = "\n".join(self._output)
 
-        return self._formatOutput(output, stdoutLimit)
+        return self._formatOutput(output, outputLimit)
     
     @staticmethod
     def _formatOutput(text: str, maxChars: int) -> str:
-        if len(text) < maxChars:
+        if maxChars <= 0 or len(text) < maxChars:
             return text
 
         lines = text.split('\n')
@@ -141,7 +141,11 @@ class Test:
         totalChars = 0
         for line in lines:
             # Accept up to maxChars // 2 for first part
-            if totalChars + len(line) + 1 > maxChars // 2:
+            if totalChars + len(line) > maxChars // 2:
+                if all(l == "" or l.isspace() for l in firstPart):
+                    # If the first part is empty, show up to maxChars // 2
+                    firstPart.append(line[:maxChars // 2] + "<<< output truncated >>>")
+                
                 break
             firstPart.append(line)
 
@@ -149,9 +153,12 @@ class Test:
 
         # Collect the last part of the text
         totalChars = 0
-        for line in reversed(lines):
+        for line in reversed(lines[len(firstPart):]):
             # Accept up to maxChars // 2 for first part
-            if totalChars + len(line) + 1 > maxChars // 2:
+            if totalChars + len(line) > maxChars // 2:
+                if all(l == "" or l.isspace() for l in lastPart):
+                    # If the last part is empty, show up to maxChars // 2
+                    lastPart.insert(0, "<<< output truncated >>>" + line[-(maxChars // 2):])
                 break
             lastPart.insert(0, line)
 
@@ -159,9 +166,13 @@ class Test:
             
         # Combine the parts with the omitted message
         nLinesOmitted = len(lines) - len(firstPart) - len(lastPart)
-        sep = f"<<< {nLinesOmitted} lines omitted >>>"
-        result = '\n'.join(firstPart) + '\n' + sep + '\n' + '\n'.join(lastPart)
-        
+
+        if nLinesOmitted > 0:
+            sep = f"<<< {nLinesOmitted} lines omitted >>>"
+            result = '\n'.join(('\n'.join(firstPart), sep, '\n'.join(lastPart)))
+        else:
+            result = '\n'.join(('\n'.join(firstPart), '\n'.join(lastPart)))
+
         return result
 
     def addOutput(self, output: str) -> None:

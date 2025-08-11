@@ -54,16 +54,16 @@ file: _typing.Optional[_pathlib.Path] = None
 testPath: _typing.Optional[_pathlib.Path] = None
 
 class _Context:
-    def __init__(self, debug=False, json=False, silent=False, stdoutLimit=1000):
+    def __init__(self, debug=False, json=False, silent=False, outputLimit=1000):
         self.debug = debug
         self.json = json
         self.silent = silent
-        self.stdoutLimit = stdoutLimit
+        self.outputLimit = outputLimit
 
     def __reduce__(self):
         return (
             _Context,
-            (self.debug, self.json, self.silent, self.stdoutLimit)
+            (self.debug, self.json, self.silent, self.outputLimit)
         )
 
 context = _Context()
