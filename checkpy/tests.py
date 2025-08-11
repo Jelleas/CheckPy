@@ -120,8 +120,50 @@ class Test:
 
     @property
     def output(self) -> str:
-        return "\n".join(self._output)
+        from checkpy import context # avoid circular import
+        stdoutLimit = context.stdoutLimit
+
+        output = "\n".join(self._output)
+
+        return self._formatOutput(output, stdoutLimit)
     
+    @staticmethod
+    def _formatOutput(text: str, maxChars: int) -> str:
+        if len(text) < maxChars:
+            return text
+
+        lines = text.split('\n')
+        # return str(lines)
+        firstPart = []
+        lastPart = []
+        
+        # Collect the first part of the text
+        totalChars = 0
+        for line in lines:
+            # Accept up to maxChars // 2 for first part
+            if totalChars + len(line) + 1 > maxChars // 2:
+                break
+            firstPart.append(line)
+
+            totalChars += len(line) + 1 # +1 for the newline character
+
+        # Collect the last part of the text
+        totalChars = 0
+        for line in reversed(lines):
+            # Accept up to maxChars // 2 for first part
+            if totalChars + len(line) + 1 > maxChars // 2:
+                break
+            lastPart.insert(0, line)
+
+            totalChars += len(line) + 1 # +1 for the newline character
+            
+        # Combine the parts with the omitted message
+        nLinesOmitted = len(lines) - len(firstPart) - len(lastPart)
+        sep = f"<<< {nLinesOmitted} lines omitted >>>"
+        result = '\n'.join(firstPart) + '\n' + sep + '\n' + '\n'.join(lastPart)
+        
+        return result
+
     def addOutput(self, output: str) -> None:
         self._output.append(output)
 
