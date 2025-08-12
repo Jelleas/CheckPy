@@ -1,5 +1,4 @@
 import contextlib
-import io
 import os
 import pathlib
 import re
@@ -9,24 +8,22 @@ import traceback
 
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Iterable, List, Optional, Tuple, TextIO, Union
+from typing import Any, Iterable, List, Optional, Tuple, Union
 from warnings import warn
 
 import checkpy
+import checkpy.tester
 from checkpy.entities import path, exception, function
 from checkpy import caches
 from checkpy.lib.static import getSource
-
+import checkpy.lib.io
 
 __all__ = [
     "getFunction",
     "getModule",
     "outputOf",
     "getModuleAndOutputOf",
-    "captureStdin",
-    "captureStdout"
 ]
-
 
 def getFunction(
         functionName: str,
@@ -37,15 +34,22 @@ def getFunction(
         ignoreExceptions: Iterable[Exception]=(),
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> function.Function:
-    """Run the file then get the function with functionName"""
-    return getattr(getModule(
+    """Run the file, ignore any side effects, then get the function with functionName"""
+    module = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
         stdinArgs=stdinArgs,
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
-    ), functionName)
+    )[0]
+
+    if functionName not in module.__dict__:
+        raise AssertionError(
+            f"Function '{functionName}' not found in module '{module.__name__}'"
+        )
+
+    return getattr(module, functionName)
 
 
 def outputOf(
@@ -57,7 +61,7 @@ def outputOf(
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> str:
     """Get the output after running the file."""
-    _, output = getModuleAndOutputOf(
+    _, output = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
@@ -65,6 +69,7 @@ def outputOf(
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
     )
+    checkpy.lib.addOutput(output)
     return output
 
 
@@ -77,7 +82,7 @@ def getModule(
         overwriteAttributes: Iterable[Tuple[str, Any]]=()
 ) -> ModuleType:
     """Get the python Module after running the file."""
-    mod, _ = getModuleAndOutputOf(
+    mod, output = _getModuleAndOutputOf(
         fileName=fileName,
         src=src,
         argv=argv,
@@ -85,11 +90,41 @@ def getModule(
         ignoreExceptions=ignoreExceptions,
         overwriteAttributes=overwriteAttributes
     )
+    checkpy.lib.addOutput(output)
     return mod
 
 
-@caches.cache()
 def getModuleAndOutputOf(
+        fileName: Optional[Union[str, Path]]=None,
+        src: Optional[str]=None,
+        argv: Optional[List[str]]=None,
+        stdinArgs: Optional[List[str]]=None,
+        ignoreExceptions: Iterable[Exception]=(),
+        overwriteAttributes: Iterable[Tuple[str, Any]]=()
+    ) -> Tuple[ModuleType, str]:
+    """
+    This function handles most of checkpy's under the hood functionality
+
+    fileName (optional): the name of the file to run
+    src (optional): the source code to run
+    argv (optional): set sys.argv to argv before importing,
+    stdinArgs (optional): arguments passed to stdin
+    ignoreExceptions (optional): exceptions that will silently pass while importing
+    overwriteAttributes (optional): attributes to overwrite in the imported module
+    """
+    mod, output = _getModuleAndOutputOf(
+        fileName=fileName,
+        src=src,
+        argv=argv,
+        stdinArgs=stdinArgs,
+        ignoreExceptions=ignoreExceptions,
+        overwriteAttributes=overwriteAttributes
+    )
+    checkpy.lib.addOutput(output)
+    return mod, output
+
+@caches.cache()
+def _getModuleAndOutputOf(
         fileName: Optional[Union[str, Path]]=None,
         src: Optional[str]=None,
         argv: Optional[List[str]]=None,
@@ -110,7 +145,7 @@ def getModuleAndOutputOf(
     if fileName is None:
         if checkpy.file is None:
             raise checkpy.entities.exception.CheckpyError(
-                message=f"Cannot call getSourceOfDefinitions() without passing fileName as argument if not test is running."
+                message=f"Cannot call getModuleAndOutputOf() without passing fileName as argument if not test is running."
             )
         fileName = checkpy.file.name
 
@@ -121,12 +156,12 @@ def getModuleAndOutputOf(
     output = ""
     excep = None
 
-    with captureStdout() as stdout, captureStdin() as stdin:
+    with checkpy.lib.io.captureStdout() as stdoutListener:
         # fill stdin with args
         if stdinArgs:
             for arg in stdinArgs:
-                stdin.write(str(arg) + "\n")
-            stdin.seek(0)
+                sys.stdin.write(str(arg) + "\n")
+            sys.stdin.seek(0)
 
         # if argv given, overwrite sys.argv
         if argv:
@@ -153,15 +188,17 @@ def getModuleAndOutputOf(
         except exception.CheckpyError as e:
             excep = e
         except Exception as e:
+            checkpy.lib.addOutput(stdoutListener.content)
             excep = exception.SourceException(
                 exception = e,
                 message = "while trying to import the code",
-                output = stdout.getvalue(),
+                output = stdoutListener.content,
                 stacktrace = traceback.format_exc())
         except SystemExit as e:
+            checkpy.lib.addOutput(stdoutListener.content)
             excep = exception.ExitError(
                 message = "exit({}) while trying to import the code".format(int(e.args[0])),
-                output = stdout.getvalue(),
+                output = stdoutListener.content,
                 stacktrace = traceback.format_exc())
 
         # wrap every function in mod with Function
@@ -173,60 +210,21 @@ def getModuleAndOutputOf(
         if argv:
             sys.argv = argv
 
-        output = stdout.getvalue()
+        output = stdoutListener.content
     if excep:
         raise excep
 
     return mod, output
 
 
-@contextlib.contextmanager
-def captureStdout(stdout: Optional[TextIO]=None):
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-
-    if stdout is None:
-        stdout = io.StringIO()
-
-    try:
-        sys.stdout = stdout
-        sys.stderr = open(os.devnull)
-        yield stdout
-    except:
-        raise
-    finally:
-        sys.stderr.close()
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-
-
-@contextlib.contextmanager
-def captureStdin(stdin: Optional[TextIO]=None):
-    def newInput(oldInput):
-        def input(prompt=None):
-            try:
-                return oldInput()
-            except EOFError:
-                e = exception.InputError(
-                    message="You requested too much user input",
-                    stacktrace=traceback.format_exc())
-                raise e
-        return input
-
-    oldInput = input
-    __builtins__["input"] = newInput(oldInput)
-    old = sys.stdin
-    if stdin is None:
-        stdin = io.StringIO()
-    sys.stdin = stdin
-
-    try:
-        yield stdin
-    except:
-        raise
-    finally:
-        sys.stdin = old
-        __builtins__["input"] = oldInput
+def addOutput(output: str):
+    """
+    Add output to the active test's output.
+    If no active test is found, this function does nothing.
+    """
+    test = checkpy.tester.getActiveTest()
+    if test is not None:
+        test.addOutput(output)
 
 
 def removeWhiteSpace(s):

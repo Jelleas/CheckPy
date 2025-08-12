@@ -6,30 +6,23 @@ import io
 import typing
 
 import checkpy.entities.exception as exception
+import checkpy.lib
+import checkpy.lib.io
 
 
 class Function:
-    _isFirstFunctionCalled = True
-
     def __init__(self, function: typing.Callable):
         self._function = function
         self._printOutput = ""
 
     def __call__(self, *args, **kwargs) -> typing.Any:
-        oldStdout = sys.stdout
-        oldStderr = sys.stderr
-        oldIsFirstFunctionCalled = Function._isFirstFunctionCalled
-
         try:
-            # iff this Function is the first one called, capture stdout
-            if Function._isFirstFunctionCalled:
-                Function._isFirstFunctionCalled = False
-                _outStreamListener.content = ""
-                sys.stdout = _outStreamListener.stream
-                sys.stderr = _devnull
+            with checkpy.lib.io.captureStdout() as _outStreamListener:
+                outcome = self._function(*args, **kwargs)
 
-            outcome = self._function(*args, **kwargs)
-            self._printOutput = _outStreamListener.content
+                self._printOutput = _outStreamListener.content
+                checkpy.lib.addOutput(self._printOutput)
+
             return outcome
         except Exception as e:
             if isinstance(e,TypeError):
@@ -53,11 +46,6 @@ class Function:
                     argsRepr = ','.join(str(arg) for arg in args)
                     message = f"while trying to execute {self.name}({argsRepr})"
             raise exception.SourceException(exception = e, message = message)
-        finally:
-            if oldIsFirstFunctionCalled:
-                Function._isFirstFunctionCalled = True
-                sys.stderr = oldStderr
-                sys.stdout = oldStdout
 
     @property
     def name(self) -> str:
@@ -81,52 +69,3 @@ class Function:
 
     def __repr__(self):
         return self._function.__name__
-
-class _Stream(io.StringIO):
-    def __init__(self, *args, **kwargs):
-        io.StringIO.__init__(self, *args, **kwargs)
-        self._listeners: typing.List["_StreamListener"] = []
-
-    def register(self, listener: "_StreamListener"):
-        self._listeners.append(listener)
-
-    def unregister(self, listener: "_StreamListener"):
-        self._listeners.remove(listener)
-
-    def write(self, text: str):
-        """Overwrites StringIO.write to update all listeners"""
-        io.StringIO.write(self, text)
-        self._onUpdate(text)
-
-    def writelines(self, lines: typing.Iterable):
-        """Overwrites StringIO.writelines to update all listeners"""
-        io.StringIO.writelines(self, lines)
-        for line in lines:
-            self._onUpdate(line)
-
-    def _onUpdate(self, content: str):
-        for listener in self._listeners:
-            listener.update(content)
-
-class _StreamListener:
-    def __init__(self, stream: _Stream):
-        self._stream = stream
-        self.content = ""
-
-    def start(self):
-        self.stream.register(self)
-
-    def stop(self):
-        self.stream.unregister(self)
-
-    def update(self, content: str):
-        self.content += content
-
-    @property
-    def stream(self) -> _Stream:
-        return self._stream
-
-_outStream = _Stream()
-_outStreamListener = _StreamListener(_outStream)
-_outStreamListener.start()
-_devnull = open(os.devnull)

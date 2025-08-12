@@ -52,3 +52,18 @@ file: _typing.Optional[_pathlib.Path] = None
 
 # Path to the tests directory
 testPath: _typing.Optional[_pathlib.Path] = None
+
+class _Context:
+    def __init__(self, debug=False, json=False, silent=False, outputLimit=1000):
+        self.debug = debug
+        self.json = json
+        self.silent = silent
+        self.outputLimit = outputLimit
+
+    def __reduce__(self):
+        return (
+            _Context,
+            (self.debug, self.json, self.silent, self.outputLimit)
+        )
+
+context = _Context()

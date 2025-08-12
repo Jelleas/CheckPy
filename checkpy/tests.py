@@ -48,12 +48,12 @@ class Test:
     PLACEHOLDER_DESCRIPTION = "placeholder test description"
 
     def __init__(self, 
-            fileName: str,
-            priority: int,
-            timeout: Optional[int]=None,
-            onDescriptionChange: Callable[["Test"], None]=lambda self: None, 
-            onTimeoutChange: Callable[["Test"], None]=lambda self: None
-        ):
+        fileName: str,
+        priority: int,
+        timeout: Optional[int]=None,
+        onDescriptionChange: Callable[["Test"], None]=lambda self: None, 
+        onTimeoutChange: Callable[["Test"], None]=lambda self: None
+    ):
         self._fileName = fileName
         self._priority = priority
 
@@ -62,6 +62,8 @@ class Test:
 
         self._description = Test.PLACEHOLDER_DESCRIPTION
         self._timeout = Test.DEFAULT_TIMEOUT if timeout is None else timeout
+
+        self._output: list[str] = []
 
     def __lt__(self, other):
         return self._priority < other._priority
@@ -116,6 +118,66 @@ class Test:
         
         self._onTimeoutChange(self)
 
+    @property
+    def output(self) -> str:
+        from checkpy import context # avoid circular import
+        outputLimit = context.outputLimit
+
+        output = "\n".join(self._output)
+
+        return self._formatOutput(output, outputLimit)
+    
+    @staticmethod
+    def _formatOutput(text: str, maxChars: int) -> str:
+        if maxChars <= 0 or len(text) < maxChars:
+            return text
+
+        lines = text.split('\n')
+        # return str(lines)
+        firstPart = []
+        lastPart = []
+        
+        # Collect the first part of the text
+        totalChars = 0
+        for line in lines:
+            # Accept up to maxChars // 2 for first part
+            if totalChars + len(line) > maxChars // 2:
+                if all(l == "" or l.isspace() for l in firstPart):
+                    # If the first part is empty, show up to maxChars // 2
+                    firstPart.append(line[:maxChars // 2] + "<<< output truncated >>>")
+                
+                break
+            firstPart.append(line)
+
+            totalChars += len(line) + 1 # +1 for the newline character
+
+        # Collect the last part of the text
+        totalChars = 0
+        for line in reversed(lines[len(firstPart):]):
+            # Accept up to maxChars // 2 for first part
+            if totalChars + len(line) > maxChars // 2:
+                if all(l == "" or l.isspace() for l in lastPart):
+                    # If the last part is empty, show up to maxChars // 2
+                    lastPart.insert(0, "<<< output truncated >>>" + line[-(maxChars // 2):])
+                break
+            lastPart.insert(0, line)
+
+            totalChars += len(line) + 1 # +1 for the newline character
+            
+        # Combine the parts with the omitted message
+        nLinesOmitted = len(lines) - len(firstPart) - len(lastPart)
+
+        if nLinesOmitted > 0:
+            sep = f"<<< {nLinesOmitted} lines omitted >>>"
+            result = '\n'.join(('\n'.join(firstPart), sep, '\n'.join(lastPart)))
+        else:
+            result = '\n'.join(('\n'.join(firstPart), '\n'.join(lastPart)))
+
+        return result
+
+    def addOutput(self, output: str) -> None:
+        self._output.append(output)
+
     def __setattr__(self, __name: str, __value: Any) -> None:
         value = __value
         if __name in ["fail", "success", "exception"]:
@@ -130,12 +192,14 @@ class TestResult(object):
         hasPassed: Optional[bool],
         description: str,
         message: str,
+        output: str,
         exception: Optional[Exception]=None
     ):
         self._hasPassed = hasPassed
         self._description = description
         self._message = message
         self._exception = exception
+        self._output = output
 
     @property
     def description(self):
@@ -150,6 +214,10 @@ class TestResult(object):
         return self._hasPassed
 
     @property
+    def output(self):
+        return self._output    
+
+    @property
     def exception(self):
         return self._exception
 
@@ -158,7 +226,8 @@ class TestResult(object):
             "passed": self.hasPassed,
             "description": str(self.description),
             "message": str(self.message),
-            "exception": str(self.exception)
+            "exception": str(self.exception),
+            "output": str(self.output)
         }
 
 
@@ -212,21 +281,21 @@ class TestFunction:
                         failMsg += "\n"
                     msg = failMsg + assertMsg
 
-                    return TestResult(False, test.description, msg)
+                    return TestResult(False, test.description, msg, test.output)
                 except exception.CheckpyError as e:
-                    return TestResult(False, test.description, str(test.exception(e)), exception=e)
+                    return TestResult(False, test.description, str(test.exception(e)), test.output, exception=e)
                 except Exception as e:
                     e = exception.TestError(
                         exception = e,
                         message = "while testing",
                         stacktrace = traceback.format_exc())
-                    return TestResult(False, test.description, str(test.exception(e)), exception=e)
+                    return TestResult(False, test.description, str(test.exception(e)), test.output, exception=e)
 
                 # Ensure hasPassed is None or a boolean
                 # This is needed as boolean operators on np.bool_ return np.bool_
                 hasPassed = hasPassed if hasPassed is None else bool(hasPassed)
 
-                return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info))
+                return TestResult(hasPassed, test.description, test.success(info) if hasPassed else test.fail(info), test.output)
         
         return runMethod
 
@@ -308,7 +377,8 @@ class FailedTestFunction(TestFunction):
             return TestResult(
                 None,
                 test.description,
-                self.HIDE_MESSAGE
+                self.HIDE_MESSAGE,
+                test.output
             )
         return runMethod
     

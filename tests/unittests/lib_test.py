@@ -1,7 +1,9 @@
 import unittest
+from io import StringIO
 import os
 import shutil
-import sys
+import tempfile
+
 import checkpy.lib as lib
 import checkpy.caches as caches
 import checkpy.entities.exception as exception
@@ -9,13 +11,24 @@ import checkpy.entities.exception as exception
 
 class Base(unittest.TestCase):
     def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tempdir)
+        os.chdir(self.tempdir)
+
         self.fileName = "dummy.py"
         self.source = "def f(x):" +\
                       "    return x * 2"
         self.write(self.source)
 
+        stdout_context = lib.io.replaceStdout()
+        stdout_context.__enter__()
+        self.addCleanup(stdout_context.__exit__, None, None, None)
+
+        stdin_context = lib.io.replaceStdin()
+        stdin_context.__enter__()
+        self.addCleanup(stdin_context.__exit__, None, None, None)
+
     def tearDown(self):
-        os.remove(self.fileName)
         caches.clearAllCaches()
 
     def write(self, source):
@@ -29,29 +42,6 @@ class TestFileExists(Base):
 
     def test_fileExists(self):
         self.assertTrue(lib.fileExists(self.fileName))
-
-class TestRequire(Base):
-    def setUp(self):
-        super(TestRequire, self).setUp()
-        self.cwd = os.getcwd()
-        self.dirname = "testrequire"
-        os.mkdir(self.dirname)
-
-    def tearDown(self):
-        super(TestRequire, self).tearDown()
-        os.chdir(self.cwd)
-        shutil.rmtree(self.dirname)
-
-    def test_fileDownload(self):
-        fileName = "inowexist.random"
-        lib.require(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
-        self.assertTrue(os.path.isfile(fileName))
-        os.remove(fileName)
-
-    def test_fileLocalCopy(self):
-        os.chdir(self.dirname)
-        lib.require(self.fileName)
-        self.assertTrue(os.path.isfile(self.fileName))
 
 
 class TestSource(Base):
@@ -295,120 +285,76 @@ class TestNeutralizeFunction(unittest.TestCase):
 
 
 class TestDownload(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tempdir)
+        os.chdir(self.tempdir)
+
     def test_fileDownload(self):
         fileName = "someTest.py"
-        lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/{}".format(fileName))
-        self.assertTrue(os.path.isfile(fileName))
-        os.remove(fileName)
-
+        
+        with lib.sandbox.sandbox():
+            lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/{}".format(fileName))
+            self.assertTrue(os.path.isfile(fileName))
+        
     def test_fileDownloadRename(self):
         fileName = "someRandomFileName.name"
-        lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
-        self.assertTrue(os.path.isfile(fileName))
-        os.remove(fileName)
 
 
-class TestRemoveWhiteSpace(unittest.TestCase):
-    def test_remove(self):
-        s = lib.removeWhiteSpace("  \t  foo\t\t bar ")
-        self.assertEqual(s, "foobar")
-
-
-class TestGetPositiveIntegersFromString(unittest.TestCase):
-    def test_only(self):
-        s = "foo1bar 2 baz"
-        self.assertEqual(lib.getPositiveIntegersFromString(s), [1,2])
-
-    def test_order(self):
-        s = "3 1 2"
-        self.assertEqual(lib.getPositiveIntegersFromString(s), [3,1,2])
-
-    def test_negatives(self):
-        s = "-2"
-        self.assertEqual(lib.getPositiveIntegersFromString(s), [2])
-
-    def test_floats(self):
-        s = "2.0"
-        self.assertEqual(lib.getPositiveIntegersFromString(s), [2, 0])
-
-
-class TestGetNumbersFromString(unittest.TestCase):
-    def test_only(self):
-        s = "foo1bar 2 baz"
-        self.assertEqual(lib.getNumbersFromString(s), [1,2])
-
-    def test_order(self):
-        s = "3 1 2"
-        self.assertEqual(lib.getNumbersFromString(s), [3,1,2])
-
-    def test_negatives(self):
-        s = "-2"
-        self.assertEqual(lib.getNumbersFromString(s), [-2])
-
-    def test_floats(self):
-        s = "2.0"
-        self.assertEqual(lib.getNumbersFromString(s), [2.0])
-
-
-class TestGetLine(unittest.TestCase):
-    def test_empty(self):
-        s = ""
-        with self.assertRaises(IndexError):
-            lib.getLine(s, 1)
-
-    def test_oneLine(self):
-        s = "foo"
-        self.assertEqual(lib.getLine(s, 0), s)
-
-    def test_multiLine(self):
-        s = "foo\nbar"
-        self.assertEqual(lib.getLine(s, 1), "bar")
-
-    def test_oneLineTooFar(self):
-        s = "foo\nbar"
-        with self.assertRaises(IndexError):
-            lib.getLine(s, 2)
-
+        with lib.sandbox.sandbox():
+            lib.download(fileName, "https://raw.githubusercontent.com/Jelleas/tests/master/tests/someTest.py")
+            self.assertTrue(os.path.isfile(fileName))
 
 class TestCaptureStdout(unittest.TestCase):
     def test_blank(self):
-        with lib.captureStdout() as stdout:
-            self.assertTrue(len(stdout.getvalue()) == 0)
+        with lib.io.replaceStdout():
+            with lib.io.captureStdout() as stdout:
+                self.assertTrue(len(stdout.content) == 0)
 
     def test_noOutput(self):
-        with lib.captureStdout() as stdout:
-            print("foo")
-            self.assertEqual("foo\n", stdout.getvalue())
+        with lib.io.replaceStdout():
+            with lib.io.captureStdout() as stdout:
+                print("foo")
+                self.assertEqual("foo\n", stdout.content)
 
     def test_noLeakage(self):
         import sys
-        with lib.captureStdout() as stdout:
-            print("foo")
-        self.assertTrue(len(sys.stdout.getvalue()) == 0)
+        try:
+            original_stdout = sys.stdout
+            mock_stdout = StringIO()
+            sys.stdout = mock_stdout
 
-class TestCaptureStdin(unittest.TestCase):
-    def setUp(self):
-        self.getInput = lambda : input if sys.version_info >= (3,0) else raw_input
+            with lib.io.replaceStdout():
+                with lib.io.captureStdout():
+                    print("foo")
+            
+            self.assertEqual(len(mock_stdout.getvalue()), 0)
+            self.assertEqual(len(sys.stdout.getvalue()), 0)
+        finally:
+            sys.stdout = original_stdout
+            mock_stdout.close()
 
+class TestReplaceStdin(unittest.TestCase):
     def test_noInput(self):
-        with lib.captureStdin() as stdin:
+        with lib.io.replaceStdin() as stdin:
             with self.assertRaises(exception.InputError):
-                self.getInput()()
+                input()
 
     def test_oneInput(self):
-        with lib.captureStdin() as stdin:
+        with lib.io.replaceStdin() as stdin:
             stdin.write("foo\n")
             stdin.seek(0)
-            self.assertEqual(self.getInput()(), "foo")
+            self.assertEqual(input(), "foo")
             with self.assertRaises(exception.InputError):
-                self.getInput()()
+                input()
 
     def test_noLeakage(self):
-        with lib.captureStdin() as stdin, lib.captureStdout() as stdout:
-            stdin.write("foo\n")
-            stdin.seek(0)
-            self.assertEqual(self.getInput()("hello!"), "foo")
-            self.assertTrue(len(stdout.read()) == 0)
+        with lib.io.replaceStdout():
+            with lib.io.replaceStdin() as stdin, lib.io.captureStdout() as stdout:
+                stdin.write("foo\n")
+                stdin.seek(0)
+                self.assertEqual(input("hello!"), "foo")
+                self.assertTrue(len(stdout.content) == 0)
 
 
 if __name__ == '__main__':

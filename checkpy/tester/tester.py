@@ -5,10 +5,12 @@ from checkpy.tester import discovery
 from checkpy.lib.sandbox import sandbox
 from checkpy.lib.explanation import explainCompare
 from checkpy.tests import Test, TestResult, TestFunction
+import checkpy.lib.io
 
 from types import ModuleType
 from typing import Dict, Iterable, List, Optional, Union
 
+import copy
 import contextlib
 import os
 import pathlib
@@ -33,8 +35,17 @@ def getActiveTest() -> Optional[Test]:
     return _activeTest
 
 
-def test(testName: str, module="", debugMode=False, silentMode=False) -> "TesterResult":
-    printer.printer.SILENT_MODE = silentMode
+def test(
+        testName: str,
+        module="",
+        debugMode: Union[bool, None]=None, 
+        silentMode: Union[bool, None]=None
+    ) -> "TesterResult":
+    if debugMode is not None:
+        checkpy.context.debug = debugMode
+    
+    if silentMode is not None:
+        checkpy.context.silent = silentMode
 
     result = TesterResult(testName)
 
@@ -76,9 +87,7 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
         testerResult = runTests(
             testFileName.split(".")[0],
             testPath,
-            path,
-            debugMode=debugMode,
-            silentMode=silentMode
+            path
         )
 
     if path.endswith(".ipynb"):
@@ -88,17 +97,26 @@ def test(testName: str, module="", debugMode=False, silentMode=False) -> "Tester
     return testerResult
 
 
-def testModule(module: str, debugMode=False, silentMode=False) -> Optional[List["TesterResult"]]:
-    printer.printer.SILENT_MODE = silentMode
+def testModule(
+        module: str, 
+        debugMode: Union[bool, None]=None, 
+        silentMode: Union[bool, None]=None
+    ) -> Optional[List["TesterResult"]]:
+    if debugMode is not None:
+        checkpy.context.debug = debugMode
+    
+    if silentMode is not None:
+        checkpy.context.silent = silentMode
+
     testNames = discovery.getTestNames(module)
 
     if not testNames:
         printer.displayError("no tests found in module: {}".format(module))
         return None
 
-    return [test(testName, module=module, debugMode=debugMode, silentMode=silentMode) for testName in testNames]
+    return [test(testName, module=module) for testName in testNames]
 
-def runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
+def runTests(moduleName: str, testPath: pathlib.Path, fileName: str) -> "TesterResult":
     result: Optional[TesterResult] = None
 
     with _addToSysPath(testPath):
@@ -106,7 +124,7 @@ def runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=F
 
         signalQueue: "mp.Queue[_Signal]" = ctx.Queue()
         resultQueue: "mp.Queue[TesterResult]" = ctx.Queue()
-        tester = _Tester(moduleName, testPath, pathlib.Path(fileName), debugMode, silentMode, signalQueue, resultQueue)
+        tester = _Tester(moduleName, testPath, pathlib.Path(fileName), signalQueue, resultQueue)
         p = ctx.Process(target=tester.run, name="Tester")
         p.start()
 
@@ -152,7 +170,7 @@ def runTests(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=F
     return result
 
 
-def runTestsSynchronously(moduleName: str, testPath: pathlib.Path, fileName: str, debugMode=False, silentMode=False) -> "TesterResult":
+def runTestsSynchronously(moduleName: str, testPath: pathlib.Path, fileName: str) -> "TesterResult":
     signalQueue = queue.Queue()
     resultQueue = queue.Queue()
 
@@ -160,25 +178,21 @@ def runTestsSynchronously(moduleName: str, testPath: pathlib.Path, fileName: str
             moduleName=moduleName,
             testPath=testPath,
             filePath=pathlib.Path(fileName),
-            debugMode=debugMode,
-            silentMode=silentMode,
             signalQueue=signalQueue,
             resultQueue=resultQueue
     )
 
     with _addToSysPath(testPath):
         try:
-            old_debug_mode = printer.printer.DEBUG_MODE
-            old_silent_mode = printer.printer.SILENT_MODE
+            old_context = copy.copy(checkpy.context)
             tester.run()
         finally:
-            printer.printer.DEBUG_MODE = old_debug_mode
-            printer.printer.SILENT_MODE = old_silent_mode
+            checkpy.context = old_context
             
     return resultQueue.get()
 
 
-class TesterResult(object):
+class TesterResult:
     def __init__(self, name: str):
         self.name = name
         self.nTests = 0
@@ -206,7 +220,7 @@ class TesterResult(object):
         }
 
 
-class _Signal(object):
+class _Signal:
     def __init__(
             self, 
             isTiming: Optional[bool]=None, 
@@ -226,25 +240,21 @@ class _Tester:
             moduleName: str,
             testPath: pathlib.Path,
             filePath: pathlib.Path,
-            debugMode: bool,
-            silentMode: bool,
             signalQueue: "mp.Queue[_Signal]",
             resultQueue: "mp.Queue[TesterResult]"
         ):
         self.moduleName = moduleName
         self.testPath = testPath
         self.filePath = filePath.absolute()
-        self.debugMode = debugMode
-        self.silentMode = silentMode
         self.signalQueue = signalQueue
         self.resultQueue = resultQueue
+        self._context = checkpy.context
 
     def run(self):
-        printer.printer.DEBUG_MODE = self.debugMode
-        printer.printer.SILENT_MODE = self.silentMode
+        checkpy.context = self._context
 
         warnings.filterwarnings("ignore")
-        if self.debugMode:
+        if checkpy.context.debug:
             warnings.simplefilter('always', DeprecationWarning)
 
         checkpy.file = self.filePath
@@ -322,7 +332,7 @@ class _Tester:
 
         global _activeTest
 
-        # run tests in noncolliding execution order
+        # run tests in non-colliding execution order
         for testFunction in self._getTestFunctionsInExecutionOrder(testFunctions):
             test = Test(
                 self.filePath.name,
@@ -343,7 +353,8 @@ class _Tester:
                 timeout=test.timeout
             ))
 
-            cachedResults[test] = run()
+            with checkpy.lib.io.replaceStdout() as stdout, checkpy.lib.io.replaceStdin() as stdin:
+                cachedResults[test] = run()
 
             _activeTest = None
 
