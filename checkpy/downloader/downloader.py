@@ -32,7 +32,7 @@ def download(githubLink: str):
     repoName = githubLink.split("/")[-1].lower()
 
     try:
-        _syncRelease(username, repoName)
+        _syncCommit(username, repoName)
         _download(username, repoName)
     except exception.DownloadError as e:
         printer.displayError(str(e))
@@ -49,7 +49,7 @@ def register(localLink: Union[str, pathlib.Path]):
 def update():
     for username, repoName in database.forEachUserAndRepo():
         try:
-            _syncRelease(username, repoName)
+            _syncCommit(username, repoName)
             _download(username, repoName)
         except exception.DownloadError as e:
             printer.displayError(str(e))
@@ -75,79 +75,103 @@ def updateSilently():
 
         database.setTimestampGithub(username, repoName)
         try:
-            if _newReleaseAvailable(username, repoName):
+            if _newCommitAvailable(username, repoName):
                 _download(username, repoName)
-        except exception.DownloadError as e:
+        except exception.DownloadError:
             pass
 
-def _newReleaseAvailable(githubUserName: str, githubRepoName: str) -> bool:
+def _newCommitAvailable(githubUserName: str, githubRepoName: str) -> bool:
     # unknown/new download
     if not database.isKnownGithub(githubUserName, githubRepoName):
         return True
-    releaseJson = _getReleaseJson(githubUserName, githubRepoName)
+    commitJson = _getLatestCommitJson(githubUserName, githubRepoName)
 
-    # new release id found
-    if releaseJson["id"] != database.releaseId(githubUserName, githubRepoName):
-        database.updateGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+    # new commit found
+    if commitJson["sha"] != database.commitSha(githubUserName, githubRepoName):
+        database.updateGithubTable(
+            githubUserName,
+            githubRepoName,
+            commitJson["commit"]["message"],
+            commitJson["sha"],
+        )
         return True
 
-    # no new release found
+    # no new commit found
     return False
 
-def _syncRelease(githubUserName: str, githubRepoName: str):
-    releaseJson = _getReleaseJson(githubUserName, githubRepoName)
+def _syncCommit(githubUserName: str, githubRepoName: str):
+    commitJson = _getLatestCommitJson(githubUserName, githubRepoName)
 
     if database.isKnownGithub(githubUserName, githubRepoName):
-        database.updateGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+        database.updateGithubTable(
+            githubUserName,
+            githubRepoName,
+            commitJson["commit"]["message"],
+            commitJson["sha"],
+        )
     else:
-        database.addToGithubTable(githubUserName, githubRepoName, releaseJson["id"], releaseJson["tag_name"])
+        database.addToGithubTable(
+            githubUserName,
+            githubRepoName,
+            commitJson["commit"]["message"],
+            commitJson["sha"],
+        )
 
-
-def _getReleaseJson(githubUserName: str, githubRepoName: str) -> Dict:
+def _get_with_auth(url: str) -> requests.Response:
     """
+    Get a url with authentication if available.
+    Returns a requests.Response object.
+    """
+    global user
+    global personal_access_token
+    if user and personal_access_token:
+        return requests.get(url, auth=(user, personal_access_token))
+    else:
+        return requests.get(url)
+
+def _getLatestCommitJson(githubUserName: str, githubRepoName: str) -> Dict:
+    """
+    Get the latest commit from the default branch of the given repository.
     This performs one api call, beware of rate limit!!!
     Returns a dictionary representing the json returned by github
     In case of an error, raises an exception.DownloadError
     """
-    apiReleaseLink = f"https://api.github.com/repos/{githubUserName}/{githubRepoName}/releases/latest"
+    apiCommitLink = f"https://api.github.com/repos/{githubUserName}/{githubRepoName}/commits"
 
-    global user
-    global personal_access_token
     try:
-        if user and personal_access_token:
-            r = requests.get(apiReleaseLink, auth=(user, personal_access_token))
-        else:
-            r = requests.get(apiReleaseLink)
+        r = _get_with_auth(apiCommitLink)
     except requests.exceptions.ConnectionError as e:
         raise exception.DownloadError(message="Oh no! It seems like there is no internet connection available?!")
 
     # exceeded rate limit,
     if r.status_code == 403:
-        raise exception.DownloadError(message=f"Tried finding new releases from {githubUserName}/{githubRepoName} but exceeded the rate limit, try again within an hour!")
+        raise exception.DownloadError(message=f"Tried finding new commits from {githubUserName}/{githubRepoName} but exceeded the rate limit, try again within an hour!")
 
-    # no releases found or page not found
+    # no commits found or page not found
     if r.status_code == 404:
-        raise exception.DownloadError(message=f"Failed to check for new tests from {githubUserName}/{githubRepoName} because: no releases found (404)")
+        raise exception.DownloadError(message=f"Failed to check for new commits from {githubUserName}/{githubRepoName} because: no commits found (404)")
 
     # random error
     if not r.ok:
-        raise exception.DownloadError(message=f"Failed to sync releases from {githubUserName}/{githubRepoName} because: {r.reason}")
+        raise exception.DownloadError(message=f"Failed to get commits from {githubUserName}/{githubRepoName} because: {r.reason}")
 
-    return r.json()
+    return r.json()[0]
 
-# download tests for githubUserName and githubRepoName from what is known in downloadlocations.json
-# use _syncRelease() to force an update in downloadLocations.json
+# download tests for githubUserName and githubRepoName from what is known in db
+# use _syncCommit() to force an update in db
 def _download(githubUserName: str, githubRepoName: str):
-    githubLink = f"https://github.com/{githubUserName}/{githubRepoName}"
-    zipLink = githubLink + f"/archive/{database.releaseTag(githubUserName, githubRepoName)}.zip"
+    sha = database.commitSha(githubUserName, githubRepoName)
+    zipUrl = f'https://api.github.com/repos/{githubUserName}/{githubRepoName}/zipball/{sha}'
 
     try:
-        r = requests.get(zipLink)
+        r = _get_with_auth(zipUrl)
     except requests.exceptions.ConnectionError as e:
         raise exception.DownloadError(message = "Oh no! It seems like there is no internet connection available?!")
 
+    gitHubUrl = f'https://github.com/{githubUserName}/{githubRepoName}' # just for feedback
+
     if not r.ok:
-        raise exception.DownloadError(message = f"Failed to download {githubLink} because: {r.reason}")
+        raise exception.DownloadError(message = f"Failed to download {gitHubUrl} because: {r.reason}")
 
     f = io.BytesIO(r.content)
 
@@ -177,7 +201,7 @@ def _download(githubUserName: str, githubRepoName: str):
 
         _extractTests(z, destPath)
 
-    printer.displayCustom(f"Finished downloading: {githubLink}")
+    printer.displayCustom(f"Finished downloading: {gitHubUrl}")
 
 def _extractTests(zipfile: zf.ZipFile, destPath: pathlib.Path):
     if not destPath.exists():

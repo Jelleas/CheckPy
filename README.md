@@ -53,7 +53,9 @@ Here spcourse/tests points to <https://github.com/spcourse/tests>. You can also 
     --dev                 get extra information to support the development of tests
     --silent              do not print test results to stdout
     --json                return output as json, implies silent
-    --gh-auth GH_AUTH     username:personal_access_token for authentication with GitHub. Only used to increase  GitHub api's rate limit.
+    --gh-auth GH_AUTH     username:personal_access_token for authentication with GitHub.
+    --output-limit OUTPUTLIMIT
+                          limit the number of characters stored for each test's output field. Default is 1000. Set to 0 to disable this limit.
 
 To test a single file call:
 
@@ -233,8 +235,7 @@ correctForPos = test()(declarative
 
 ### Distributing tests
 
-checkpy downloads tests directly from Github repos. The requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules). There must also be at least one release in the Github repo. checkpy will automatically target the latest release. To download tests call checkpy with the optional ``-d`` argument and pass your github repo url. checkpy will automatically keep tests up to date by checking for any new releases on GitHub.
-
+checkpy downloads tests directly from Github repos. The requirement is that a folder called ``tests`` exists within the repo that contains only tests and folders (which checkpy treats as modules). checkpy will pull from the default branch. To download tests call checkpy with the optional ``-d`` argument and pass your github repo url. checkpy will automatically keep tests up to date by checking for any new commits on GitHub.
 
 ### Testing checkpy
 
