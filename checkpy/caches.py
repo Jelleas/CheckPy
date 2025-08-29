@@ -40,6 +40,7 @@ def cache(*keys):
                 key = str(args) + str(kwargs) + str(sys.argv)
             if key not in localCache:
                 localCache[key] = func(*args, **kwargs)
+
             return localCache[key]
         return cachedFuncWrapper
 

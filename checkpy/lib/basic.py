@@ -157,6 +157,11 @@ def _getModuleAndOutputOf(
     excep = None
 
     with checkpy.lib.io.captureStdout() as stdoutListener:
+
+        # flush stdin
+        sys.stdin.seek(0)
+        sys.stdin.flush()
+
         # fill stdin with args
         if stdinArgs:
             for arg in stdinArgs:
